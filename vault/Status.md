@@ -39,7 +39,8 @@ updated: 2026-11-09
   print restore command. Volatile DPI storage by default (`--persistent` opt-in).
 - Live check: `opensynapse list` finds `00B8 Razer Viper V3 HyperSpeed (protocol 2.5,
   control: yes)`.
-- First hardware read (`info`) succeeded: firmware, serial, device mode. → [[RE-Log/2026-11-09 Hardware read test]]
+- Hardware reads succeeded: firmware, serial, device mode, battery, charging, DPI,
+  DPI stages, polling (00/85 works), sleep (300). → [[RE-Log/2026-11-09 Hardware read test]]
 
 ### Budgets ([[Decisions/ADR-0002 Lean by design]])
 | Metric | Target | Measured | |
@@ -60,7 +61,7 @@ enumeration that filters on `VID_1532` in the interface path before opening (nee
 
 ## Open questions (carry over)
 - Storage byte meaning in DPI/polling (0 volatile / 1 persistent?).
-- Viper: polling command 00/05 vs 00/40; sleep-timer unit.
+- Viper: polling 00/05 works on the dongle (observed); 00/40 untested. Sleep unit: seconds (inferred, 300 read).
 - Button-assignment data bytes per function type.
 - Event collection usage page/report on the Viper.
 - 81 products without manifest → protocol unknown.
