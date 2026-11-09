@@ -52,6 +52,8 @@ There are two mechanisms:
 
 ## Recommendation for `opensynapse-hid` (Windows, `hidapi` crate)
 
+> Implemented natively instead of via hidapi (same calls: zero-access open, HidD_SetFeature/GetFeature), see [[Decisions/ADR-0003 Own Windows HID backend]]. Confirmed on hardware 2026-11-09 ([[RE-Log/2026-11-09 Hardware read test]]).
+
 1. Enumerate with `HidApi::device_list()`. Match `vendor_id == 0x1532`, `product_id == <pid>`, `interface_number == <claimInterface from device registry>` (0 for 0x00B8), **and** `usage_page == 0x0001 && usage == 0x0002`. Usage matters because the RZVIRTUAL children (`…MI_00&Col03&Col0x`) also parse as interface 0 but carry no feature report.
    - Extra safety: pick the collection whose caps report a 91-byte feature report, i.e. probe with `get_feature_report` returning 91.
 2. `open_path(path)`. hidapi falls back to a zero-access handle automatically. **Don't** call `read()`/`write()` on it: there's no output report, and input reads are denied.

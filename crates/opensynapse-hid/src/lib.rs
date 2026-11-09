@@ -1,10 +1,12 @@
-//! hidapi transport and device sessions. See README.md.
+//! HID transport and device sessions. See README.md.
 //!
 //! Transport facts: `vault/Protocol/Windows Transport.md`. Retry/busy rules:
 //! `vault/Protocol/Report Format 2.5.md`. This crate never builds report bytes
 //! itself; it moves [`opensynapse_protocol::Report`]s.
+//!
+//! Backends: native SetupAPI/hid.dll on Windows (`windows.rs`, see
+//! `vault/Decisions/ADR-0003 Own Windows HID backend.md`), hidapi elsewhere.
 
-use std::ffi::CString;
 use std::time::Duration;
 
 use opensynapse_device_registry::RAZER_VID;
@@ -12,8 +14,14 @@ use opensynapse_protocol::{
     Disposition, FEATURE_REPORT_LEN, ProtocolError, Report, Request, Status, TransactionCounter,
 };
 
-mod process;
-pub use process::conflicting_process;
+#[cfg(not(windows))]
+mod hidapi_backend;
+#[cfg(not(windows))]
+use hidapi_backend as backend;
+#[cfg(windows)]
+mod windows;
+#[cfg(windows)]
+use windows as backend;
 
 /// Usage page / usage of the collection that carries the 91-byte feature report.
 pub const CONTROL_USAGE_PAGE: u16 = 0x0001;
@@ -21,10 +29,14 @@ pub const CONTROL_USAGE: u16 = 0x0002;
 /// Interface Synapse claims for the Viper V3 HyperSpeed (and the 2.5 default).
 pub const DEFAULT_INTERFACE: i32 = 0;
 
+/// Process image names of Razer software that drives the same devices. Both apps
+/// can hold the control collection at once and interleave reports.
+const CONFLICTING: &[&str] = &["RazerAppEngine.exe"];
+
 #[derive(Debug, thiserror::Error)]
 pub enum HidError {
-    #[error("HID error: {0}")]
-    Hid(#[from] hidapi::HidError),
+    #[error("HID I/O error: {0}")]
+    Io(#[from] std::io::Error),
     #[error(transparent)]
     Protocol(#[from] ProtocolError),
     #[error("device answered {0:?}")]
@@ -38,11 +50,13 @@ pub enum HidError {
 pub struct HidEntry {
     pub vid: u16,
     pub pid: u16,
+    /// USB interface number, -1 if unknown / not composite.
     pub interface: i32,
     pub usage_page: u16,
     pub usage: u16,
-    pub path: CString,
-    pub product: Option<String>,
+    /// Feature report length incl. report ID, if the backend can tell.
+    pub feature_len: Option<u16>,
+    pub path: String,
 }
 
 impl HidEntry {
@@ -51,83 +65,61 @@ impl HidEntry {
         self.interface == interface
             && self.usage_page == CONTROL_USAGE_PAGE
             && self.usage == CONTROL_USAGE
+            && self
+                .feature_len
+                .is_none_or(|n| usize::from(n) == FEATURE_REPORT_LEN)
     }
 }
 
-/// Enumerated Razer HID collections plus the hidapi context to open them.
+/// Enumerated Razer HID collections.
 pub struct Transport {
-    api: hidapi::HidApi,
+    entries: Vec<HidEntry>,
 }
 
 impl Transport {
-    /// Enumerate HID collections. hidapi 2.6 always scans every HID device in
-    /// `HidApi::new()` (its discovery switch only affects libusb), so this is the
-    /// single scan; [`Transport::entries`] filters to Razer afterwards.
+    /// Enumerate Razer (VID 0x1532) collections.
     pub fn new() -> Result<Self, HidError> {
-        Ok(Self {
-            api: hidapi::HidApi::new()?,
-        })
+        let mut entries = backend::enumerate(RAZER_VID)?;
+        entries.sort_by(|a, b| (a.pid, &a.path).cmp(&(b.pid, &b.path)));
+        entries.dedup_by(|a, b| a.path == b.path);
+        Ok(Self { entries })
     }
 
-    /// Razer (VID 0x1532) collections.
-    pub fn entries(&self) -> Vec<HidEntry> {
-        self.api
-            .device_list()
-            .filter(|d| d.vendor_id() == RAZER_VID)
-            .map(|d| HidEntry {
-                vid: d.vendor_id(),
-                pid: d.product_id(),
-                interface: d.interface_number(),
-                usage_page: d.usage_page(),
-                usage: d.usage(),
-                path: d.path().to_owned(),
-                product: d.product_string().map(str::to_owned),
-            })
+    pub fn entries(&self) -> &[HidEntry] {
+        &self.entries
+    }
+
+    /// Control collections (usage page 1 / usage 2 / 91-byte feature on `interface`).
+    pub fn control_entries(&self, interface: i32) -> Vec<HidEntry> {
+        self.entries
+            .iter()
+            .filter(|e| e.is_control(interface))
+            .cloned()
             .collect()
     }
 
-    /// Control collections (usage page 1 / usage 2 on `interface`), one per path.
-    pub fn control_entries(&self, interface: i32) -> Vec<HidEntry> {
-        let mut v: Vec<_> = self
-            .entries()
-            .into_iter()
-            .filter(|e| e.is_control(interface))
-            .collect();
-        v.sort_by(|a, b| (a.pid, &a.path).cmp(&(b.pid, &b.path)));
-        v.dedup_by(|a, b| a.path == b.path);
-        v
-    }
-
-    /// Open a collection. hidapi falls back to a zero-access handle, which is
-    /// enough for feature reports on the OS-owned mouse collection.
-    pub fn open(
-        &self,
-        entry: &HidEntry,
-        timing: Timing,
-    ) -> Result<Session<hidapi::HidDevice>, HidError> {
-        let dev = self.api.open_path(&entry.path)?;
-        Ok(Session::new(dev, timing))
+    /// Open a collection (zero-access handle on Windows).
+    pub fn open(&self, entry: &HidEntry, timing: Timing) -> Result<DeviceSession, HidError> {
+        Ok(Session::new(backend::Device::open(&entry.path)?, timing))
     }
 }
 
-/// A session on a real hidapi device.
-pub type DeviceSession = Session<hidapi::HidDevice>;
+/// A session on a real device.
+pub type DeviceSession = Session<backend::Device>;
 
-/// Feature-report I/O. Implemented for `hidapi::HidDevice`; mocked in tests.
+/// Name of running Razer software that may talk to the device at the same time.
+pub fn conflicting_process() -> Option<&'static str> {
+    CONFLICTING
+        .iter()
+        .copied()
+        .find(|name| backend::process_running(name))
+}
+
+/// Feature-report I/O. Implemented by the backends; mocked in tests.
 pub trait FeatureIo {
     fn send_feature(&self, buf: &[u8]) -> Result<(), HidError>;
     /// Fill `buf` (byte 0 = report ID on entry); returns bytes read.
     fn get_feature(&self, buf: &mut [u8]) -> Result<usize, HidError>;
-}
-
-impl FeatureIo for hidapi::HidDevice {
-    fn send_feature(&self, buf: &[u8]) -> Result<(), HidError> {
-        Ok(self.send_feature_report(buf)?)
-    }
-
-    fn get_feature(&self, buf: &mut [u8]) -> Result<usize, HidError> {
-        Ok(self.get_feature_report(buf)?)
-    }
 }
 
 /// Pacing and retry limits. Defaults follow the Viper V3 HyperSpeed manifest

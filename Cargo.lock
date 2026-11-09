@@ -271,6 +271,7 @@ dependencies = [
  "opensynapse-protocol",
  "thiserror",
  "tracing",
+ "windows-sys",
 ]
 
 [[package]]

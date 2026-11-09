@@ -24,7 +24,16 @@ opensynapse-protocol = { path = "crates/opensynapse-protocol" }
 opensynapse-device-registry = { path = "crates/opensynapse-device-registry" }
 opensynapse-hid = { path = "crates/opensynapse-hid" }
 opensynapse-cli = { path = "crates/opensynapse-cli" }
-hidapi = { version = "2", default-features = false, features = ["windows-native"] }
+# Linux/macOS only; Windows uses windows-sys directly (ADR-0003).
+hidapi = "2"
+windows-sys = { version = "0.61", features = [
+    "Win32_Devices_DeviceAndDriverInstallation",
+    "Win32_Devices_HumanInterfaceDevice",
+    "Win32_Foundation",
+    "Win32_Security",
+    "Win32_Storage_FileSystem",
+    "Win32_System_Diagnostics_ToolHelp",
+] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 toml = "0.8"

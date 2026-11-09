@@ -152,8 +152,8 @@ fn control_entry_filter() {
         interface: 0,
         usage_page: 1,
         usage: 2,
-        path: CString::new("x").unwrap(),
-        product: None,
+        feature_len: Some(91),
+        path: "x".into(),
     };
     assert!(e.is_control(0));
     assert!(!e.is_control(1));
@@ -163,4 +163,9 @@ fn control_entry_filter() {
         ..e
     };
     assert!(!consumer.is_control(0));
+    let short_feature = HidEntry {
+        feature_len: Some(9),
+        ..consumer.clone()
+    };
+    assert!(!short_feature.is_control(0));
 }

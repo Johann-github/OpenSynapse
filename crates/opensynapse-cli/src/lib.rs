@@ -198,7 +198,7 @@ pub fn run(cli: Cli) -> Result<()> {
 
 fn list(transport: &Transport) -> Result<()> {
     let reg = Registry::embedded();
-    let mut entries = transport.entries();
+    let mut entries = transport.entries().to_vec();
     entries.sort_by_key(|e| e.pid);
     entries.dedup_by_key(|e| e.pid);
     if entries.is_empty() {
@@ -208,10 +208,7 @@ fn list(transport: &Transport) -> Result<()> {
     let control = transport.control_entries(DEFAULT_INTERFACE);
     for e in &entries {
         let m = reg.lookup(e.vid, e.pid);
-        let name = m
-            .map(|m| m.device().name.clone())
-            .or_else(|| e.product.clone())
-            .unwrap_or_else(|| "unknown device".into());
+        let name = m.map_or("unknown Razer device", |m| m.device().name.as_str());
         let proto = m.map_or(Protocol::Unknown, |m| m.protocol());
         let ctl = if control.iter().any(|c| c.pid == e.pid) {
             "control: yes"

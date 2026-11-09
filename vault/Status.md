@@ -45,14 +45,12 @@ updated: 2026-11-09
 ### Budgets ([[Decisions/ADR-0002 Lean by design]])
 | Metric | Target | Measured | |
 |---|---|---|---|
-| CLI binary (release) | < 5 MB | 1.29 MB | ✅ |
-| `opensynapse list` | < 200 ms | 245–285 ms | ❌ |
+| CLI binary (release) | < 5 MB | 1.16 MB | ✅ |
+| `opensynapse list` | < 200 ms | 75–84 ms | ✅ |
+| device command (`dpi get`) | — | 133–162 ms | |
 
-Cause of the miss: `hidapi` 2.6.7 `HidApi::new()` always enumerates **every** HID
-collection and reads its strings (~200 ms on the dev PC, 37 collections incl. sim-racing
-gear); `disable_device_discovery` only affects libusb. Fix options: own Windows
-enumeration that filters on `VID_1532` in the interface path before opening (needs
-`unsafe` + `windows-sys`), or an upstream hidapi change for a non-scanning constructor.
+The first build missed the `list` budget (245–285 ms) because hidapi scans every HID
+device. Fixed with a native Windows backend → [[Decisions/ADR-0003 Own Windows HID backend]].
 
 ## Phase 3 plan
 - Read-only commands first on the real mouse: `opensynapse info`, `battery`, `dpi get`,

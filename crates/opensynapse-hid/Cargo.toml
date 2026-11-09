@@ -11,8 +11,13 @@ description = "hidapi transport and device sessions."
 workspace = true
 
 [dependencies]
-hidapi.workspace = true
 thiserror.workspace = true
 tracing.workspace = true
 opensynapse-protocol.workspace = true
 opensynapse-device-registry.workspace = true
+
+[target.'cfg(windows)'.dependencies]
+windows-sys.workspace = true
+
+[target.'cfg(not(windows))'.dependencies]
+hidapi.workspace = true
