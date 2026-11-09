@@ -13,5 +13,6 @@ Entry point. Repo root is the vault; code lives in `crates/`.
 
 ## Process
 - [[Decisions/ADR-0001 Clean-room reverse engineering]]
+- [[Decisions/ADR-0002 Lean by design]]
 - [[RE-Log/2026-11-09 Target survey]]
 - Templates: [[Templates/RE-Log]], [[Templates/Protocol Command]], [[Templates/Device]]
