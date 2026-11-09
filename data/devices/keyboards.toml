@@ -1,0 +1,2115 @@
+# OpenSynapse device registry: keyboard, keypad
+# Facts extracted from Razer Synapse 4 public device metadata + OpenRazer cross-reference.
+# Schema: data/devices/SCHEMA.md. Build notes: vault/Devices/Device Registry.md
+
+[[device]]
+name = "Star Wars: The Old Republic Gaming Keyboard by Razer"
+vid = 0x1532
+pid = 0x002B
+synapse_product_id = 43
+kind = "keyboard"
+protocol = "unknown"
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Lycosa"
+vid = 0x1532
+pid = 0x0109
+synapse_product_id = 265
+kind = "keyboard"
+protocol = "unknown"
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Arctosa"
+vid = 0x1532
+pid = 0x010B
+synapse_product_id = 267
+kind = "keyboard"
+protocol = "unknown"
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer BlackWidow Ultimate"
+vid = 0x1532
+pid = 0x010D
+synapse_product_id = 269
+kind = "keyboard"
+protocol = "2.5"
+transaction_id = 0xFF
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer BlackWidow"
+vid = 0x1532
+pid = 0x010E
+synapse_product_id = 270
+kind = "keyboard"
+protocol = "2.5"
+transaction_id = 0xFF
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Anansi"
+vid = 0x1532
+pid = 0x010F
+synapse_product_id = 271
+kind = "keyboard"
+protocol = "2.5"
+transaction_id = 0xFF
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer DeathStalker Ultimate"
+vid = 0x1532
+pid = 0x0114
+synapse_product_id = 276
+kind = "keyboard"
+protocol = "unknown"
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer DeathStalker"
+vid = 0x1532
+pid = 0x0118
+synapse_product_id = 280
+kind = "keyboard"
+protocol = "2.5"
+transaction_id = 0xFF
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer DeathStalker Essential"
+vid = 0x1532
+pid = 0x0119
+synapse_product_id = 281
+kind = "keyboard"
+protocol = "unknown"
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer BlackWidow Ultimate 2013"
+vid = 0x1532
+pid = 0x011A
+synapse_product_id = 282
+kind = "keyboard"
+protocol = "2.5"
+transaction_id = 0xFF
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer BlackWidow 2013"
+vid = 0x1532
+pid = 0x011B
+synapse_product_id = 283
+kind = "keyboard"
+protocol = "2.5"
+transaction_id = 0xFF
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer BlackWidow Tournament Edition"
+vid = 0x1532
+pid = 0x011C
+synapse_product_id = 284
+kind = "keyboard"
+protocol = "2.5"
+transaction_id = 0xFF
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer DeathStalker Essential Lite"
+vid = 0x1532
+pid = 0x011F
+synapse_product_id = 287
+kind = "keyboard"
+protocol = "unknown"
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer DeathStalker LC"
+vid = 0x1532
+pid = 0x0202
+synapse_product_id = 514
+kind = "keyboard"
+protocol = "2.5"
+transaction_id = 0xFF
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer BlackWidow Chroma"
+vid = 0x1532
+pid = 0x0203
+synapse_product_id = 515
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0xFF
+lighting = { matrix = [7, 23], leds = 110, regions = 1 }
+synapse_class = "rzDevice25LedMatrix"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer DeathStalker Chroma"
+vid = 0x1532
+pid = 0x0204
+synapse_product_id = 516
+kind = "keyboard"
+protocol = "2.5"
+transaction_id = 0xFF
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Blade Stealth"
+vid = 0x1532
+pid = 0x0205
+synapse_product_id = 517
+kind = "keyboard"
+protocol = "2.5"
+transaction_id = 0xFF
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Turret Keyboard"
+vid = 0x1532
+pid = 0x0206
+synapse_product_id = 518
+kind = "keyboard"
+protocol = "unknown"
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer BlackWidow TE Chroma"
+vid = 0x1532
+pid = 0x0209
+synapse_product_id = 521
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0xFF
+lighting = { matrix = [7, 18], leds = 88, regions = 1 }
+synapse_class = "rzDevice25LedMatrix"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Cynosa Pro"
+vid = 0x1532
+pid = 0x020D
+synapse_product_id = 525
+kind = "keyboard"
+protocol = "unknown"
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Cynosa"
+vid = 0x1532
+pid = 0x020E
+synapse_product_id = 526
+kind = "keyboard"
+protocol = "unknown"
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Blade 4"
+vid = 0x1532
+pid = 0x020F
+synapse_product_id = 527
+kind = "keyboard"
+protocol = "2.5"
+transaction_id = 0xFF
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Blade Pro Chroma"
+vid = 0x1532
+pid = 0x0210
+synapse_product_id = 528
+kind = "keyboard"
+protocol = "2.5"
+transaction_id = 0xFF
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer BlackWidow Chroma Overwatch"
+vid = 0x1532
+pid = 0x0211
+synapse_product_id = 529
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0xFF
+lighting = { matrix = [7, 22], leds = 105, regions = 1 }
+synapse_class = "rzDevice25LedMatrix"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer BlackWidow Ultimate 2016"
+vid = 0x1532
+pid = 0x0214
+synapse_product_id = 532
+kind = "keyboard"
+protocol = "2.5"
+transaction_id = 0xFF
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer BlackWidow X Chroma"
+vid = 0x1532
+pid = 0x0216
+synapse_product_id = 534
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0xFF
+lighting = { matrix = [7, 22], leds = 105, regions = 1 }
+synapse_class = "rzDevice25LedMatrix"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer BlackWidow Ultimate X"
+vid = 0x1532
+pid = 0x0217
+synapse_product_id = 535
+kind = "keyboard"
+protocol = "2.5"
+transaction_id = 0xFF
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer BlackWidow X Ultimate SE"
+vid = 0x1532
+pid = 0x0218
+synapse_product_id = 536
+kind = "keyboard"
+protocol = "unknown"
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer BlackWidow X"
+vid = 0x1532
+pid = 0x0219
+synapse_product_id = 537
+kind = "keyboard"
+protocol = "unknown"
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer BlackWidow X TE Chroma"
+vid = 0x1532
+pid = 0x021A
+synapse_product_id = 538
+kind = "keyboard"
+protocol = "2.5"
+transaction_id = 0xFF
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer BlackWidow TE X"
+vid = 0x1532
+pid = 0x021B
+synapse_product_id = 539
+kind = "keyboard"
+protocol = "unknown"
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Ornata Chroma"
+vid = 0x1532
+pid = 0x021E
+synapse_product_id = 542
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0x3F
+lighting = { matrix = [7, 23], leds = 110, regions = 1 }
+synapse_class = "rzDevice25ChromaEffect"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Ornata"
+vid = 0x1532
+pid = 0x021F
+synapse_product_id = 543
+kind = "keyboard"
+protocol = "2.5"
+transaction_id = 0x3F
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Blade Stealth 2"
+vid = 0x1532
+pid = 0x0220
+synapse_product_id = 544
+kind = "keyboard"
+protocol = "2.5"
+transaction_id = 0xFF
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer BlackWidow Chroma V2"
+vid = 0x1532
+pid = 0x0221
+synapse_product_id = 545
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0x3F
+lighting = { matrix = [7, 23], leds = 110, regions = 1 }
+synapse_class = "rzDevice25LedMatrix"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Blade 6"
+vid = 0x1532
+pid = 0x0224
+synapse_product_id = 548
+kind = "keyboard"
+protocol = "2.5"
+transaction_id = 0xFF
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Blade Pro 2 Chroma"
+vid = 0x1532
+pid = 0x0225
+synapse_product_id = 549
+kind = "keyboard"
+protocol = "2.5"
+transaction_id = 0xFF
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Huntsman Elite"
+vid = 0x1532
+pid = 0x0226
+synapse_product_id = 550
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0x3F
+lighting = { matrix = [11, 24], leds = 166, regions = 2 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Huntsman"
+vid = 0x1532
+pid = 0x0227
+synapse_product_id = 551
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb", "dongle"]
+transaction_id = 0x3F
+lighting = { matrix = [6, 22], leds = 104 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer BlackWidow Elite"
+vid = 0x1532
+pid = 0x0228
+synapse_product_id = 552
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0x1F
+lighting = { matrix = [7, 22], leds = 109, regions = 2 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Cynosa Chroma"
+vid = 0x1532
+pid = 0x022A
+synapse_product_id = 554
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0x3F
+lighting = { matrix = [7, 22], leds = 105, regions = 1 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Cynosa Chroma Pro"
+vid = 0x1532
+pid = 0x022C
+synapse_product_id = 556
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0x3F
+lighting = { matrix = [7, 24], leds = 127, regions = 2 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Blade Stealth 3"
+vid = 0x1532
+pid = 0x022D
+synapse_product_id = 557
+kind = "keyboard"
+protocol = "2.5"
+transaction_id = 0xFF
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Blade Pro 2.5 Chroma"
+vid = 0x1532
+pid = 0x022F
+synapse_product_id = 559
+kind = "keyboard"
+protocol = "2.5"
+transaction_id = 0xFF
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Blade Stealth 4"
+vid = 0x1532
+pid = 0x0232
+synapse_product_id = 562
+kind = "keyboard"
+protocol = "2.5"
+transaction_id = 0xFF
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Blade 15 Advanced Model"
+vid = 0x1532
+pid = 0x0233
+synapse_product_id = 563
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+laptop = true
+transaction_id = 0xFF
+lighting = { matrix = [6, 15], leds = 80 }
+synapse_class = "rzDevice25LedMatrixSkipSetEffect"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Blade Pro 17"
+vid = 0x1532
+pid = 0x0234
+synapse_product_id = 564
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+laptop = true
+transaction_id = 0xFF
+lighting = { matrix = [6, 15], leds = 80 }
+synapse_class = "rzDevice25LedMatrixSkipSetEffect"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer BlackWidow Lite"
+vid = 0x1532
+pid = 0x0235
+synapse_product_id = 565
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0x3F
+lighting = { chroma = false }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer BlackWidow Essential"
+vid = 0x1532
+pid = 0x0237
+synapse_product_id = 567
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0xFF
+lighting = { chroma = false }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Blade Stealth 13"
+vid = 0x1532
+pid = 0x0239
+synapse_product_id = 569
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+laptop = true
+transaction_id = 0xFF
+lighting = { matrix = [1, 1], leds = 16 }
+synapse_class = "rzDevice25LedMatrixBlade"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Blade 15 Advanced Model"
+vid = 0x1532
+pid = 0x023A
+synapse_product_id = 570
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+laptop = true
+transaction_id = 0xFF
+lighting = { matrix = [6, 15], leds = 80 }
+synapse_class = "rzDevice25LedMatrixSkipSetEffect"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Blade 15 Base Model"
+vid = 0x1532
+pid = 0x023B
+synapse_product_id = 571
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+laptop = true
+transaction_id = 0xFF
+lighting = { matrix = [1, 1], leds = 15 }
+synapse_class = "rzDevice25LedMatrix"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Turret Keyboard Xbox One Edition"
+vid = 0x1532
+pid = 0x023E
+synapse_product_id = 574
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb", "dongle"]
+dongle_pid = 0x0904
+lighting = { matrix = [6, 18], leds = 87 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+[[device.variants]]
+pid = 0x0904
+connection = "dongle"
+protocol = "2.5"
+synapse_class = "rzDevice25"
+
+
+[[device]]
+name = "Razer Cynosa Lite"
+vid = 0x1532
+pid = 0x023F
+synapse_product_id = 575
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0x3F
+lighting = { matrix = [1, 1], leds = 1, regions = 1 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Blade 15 Mercury White"
+vid = 0x1532
+pid = 0x0240
+synapse_product_id = 576
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+laptop = true
+transaction_id = 0xFF
+lighting = { matrix = [6, 15], leds = 80 }
+synapse_class = "rzDevice25LedMatrixSkipSetEffect"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer BlackWidow"
+vid = 0x1532
+pid = 0x0241
+synapse_product_id = 577
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0x3F
+lighting = { matrix = [7, 22], leds = 105, regions = 1 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Huntsman Tournament Edition"
+vid = 0x1532
+pid = 0x0243
+synapse_product_id = 579
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0x3F
+lighting = { matrix = [6, 18], leds = 87 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Blade 15 Advanced Model"
+vid = 0x1532
+pid = 0x0245
+synapse_product_id = 581
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+laptop = true
+transaction_id = 0xFF
+lighting = { matrix = [6, 15], leds = 80 }
+synapse_class = "rzDevice25LedMatrixSkipSetEffect"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Blade 15 Base Model"
+vid = 0x1532
+pid = 0x0246
+synapse_product_id = 582
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+laptop = true
+transaction_id = 0xFF
+lighting = { matrix = [1, 1], leds = 15 }
+synapse_class = "rzDevice25LedMatrix"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Pro Type"
+vid = 0x1532
+pid = 0x0249
+synapse_product_id = 585
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb", "dongle", "bluetooth"]
+bluetooth_pid = 0x0248
+lighting = { chroma = false }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+[[device.variants]]
+pid = 0x0248
+connection = "bluetooth"
+protocol = "3.0"
+synapse_class = "rzDevice30"
+
+
+[[device]]
+name = "Razer Blade Stealth 13"
+vid = 0x1532
+pid = 0x024A
+synapse_product_id = 586
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+laptop = true
+transaction_id = 0xFF
+lighting = { matrix = [1, 1], leds = 16 }
+synapse_class = "rzDevice25LedMatrix"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Blade 15 Advanced Model"
+vid = 0x1532
+pid = 0x024B
+synapse_product_id = 587
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+laptop = true
+transaction_id = 0xFF
+lighting = { matrix = [6, 15], leds = 80 }
+synapse_class = "rzDevice25LedMatrixSkipSetEffect"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Blade Pro 17"
+vid = 0x1532
+pid = 0x024C
+synapse_product_id = 588
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+laptop = true
+transaction_id = 0xFF
+lighting = { matrix = [6, 15], leds = 80 }
+synapse_class = "rzDevice25LedMatrixSkipSetEffect"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Blade 15 Studio Edition"
+vid = 0x1532
+pid = 0x024D
+synapse_product_id = 589
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+laptop = true
+transaction_id = 0xFF
+lighting = { matrix = [6, 15], leds = 80 }
+synapse_class = "rzDevice25LedMatrixSkipSetEffect"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer BlackWidow V3"
+vid = 0x1532
+pid = 0x024E
+synapse_product_id = 590
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0x3F
+lighting = { matrix = [7, 22], leds = 107, regions = 1 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "RAZER BLACKWIDOW X: TENKEYLESS"
+vid = 0x1532
+pid = 0x024F
+synapse_product_id = 591
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb", "dongle"]
+lighting = { chroma = false }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Huntsman Essential"
+vid = 0x1532
+pid = 0x0250
+synapse_product_id = 592
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb", "dongle"]
+lighting = { chroma = false }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Pokémon Pikachu Limited Edition Backlit Keyboard"
+vid = 0x1532
+pid = 0x0251
+synapse_product_id = 593
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+lighting = { chroma = false }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Blade Stealth 13 Base Model"
+vid = 0x1532
+pid = 0x0252
+synapse_product_id = 594
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+laptop = true
+transaction_id = 0xFF
+lighting = { matrix = [1, 1], leds = 15 }
+synapse_class = "rzDevice25LedMatrix"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Blade 15 Advanced Model"
+vid = 0x1532
+pid = 0x0253
+synapse_product_id = 595
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+laptop = true
+transaction_id = 0xFF
+lighting = { matrix = [7, 15], leds = 80 }
+synapse_class = "rzDevice25LedMatrixSkipSetEffect"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Blade 15 Base Model"
+vid = 0x1532
+pid = 0x0255
+synapse_product_id = 597
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+laptop = true
+transaction_id = 0xFF
+lighting = { matrix = [1, 1], leds = 15 }
+synapse_class = "rzDevice25LedMatrix"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Blade 15 Advanced Model"
+vid = 0x1532
+pid = 0x0256
+synapse_product_id = 598
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+laptop = true
+transaction_id = 0xFF
+lighting = { matrix = [7, 15], leds = 80 }
+synapse_class = "rzDevice25LedMatrixSkipSetEffect"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Huntsman Mini"
+vid = 0x1532
+pid = 0x0257
+synapse_product_id = 599
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0x3F
+lighting = { matrix = [5, 14], leds = 61 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer BlackWidow V3 Mini Hyperspeed"
+vid = 0x1532
+pid = 0x0258
+synapse_product_id = 600
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb", "dongle", "bluetooth"]
+dongle_pid = 0x0271
+bluetooth_pid = 0x0272
+transaction_id = 0x1F
+lighting = { matrix = [6, 16], leds = 69 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+[[device.variants]]
+pid = 0x0271
+connection = "dongle"
+protocol = "2.5"
+synapse_class = "rzDevice25DualLinkKeyboard"
+
+[[device.variants]]
+pid = 0x0272
+connection = "bluetooth"
+protocol = "3.0"
+synapse_class = "rzDevice30"
+
+
+[[device]]
+name = "Razer Blade Stealth 13"
+vid = 0x1532
+pid = 0x0259
+synapse_product_id = 601
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+laptop = true
+transaction_id = 0xFF
+lighting = { matrix = [1, 1], leds = 15 }
+synapse_class = "rzDevice25LedMatrix"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer BlackWidow V3 Pro"
+vid = 0x1532
+pid = 0x025A
+synapse_product_id = 602
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb", "dongle", "bluetooth"]
+dongle_pid = 0x025C
+bluetooth_pid = 0x025B
+transaction_id = 0x3F
+lighting = { matrix = [7, 22], leds = 110, regions = 2 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+[[device.variants]]
+pid = 0x025C
+connection = "dongle"
+protocol = "2.5"
+synapse_class = "rzDevice25DualLinkKeyboard"
+
+[[device.variants]]
+pid = 0x025B
+connection = "bluetooth"
+protocol = "3.0"
+synapse_class = "rzDevice30"
+
+
+[[device]]
+name = "Razer Ornata V2"
+vid = 0x1532
+pid = 0x025D
+synapse_product_id = 605
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0x1F
+lighting = { matrix = [7, 23], leds = 113, regions = 1 }
+synapse_class = "rzDevice25ChromaEffect"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Cynosa V2"
+vid = 0x1532
+pid = 0x025E
+synapse_product_id = 606
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0x1F
+lighting = { matrix = [6, 22], leds = 110, regions = 1 }
+synapse_class = "rzDevice25ChromaEffect"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Huntsman V2 Analog"
+vid = 0x1532
+pid = 0x0266
+synapse_product_id = 614
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0x1F
+lighting = { matrix = [10, 24], leds = 148, regions = 2 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Blade 15 Base Model"
+vid = 0x1532
+pid = 0x0268
+synapse_product_id = 616
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+laptop = true
+transaction_id = 0xFF
+lighting = { matrix = [1, 1], leds = 15 }
+synapse_class = "rzDevice25LedMatrix"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Huntsman Mini"
+vid = 0x1532
+pid = 0x0269
+synapse_product_id = 617
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0x3F
+lighting = { matrix = [5, 15], leds = 66 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Book 13"
+vid = 0x1532
+pid = 0x026A
+synapse_product_id = 618
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+laptop = true
+transaction_id = 0xFF
+lighting = { matrix = [7, 15], leds = 78 }
+synapse_class = "rzDevice25LedMatrixSkipSetEffect"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Huntsman V2 Tenkeyless"
+vid = 0x1532
+pid = 0x026B
+synapse_product_id = 619
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0x1F
+lighting = { matrix = [6, 18], leds = 87 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Huntsman V2"
+vid = 0x1532
+pid = 0x026C
+synapse_product_id = 620
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0x1F
+lighting = { matrix = [6, 22], leds = 108, regions = 1 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Blade 15 Advanced Model"
+vid = 0x1532
+pid = 0x026D
+synapse_product_id = 621
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+laptop = true
+transaction_id = 0xFF
+lighting = { matrix = [7, 15], leds = 80 }
+synapse_class = "rzDevice25LedMatrixSkipSetEffect"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Blade Pro 17"
+vid = 0x1532
+pid = 0x026E
+synapse_product_id = 622
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+laptop = true
+transaction_id = 0xFF
+lighting = { matrix = [7, 15], leds = 80 }
+synapse_class = "rzDevice25LedMatrixSkipSetEffect"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Blade 15 Base Model"
+vid = 0x1532
+pid = 0x026F
+synapse_product_id = 623
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+laptop = true
+transaction_id = 0xFF
+lighting = { matrix = [1, 1], leds = 15 }
+synapse_class = "rzDevice25LedMatrix"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Blade 14"
+vid = 0x1532
+pid = 0x0270
+synapse_product_id = 624
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+laptop = true
+transaction_id = 0xFF
+lighting = { matrix = [7, 15], leds = 78 }
+synapse_class = "rzDevice25LedMatrixSkipSetEffect"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Blade 15 Advanced Model"
+vid = 0x1532
+pid = 0x0276
+synapse_product_id = 630
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+laptop = true
+transaction_id = 0xFF
+lighting = { matrix = [7, 15], leds = 80 }
+synapse_class = "rzDevice25LedMatrixSkipSetEffect"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Pro Type Ultra"
+vid = 0x1532
+pid = 0x0277
+synapse_product_id = 631
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb", "dongle", "bluetooth"]
+dongle_pid = 0x027B
+bluetooth_pid = 0x0278
+lighting = { chroma = false }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+[[device.variants]]
+pid = 0x027B
+connection = "dongle"
+protocol = "2.5"
+synapse_class = "rzDevice25DualLinkKeyboard"
+
+[[device.variants]]
+pid = 0x0278
+connection = "bluetooth"
+protocol = "3.0"
+synapse_class = "rzDevice30"
+
+
+[[device]]
+name = "Razer Blade 17"
+vid = 0x1532
+pid = 0x0279
+synapse_product_id = 633
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+laptop = true
+transaction_id = 0xFF
+lighting = { matrix = [7, 15], leds = 80 }
+synapse_class = "rzDevice25LedMatrixSkipSetEffect"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Blade 15 Base Model"
+vid = 0x1532
+pid = 0x027A
+synapse_product_id = 634
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+laptop = true
+transaction_id = 0xFF
+lighting = { matrix = [1, 1], leds = 15 }
+synapse_class = "rzDevice25LedMatrix"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Huntsman Mini Analog"
+vid = 0x1532
+pid = 0x0282
+synapse_product_id = 642
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0x1F
+lighting = { matrix = [5, 15], leds = 61 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer BlackWidow V4"
+vid = 0x1532
+pid = 0x0287
+synapse_product_id = 647
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0x1F
+lighting = { matrix = [9, 26], leds = 132 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Blade 15 Advanced Model"
+vid = 0x1532
+pid = 0x028A
+synapse_product_id = 650
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+laptop = true
+transaction_id = 0xFF
+lighting = { matrix = [7, 15], leds = 80 }
+synapse_class = "rzDevice25LedMatrixSkipSetEffect"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Blade 17"
+vid = 0x1532
+pid = 0x028B
+synapse_product_id = 651
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+laptop = true
+transaction_id = 0xFF
+lighting = { matrix = [7, 15], leds = 80 }
+synapse_class = "rzDevice25LedMatrixSkipSetEffect"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Blade 14"
+vid = 0x1532
+pid = 0x028C
+synapse_product_id = 652
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+laptop = true
+transaction_id = 0xFF
+lighting = { matrix = [7, 15], leds = 79 }
+synapse_class = "rzDevice25LedMatrixSkipSetEffect"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer BlackWidow V4 Pro"
+vid = 0x1532
+pid = 0x028D
+synapse_product_id = 653
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0x1F
+polling_rates = [125, 250, 500, 1000, 2000, 4000, 8000]
+lighting = { matrix = [14, 26], leds = 152 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Cynosa Pro"
+vid = 0x1532
+pid = 0x028E
+synapse_product_id = 654
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+lighting = { chroma = false }
+synapse_class = "rzDevice25LegacyHardwareEffect"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Ornata V3"
+vid = 0x1532
+pid = 0x028F
+synapse_product_id = 655
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0x1F
+lighting = { matrix = [1, 10], leds = 10 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer DeathStalker V2 Pro"
+vid = 0x1532
+pid = 0x0292
+synapse_product_id = 658
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb", "dongle", "bluetooth"]
+dongle_pid = 0x0290
+bluetooth_pid = 0x0291
+transaction_id = 0x3F
+lighting = { matrix = [6, 22], leds = 106 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+[[device.variants]]
+pid = 0x0290
+connection = "dongle"
+protocol = "2.5"
+synapse_class = "rzDevice25DualLinkKeyboard"
+
+[[device.variants]]
+pid = 0x0291
+connection = "bluetooth"
+protocol = "3.0"
+synapse_class = "rzDevice30"
+
+
+[[device]]
+name = "Razer BlackWidow V4 X"
+vid = 0x1532
+pid = 0x0293
+synapse_product_id = 659
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0x1F
+polling_rates = [125, 250, 500, 1000, 2000, 4000, 8000]
+lighting = { matrix = [6, 22], leds = 110 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Ornata V3 X"
+vid = 0x1532
+pid = 0x0294
+synapse_product_id = 660
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0x1F
+lighting = { matrix = [1, 1], leds = 1, regions = 1 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer DeathStalker V2"
+vid = 0x1532
+pid = 0x0295
+synapse_product_id = 661
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0x3F
+lighting = { matrix = [6, 22], leds = 106 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer DeathStalker V2 Pro Tenkeyless"
+vid = 0x1532
+pid = 0x0298
+synapse_product_id = 664
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb", "dongle", "bluetooth"]
+dongle_pid = 0x0296
+bluetooth_pid = 0x0297
+dual_link = true
+transaction_id = 0x3F
+lighting = { matrix = [6, 18], leds = 86 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+[[device.variants]]
+pid = 0x0296
+connection = "dongle"
+protocol = "2.5"
+synapse_class = "rzDevice25DualLinkKeyboard"
+
+[[device.variants]]
+pid = 0x0297
+connection = "bluetooth"
+protocol = "3.0"
+synapse_class = "rzDevice30"
+
+
+[[device]]
+name = "Razer Blade 14"
+vid = 0x1532
+pid = 0x029D
+synapse_product_id = 669
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+laptop = true
+transaction_id = 0xFF
+lighting = { matrix = [7, 15], leds = 79 }
+synapse_class = "rzDevice25LedMatrixSkipSetEffect"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Blade 15"
+vid = 0x1532
+pid = 0x029E
+synapse_product_id = 670
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+laptop = true
+transaction_id = 0xFF
+lighting = { matrix = [7, 15], leds = 80 }
+synapse_class = "rzDevice25LedMatrixSkipSetEffect"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Blade 16"
+vid = 0x1532
+pid = 0x029F
+synapse_product_id = 671
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+laptop = true
+transaction_id = 0xFF
+lighting = { matrix = [7, 15], leds = 80 }
+synapse_class = "rzDevice25LedMatrixSkipSetEffect"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Blade 18"
+vid = 0x1532
+pid = 0x02A0
+synapse_product_id = 672
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+laptop = true
+transaction_id = 0xFF
+lighting = { matrix = [7, 15], leds = 80 }
+synapse_class = "rzDevice25LedMatrixSkipSetEffect"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Ornata V3"
+vid = 0x1532
+pid = 0x02A1
+synapse_product_id = 673
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0x1F
+lighting = { matrix = [1, 10], leds = 10 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Ornata V3 X"
+vid = 0x1532
+pid = 0x02A2
+synapse_product_id = 674
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0x1F
+lighting = { matrix = [1, 1], leds = 1, regions = 1 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Ornata V3 Tenkeyless"
+vid = 0x1532
+pid = 0x02A3
+synapse_product_id = 675
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0x1F
+lighting = { matrix = [1, 8], leds = 8 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer BlackWidow V4 75%"
+vid = 0x1532
+pid = 0x02A5
+synapse_product_id = 677
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0x1F
+lighting = { matrix = [9, 18], leds = 101 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Huntsman V3 Pro"
+vid = 0x1532
+pid = 0x02A6
+synapse_product_id = 678
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0x1F
+lighting = { matrix = [6, 22], leds = 110 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Huntsman V3 Pro Tenkeyless"
+vid = 0x1532
+pid = 0x02A7
+synapse_product_id = 679
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0x1F
+lighting = { matrix = [6, 18], leds = 89 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Huntsman V3 Pro Mini"
+vid = 0x1532
+pid = 0x02B0
+synapse_product_id = 688
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0x1F
+lighting = { matrix = [5, 15], leds = 61 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Huntsman V3 X Tenkeyless"
+vid = 0x1532
+pid = 0x02B1
+synapse_product_id = 689
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+lighting = { matrix = [6, 18], leds = 87 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer BlackWidow V4 Pro 75%"
+vid = 0x1532
+pid = 0x02B3
+synapse_product_id = 691
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb", "dongle", "bluetooth"]
+dongle_pid = 0x02B4
+bluetooth_pid = 0x02B5
+polling_rates = [125, 250, 500, 1000]
+lighting = { matrix = [9, 18], leds = 99 }
+synapse_class = "rzDevice25Oled"
+evidence = "synapse-manifest"
+[[device.variants]]
+pid = 0x02B4
+connection = "dongle"
+protocol = "2.5"
+synapse_class = "rzDevice25Oled"
+
+[[device.variants]]
+pid = 0x02B5
+connection = "bluetooth"
+protocol = "3.0"
+synapse_class = "rzDevice30Oled"
+
+
+[[device]]
+name = "Razer Blade 14"
+vid = 0x1532
+pid = 0x02B6
+synapse_product_id = 694
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+laptop = true
+transaction_id = 0xFF
+lighting = { matrix = [7, 15], leds = 79 }
+synapse_class = "rzDevice25LedMatrixSkipSetEffect"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Blade 16"
+vid = 0x1532
+pid = 0x02B7
+synapse_product_id = 695
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+laptop = true
+lighting = { matrix = [7, 15], leds = 80 }
+synapse_class = "rzDevice25LedMatrixSkipSetEffect"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Blade 18"
+vid = 0x1532
+pid = 0x02B8
+synapse_product_id = 696
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+laptop = true
+transaction_id = 0xFF
+lighting = { matrix = [7, 15], leds = 80 }
+synapse_class = "rzDevice25LedMatrixSkipSetEffect"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer BlackWidow V4 Mini HyperSpeed"
+vid = 0x1532
+pid = 0x02B9
+synapse_product_id = 697
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb", "dongle", "bluetooth"]
+dongle_pid = 0x02BA
+bluetooth_pid = 0x02BB
+transaction_id = 0x1F
+lighting = { matrix = [6, 16], leds = 69 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+[[device.variants]]
+pid = 0x02BA
+connection = "dongle"
+protocol = "2.5"
+synapse_class = "rzDevice25DualLinkKeyboard"
+
+[[device.variants]]
+pid = 0x02BB
+connection = "bluetooth"
+protocol = "3.0"
+synapse_class = "rzDevice30"
+
+
+[[device]]
+name = "Razer Pro Type Ergo"
+vid = 0x1532
+pid = 0x02C4
+synapse_product_id = 708
+kind = "keyboard"
+protocol = "unknown"
+connection = ["dongle", "bluetooth"]
+dongle_pid = 0x02C2
+bluetooth_pid = 0x02C3
+polling_rates = [125, 250, 500, 1000]
+evidence = "synapse-js"
+[[device.variants]]
+pid = 0x02C2
+connection = "dongle"
+
+[[device.variants]]
+pid = 0x02C3
+connection = "bluetooth"
+
+
+[[device]]
+name = "Razer Blade 14"
+vid = 0x1532
+pid = 0x02C5
+synapse_product_id = 709
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+laptop = true
+transaction_id = 0xFF
+lighting = { matrix = [7, 15], leds = 79 }
+synapse_class = "rzDevice25LedMatrixSkipSetEffect"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Blade 16"
+vid = 0x1532
+pid = 0x02C6
+synapse_product_id = 710
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+laptop = true
+transaction_id = 0xFF
+lighting = { matrix = [7, 16], leds = 86 }
+synapse_class = "rzDevice25LedMatrix"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Blade 18"
+vid = 0x1532
+pid = 0x02C7
+synapse_product_id = 711
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+laptop = true
+transaction_id = 0xFF
+lighting = { matrix = [8, 18], leds = 116 }
+synapse_class = "rzDevice25LedMatrixSkipSetEffect"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer BlackWidow V4 Low-profile HyperSpeed"
+vid = 0x1532
+pid = 0x02CC
+synapse_product_id = 716
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb", "dongle", "bluetooth"]
+dongle_pid = 0x02C9
+bluetooth_pid = 0x02CA
+lighting = { matrix = [7, 23], leds = 122 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+[[device.variants]]
+pid = 0x02C9
+connection = "dongle"
+protocol = "2.5"
+synapse_class = "rzDevice25DualLinkKeyboard"
+
+[[device.variants]]
+pid = 0x02CA
+connection = "bluetooth"
+protocol = "3.0"
+synapse_class = "rzDevice30"
+
+
+[[device]]
+name = "Razer Joro"
+vid = 0x1532
+pid = 0x02CD
+synapse_product_id = 717
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb", "dongle", "bluetooth"]
+dongle_pid = 0x02DA
+bluetooth_pid = 0x02CE
+transaction_id = 0x1F
+lighting = { matrix = [1, 1], leds = 1, regions = 1 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+[[device.variants]]
+pid = 0x02DA
+connection = "dongle"
+protocol = "2.5"
+synapse_class = "rzDevice25DualLinkKeyboard"
+
+[[device.variants]]
+pid = 0x02CE
+connection = "bluetooth"
+protocol = "3.0"
+synapse_class = "rzDevice30"
+
+
+[[device]]
+name = "Razer Huntsman V3 Pro 8KHz"
+vid = 0x1532
+pid = 0x02CF
+synapse_product_id = 719
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0x1F
+polling_rates = [125, 250, 500, 1000, 2000, 4000, 8000]
+lighting = { matrix = [6, 22], leds = 110 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Huntsman V3 Pro Tenkeyless 8KHZ"
+vid = 0x1532
+pid = 0x02D0
+synapse_product_id = 720
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+polling_rates = [125, 250, 500, 1000, 2000, 4000, 8000]
+lighting = { matrix = [6, 18], leds = 89 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Huntsman V3 Pro Mini 8KHz"
+vid = 0x1532
+pid = 0x02D1
+synapse_product_id = 721
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+polling_rates = [125, 250, 500, 1000, 2000, 4000, 8000]
+synapse_class = "rzDevice25"
+evidence = "synapse-js"
+
+[[device]]
+name = "Razer BlackWidow V4 Low-profile Tenkeyless HyperSpeed"
+vid = 0x1532
+pid = 0x02D4
+synapse_product_id = 724
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb", "dongle", "bluetooth"]
+dongle_pid = 0x02D2
+bluetooth_pid = 0x02D3
+polling_rates = [125, 250, 500, 1000]
+lighting = { matrix = [6, 18], leds = 87 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+[[device.variants]]
+pid = 0x02D2
+connection = "dongle"
+protocol = "2.5"
+synapse_class = "rzDevice25DualLinkKeyboard"
+
+[[device.variants]]
+pid = 0x02D3
+connection = "bluetooth"
+protocol = "3.0"
+synapse_class = "rzDevice30"
+
+
+[[device]]
+name = "Razer Blackwidow V4 Tenkeyless Hyperspeed"
+vid = 0x1532
+pid = 0x02D7
+synapse_product_id = 727
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb", "dongle", "bluetooth"]
+dongle_pid = 0x02D5
+bluetooth_pid = 0x02D6
+transaction_id = 0x1F
+polling_rates = [125, 250, 500, 1000]
+lighting = { matrix = [6, 18], leds = 87 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+[[device.variants]]
+pid = 0x02D5
+connection = "dongle"
+protocol = "2.5"
+synapse_class = "rzDevice25DualLinkKeyboard"
+
+[[device.variants]]
+pid = 0x02D6
+connection = "bluetooth"
+protocol = "3.0"
+synapse_class = "rzDevice30"
+
+
+[[device]]
+name = "Razer Huntsman V4 Pro Tenkeyless Signature"
+vid = 0x1532
+pid = 0x02D8
+synapse_product_id = 728
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+polling_rates = [125, 250, 500, 1000, 2000, 4000, 8000]
+lighting = { matrix = [6, 18], leds = 89 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Blade 16"
+vid = 0x1532
+pid = 0x02E0
+synapse_product_id = 736
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+laptop = true
+transaction_id = 0xFF
+evidence = "synapse-js"
+
+[[device]]
+name = "Razer Blade 18"
+vid = 0x1532
+pid = 0x02E1
+synapse_product_id = 737
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+laptop = true
+transaction_id = 0xFF
+evidence = "synapse-js"
+
+[[device]]
+name = "Razer Reclusa X Mini 65%"
+vid = 0x1532
+pid = 0x02E3
+synapse_product_id = 739
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+synapse_class = "rzDevice25"
+evidence = "synapse-js"
+
+[[device]]
+name = "Razer Huntsman V3 HE Magnetic Mini 65% 8KHz"
+vid = 0x1532
+pid = 0x02E4
+synapse_product_id = 740
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+polling_rates = [125, 250, 500, 1000, 2000, 4000, 8000]
+synapse_class = "rzDevice25"
+evidence = "synapse-js"
+
+[[device]]
+name = "Razer Huntsman V3 Tenkeyless 8KHZ"
+vid = 0x1532
+pid = 0x02E5
+synapse_product_id = 741
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+polling_rates = [125, 250, 500, 1000, 2000, 4000, 8000]
+synapse_class = "rzDevice25"
+evidence = "synapse-js"
+
+[[device]]
+name = "RAZER HUNTSMAN V3 PRO LOW-PROFILE TENKEYLESS 8KHZ"
+vid = 0x1532
+pid = 0x02E6
+synapse_product_id = 742
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+polling_rates = [125, 250, 500, 1000, 2000, 4000, 8000]
+synapse_class = "rzDevice25"
+evidence = "synapse-js"
+
+[[device]]
+name = "Razer Huntsman V3 HE Magnetic Tenkeyless 8KHz"
+vid = 0x1532
+pid = 0x02EA
+synapse_product_id = 746
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+polling_rates = [125, 250, 500, 1000, 2000, 4000, 8000]
+synapse_class = "rzDevice25"
+evidence = "synapse-js"
+
+[[device]]
+name = "Razer BlackWidow V4 75% XBOX 25 Anniversary Edition"
+vid = 0x1532
+pid = 0x02F0
+synapse_product_id = 752
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+synapse_class = "rzDevice25"
+evidence = "synapse-js"
+
+[[device]]
+name = "Razer Reclusa Mini 65%"
+vid = 0x1532
+pid = 0x02F4
+synapse_product_id = 756
+kind = "keyboard"
+protocol = "2.5"
+connection = ["dongle", "bluetooth"]
+dongle_pid = 0x02F5
+bluetooth_pid = 0x02F6
+polling_rates = [125, 250, 500, 1000, 2000, 4000, 8000]
+synapse_class = "rzDevice25"
+evidence = "synapse-js"
+[[device.variants]]
+pid = 0x02F5
+connection = "dongle"
+protocol = "3.0"
+synapse_class = "rzDevice30"
+
+[[device.variants]]
+pid = 0x02F6
+connection = "bluetooth"
+
+
+[[device]]
+name = "Razer Turret Keyboard Gears Of War 5 Edition"
+vid = 0x1532
+pid = 0x0A23
+synapse_product_id = 2595
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb", "dongle"]
+dongle_pid = 0x0A21
+lighting = { matrix = [6, 18], leds = 87 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+[[device.variants]]
+pid = 0x0A21
+connection = "dongle"
+protocol = "2.5"
+synapse_class = "rzDevice25"
+
+
+[[device]]
+name = "Razer BlackWidow V3 Tenkeyless"
+vid = 0x1532
+pid = 0x0A24
+synapse_product_id = 2596
+kind = "keyboard"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0x3F
+lighting = { matrix = [6, 18], leds = 87, regions = 1 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Nostromo"
+vid = 0x1532
+pid = 0x0111
+synapse_product_id = 273
+kind = "keypad"
+protocol = "2.5"
+transaction_id = 0xFF
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Orbweaver"
+vid = 0x1532
+pid = 0x0113
+synapse_product_id = 275
+kind = "keypad"
+protocol = "2.5"
+transaction_id = 0xFF
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Tartarus"
+vid = 0x1532
+pid = 0x0201
+synapse_product_id = 513
+kind = "keypad"
+protocol = "2.5"
+transaction_id = 0xFF
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Orbweaver Chroma"
+vid = 0x1532
+pid = 0x0207
+synapse_product_id = 519
+kind = "keypad"
+protocol = "2.5"
+transaction_id = 0xFF
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Tartarus Chroma"
+vid = 0x1532
+pid = 0x0208
+synapse_product_id = 520
+kind = "keypad"
+protocol = "2.5"
+transaction_id = 0xFF
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Tartarus V2"
+vid = 0x1532
+pid = 0x022B
+synapse_product_id = 555
+kind = "keypad"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0x1F
+lighting = { matrix = [4, 6], leds = 21 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Tartarus Pro"
+vid = 0x1532
+pid = 0x0244
+synapse_product_id = 580
+kind = "keypad"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0x1F
+lighting = { matrix = [4, 6], leds = 21 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Tartarus V2 Pro"
+vid = 0x1532
+pid = 0x02EB
+synapse_product_id = 747
+kind = "keypad"
+protocol = "unknown"
+connection = ["usb"]
+evidence = "synapse-js"

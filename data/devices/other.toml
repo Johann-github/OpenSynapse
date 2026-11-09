@@ -1,0 +1,1162 @@
+# OpenSynapse device registry: mousepad, dock, controller, other
+# Facts extracted from Razer Synapse 4 public device metadata + OpenRazer cross-reference.
+# Schema: data/devices/SCHEMA.md. Build notes: vault/Devices/Device Registry.md
+
+[[device]]
+name = "Razer Wolverine Ultimate"
+vid = 0x1532
+pid = 0x0A14
+synapse_product_id = 2580
+kind = "controller"
+protocol = "unknown"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Wolverine Tournament Edition"
+vid = 0x1532
+pid = 0x0A15
+synapse_product_id = 2581
+kind = "controller"
+protocol = "unknown"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Wolverine V2"
+vid = 0x1532
+pid = 0x0A29
+synapse_product_id = 2601
+kind = "controller"
+protocol = "unknown"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Wolverine V2 Chroma"
+vid = 0x1532
+pid = 0x0A2E
+synapse_product_id = 2606
+kind = "controller"
+protocol = "unknown"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Wolverine V3 Tournament Edition"
+vid = 0x1532
+pid = 0x0A45
+synapse_product_id = 2629
+kind = "controller"
+protocol = "unknown"
+connection = ["usb"]
+lighting = { chroma = false }
+evidence = "synapse-js"
+
+[[device]]
+name = "Razer Wolverine V3 Pro"
+vid = 0x1532
+pid = 0x0A4C
+synapse_product_id = 2636
+kind = "controller"
+protocol = "2.5"
+connection = ["usb", "dongle"]
+lighting = { chroma = false }
+synapse_class = "rzDevice25Sage"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Wolverine V3 Pro PC"
+vid = 0x1532
+pid = 0x0A57
+synapse_product_id = 2647
+kind = "controller"
+protocol = "unknown"
+connection = ["dongle"]
+dongle_pid = 0x0A59
+lighting = { chroma = false }
+evidence = "synapse-js"
+[[device.variants]]
+pid = 0x0A59
+connection = "dongle"
+
+
+[[device]]
+name = "Razer Wolverine V3 TE PC"
+vid = 0x1532
+pid = 0x0A5A
+synapse_product_id = 2650
+kind = "controller"
+protocol = "unknown"
+connection = ["usb"]
+lighting = { chroma = false }
+evidence = "synapse-js"
+
+[[device]]
+name = "Razer Wolverine V4 Pro"
+vid = 0x1532
+pid = 0x0A74
+synapse_product_id = 2676
+kind = "controller"
+protocol = "unknown"
+connection = ["dongle"]
+dongle_pid = [0x0A78, 0x0A79]
+lighting = { chroma = false }
+evidence = "synapse-js"
+[[device.variants]]
+pid = 0x0A78
+connection = "dongle"
+
+[[device.variants]]
+pid = 0x0A79
+connection = "dongle"
+
+
+[[device]]
+name = "Razer Wolverine V4 Tournament Edition"
+vid = 0x1532
+pid = 0x0A7C
+synapse_product_id = 2684
+kind = "controller"
+protocol = "unknown"
+connection = ["usb"]
+lighting = { chroma = false }
+evidence = "synapse-js"
+
+[[device]]
+name = "Razer Kitsune"
+vid = 0x1532
+pid = 0x1013
+synapse_product_id = 4115
+kind = "controller"
+protocol = "unknown"
+connection = ["usb"]
+evidence = "synapse-js"
+
+[[device]]
+name = "Razer Wolverine V3 Pro Playstation"
+vid = 0x1532
+pid = 0x1025
+synapse_product_id = 4133
+kind = "controller"
+protocol = "unknown"
+connection = ["dongle", "bluetooth"]
+dongle_pid = 0x1027
+bluetooth_pid = 0x1028
+lighting = { chroma = false }
+evidence = "synapse-js"
+[[device.variants]]
+pid = 0x1027
+connection = "dongle"
+
+[[device.variants]]
+pid = 0x1028
+connection = "bluetooth"
+
+
+[[device]]
+name = "Razer Raiju V3 Pro Signature Edition"
+vid = 0x1532
+pid = 0x1030
+synapse_product_id = 4144
+kind = "controller"
+protocol = "unknown"
+connection = ["dongle", "bluetooth"]
+dongle_pid = 0x1032
+bluetooth_pid = 0x1033
+lighting = { chroma = false }
+evidence = "synapse-js"
+[[device.variants]]
+pid = 0x1032
+connection = "dongle"
+
+[[device.variants]]
+pid = 0x1033
+connection = "bluetooth"
+
+
+[[device]]
+name = "Razer Naga Epic Gaming Dock"
+vid = 0x1532
+pid = 0x0021
+synapse_product_id = 33
+kind = "dock"
+protocol = "unknown"
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Mamba 2012 Gaming Dock"
+vid = 0x1532
+pid = 0x0025
+synapse_product_id = 37
+kind = "dock"
+protocol = "2.5"
+transaction_id = 0xFF
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Ouroboros Gaming Dock"
+vid = 0x1532
+pid = 0x0033
+synapse_product_id = 51
+kind = "dock"
+protocol = "unknown"
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Naga Epic Chroma Dock"
+vid = 0x1532
+pid = 0x003F
+synapse_product_id = 63
+kind = "dock"
+protocol = "2.5"
+transaction_id = 0xFF
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Mamba RGB Dock"
+vid = 0x1532
+pid = 0x0045
+synapse_product_id = 69
+kind = "dock"
+protocol = "2.5"
+transaction_id = 0xFF
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Turret Dock"
+vid = 0x1532
+pid = 0x004A
+synapse_product_id = 74
+kind = "dock"
+protocol = "unknown"
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Orochi RGB Dock"
+vid = 0x1532
+pid = 0x0056
+synapse_product_id = 86
+kind = "dock"
+protocol = "unknown"
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Mouse Dock Chroma"
+vid = 0x1532
+pid = 0x007E
+synapse_product_id = 126
+kind = "dock"
+protocol = "2.5"
+connection = ["usb"]
+lighting = { matrix = [1, 1], leds = 1 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Mouse Dock Pro"
+vid = 0x1532
+pid = 0x00A4
+synapse_product_id = 164
+kind = "dock"
+protocol = "2.5"
+connection = ["usb", "dongle"]
+dual_link = true
+lighting = { matrix = [5, 3], leds = 8 }
+synapse_class = "rzDevice25Linker"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Mouse Dock V2 Pro"
+vid = 0x1532
+pid = 0x00F1
+synapse_product_id = 241
+kind = "dock"
+protocol = "unknown"
+connection = ["dongle"]
+evidence = "synapse-js"
+
+[[device]]
+name = "Razer Thunderbolt 4 Dock Chroma"
+vid = 0x1532
+pid = 0x0F21
+synapse_product_id = 3873
+kind = "dock"
+protocol = "2.5"
+connection = ["usb"]
+lighting = { matrix = [4, 8], leds = 12, regions = 1 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Chroma Charging Pad 10W Fast Wireless Charger"
+vid = 0x1532
+pid = 0x0F26
+synapse_product_id = 3878
+kind = "dock"
+protocol = "2.5"
+connection = ["usb"]
+battery = true
+lighting = { matrix = [5, 4], leds = 10 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Thunderbolt 5 Dock Chroma"
+vid = 0x1532
+pid = 0x0F52
+synapse_product_id = 3922
+kind = "dock"
+protocol = "2.5"
+connection = ["usb"]
+lighting = { matrix = [5, 10], leds = 18, regions = 1 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "RAZER HANDHELD DOCK CHROMA"
+vid = 0x1532
+pid = 0x0F5C
+synapse_product_id = 3932
+kind = "dock"
+protocol = "2.5"
+connection = ["usb"]
+lighting = { matrix = [1, 8], leds = 8 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer HyperFlux V2 Hard Edition"
+vid = 0x1532
+pid = 0x00CF
+synapse_product_id = 207
+kind = "mousepad"
+protocol = "2.5"
+connection = ["usb", "dongle"]
+dual_link = true
+lighting = { chroma = false }
+synapse_class = "rzDevice25LinkerMultiDevices"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Firefly Hard Edition"
+vid = 0x1532
+pid = 0x0C00
+synapse_product_id = 3072
+kind = "mousepad"
+protocol = "2.5"
+connection = ["usb"]
+lighting = { matrix = [9, 7], leds = 15 }
+synapse_class = "rzDevice25Legacy"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Goliathus Chroma"
+vid = 0x1532
+pid = 0x0C01
+synapse_product_id = 3073
+kind = "mousepad"
+protocol = "2.5"
+connection = ["usb"]
+lighting = { matrix = [1, 1], leds = 1 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Goliathus Chroma Extended"
+vid = 0x1532
+pid = 0x0C02
+synapse_product_id = 3074
+kind = "mousepad"
+protocol = "2.5"
+connection = ["usb"]
+lighting = { matrix = [1, 1], leds = 1 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Firefly V2"
+vid = 0x1532
+pid = 0x0C04
+synapse_product_id = 3076
+kind = "mousepad"
+protocol = "2.5"
+connection = ["usb"]
+lighting = { matrix = [9, 7], leds = 19 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Strider Chroma"
+vid = 0x1532
+pid = 0x0C05
+synapse_product_id = 3077
+kind = "mousepad"
+protocol = "2.5"
+connection = ["usb"]
+lighting = { matrix = [5, 9], leds = 19 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Goliathus Chroma 3XL"
+vid = 0x1532
+pid = 0x0C06
+synapse_product_id = 3078
+kind = "mousepad"
+protocol = "2.5"
+connection = ["usb"]
+lighting = { matrix = [1, 1], leds = 1 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Firefly V2 Pro"
+vid = 0x1532
+pid = 0x0C08
+synapse_product_id = 3080
+kind = "mousepad"
+protocol = "2.5"
+connection = ["usb"]
+lighting = { matrix = [1, 15], leds = 17 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer HyperPolling Wireless Dongle"
+vid = 0x1532
+pid = 0x00B3
+synapse_product_id = 179
+kind = "other"
+protocol = "2.5"
+connection = ["usb", "dongle"]
+dual_link = true
+transaction_id = 0x1F
+lighting = { chroma = false }
+synapse_class = "rzDevice25LinkerUma"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Cyclosa"
+vid = 0x1532
+pid = 0x0110
+synapse_product_id = 272
+kind = "other"
+protocol = "unknown"
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Blade"
+vid = 0x1532
+pid = 0x0116
+synapse_product_id = 278
+kind = "other"
+protocol = "unknown"
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Blade 14"
+vid = 0x1532
+pid = 0x011D
+synapse_product_id = 285
+kind = "other"
+protocol = "unknown"
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Edge KB"
+vid = 0x1532
+pid = 0x011E
+synapse_product_id = 286
+kind = "other"
+protocol = "unknown"
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Core"
+vid = 0x1532
+pid = 0x0215
+synapse_product_id = 533
+kind = "other"
+protocol = "2.5"
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Key Light Chroma"
+vid = 0x1532
+pid = 0x030C
+synapse_product_id = 780
+kind = "other"
+protocol = "unknown"
+connection = ["usb"]
+battery = true
+lighting = { matrix = [1, 1], leds = 1, regions = 1 }
+synapse_class = "rzDeviceIoT"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "RAZER AETHER LAMP PRO"
+vid = 0x1532
+pid = 0x030D
+synapse_product_id = 781
+kind = "other"
+protocol = "unknown"
+connection = ["usb"]
+battery = true
+lighting = { matrix = [10, 8], leds = 80, regions = 1 }
+synapse_class = "rzDeviceIoT"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "RAZER AETHER LAMP"
+vid = 0x1532
+pid = 0x030E
+synapse_product_id = 782
+kind = "other"
+protocol = "unknown"
+connection = ["usb"]
+battery = true
+lighting = { matrix = [1, 1], leds = 1, regions = 1 }
+synapse_class = "rzDeviceIoT"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "RAZER AETHER LIGHT BULB"
+vid = 0x1532
+pid = 0x030F
+synapse_product_id = 783
+kind = "other"
+protocol = "unknown"
+connection = ["usb"]
+battery = true
+lighting = { matrix = [1, 1], leds = 1, regions = 1 }
+synapse_class = "rzDeviceIoT"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "RAZER AETHER LIGHT STRIP"
+vid = 0x1532
+pid = 0x0310
+synapse_product_id = 784
+kind = "other"
+protocol = "unknown"
+connection = ["usb"]
+polling_rates = [125, 500, 1000]
+battery = true
+lighting = { matrix = [1, 240], leds = 240, regions = 1 }
+synapse_class = "rzDeviceIoT"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "RAZER AETHER MONITOR LIGHT BAR"
+vid = 0x1532
+pid = 0x0316
+synapse_product_id = 790
+kind = "other"
+protocol = "unknown"
+connection = ["usb"]
+polling_rates = [125, 500, 1000]
+battery = true
+lighting = { matrix = [1, 50], leds = 40, regions = 1 }
+synapse_class = "rzDeviceIoT"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "RAZER AETHER STANDING LIGHT BAR"
+vid = 0x1532
+pid = 0x0317
+synapse_product_id = 791
+kind = "other"
+protocol = "unknown"
+connection = ["usb"]
+battery = true
+lighting = { matrix = [30, 2], leds = 60, regions = 2 }
+synapse_class = "rzDeviceIoT"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Seiren"
+vid = 0x1532
+pid = 0x0503
+synapse_product_id = 1283
+kind = "other"
+protocol = "unknown"
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Seiren Pro"
+vid = 0x1532
+pid = 0x0508
+synapse_product_id = 1288
+kind = "other"
+protocol = "unknown"
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Audio Mixer"
+vid = 0x1532
+pid = 0x053E
+synapse_product_id = 1342
+kind = "other"
+protocol = "2.5"
+connection = ["usb"]
+lighting = { chroma = false }
+synapse_class = "AudioMixer"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Seiren V2 Pro"
+vid = 0x1532
+pid = 0x0542
+synapse_product_id = 1346
+kind = "other"
+protocol = "unknown"
+connection = ["usb"]
+lighting = { chroma = false }
+evidence = "synapse-js"
+
+[[device]]
+name = "Razer Seiren V2 X"
+vid = 0x1532
+pid = 0x0543
+synapse_product_id = 1347
+kind = "other"
+protocol = "unknown"
+connection = ["usb"]
+lighting = { chroma = false }
+evidence = "synapse-js"
+
+[[device]]
+name = "Razer WIRELESS CONTROL POD"
+vid = 0x1532
+pid = 0x0566
+synapse_product_id = 1382
+kind = "other"
+protocol = "unknown"
+connection = ["usb", "bluetooth"]
+bluetooth_pid = 0x0566
+evidence = "synapse-js"
+
+[[device]]
+name = "Razer Seiren V3 Mini"
+vid = 0x1532
+pid = 0x056A
+synapse_product_id = 1386
+kind = "other"
+protocol = "unknown"
+connection = ["usb"]
+lighting = { chroma = false }
+evidence = "synapse-js"
+
+[[device]]
+name = "Razer Seiren V3 Chroma"
+vid = 0x1532
+pid = 0x056F
+synapse_product_id = 1391
+kind = "other"
+protocol = "2.5"
+connection = ["usb"]
+lighting = { matrix = [5, 12], leds = 10 }
+synapse_class = "rzDevice25AudioCamy"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Seiren V3 Pro"
+vid = 0x1532
+pid = 0x058E
+synapse_product_id = 1422
+kind = "other"
+protocol = "unknown"
+connection = ["usb"]
+evidence = "synapse-js"
+
+[[device]]
+name = "Razer Seiren V3 Chroma 32-Bit DSP"
+vid = 0x1532
+pid = 0x05A6
+synapse_product_id = 1446
+kind = "other"
+protocol = "unknown"
+connection = ["usb"]
+evidence = "synapse-js"
+
+[[device]]
+name = "Razer Surround"
+vid = 0x1532
+pid = 0x0601
+synapse_product_id = 1537
+kind = "other"
+protocol = "unknown"
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Serval"
+vid = 0x1532
+pid = 0x0900
+synapse_product_id = 2304
+kind = "other"
+protocol = "unknown"
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Ripsaw Game Capture Card"
+vid = 0x1532
+pid = 0x0D00
+synapse_product_id = 3328
+kind = "other"
+protocol = "unknown"
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer RipSaw HD"
+vid = 0x1532
+pid = 0x0D03
+synapse_product_id = 3331
+kind = "other"
+protocol = "unknown"
+connection = ["usb"]
+lighting = { chroma = false }
+evidence = "synapse-js"
+
+[[device]]
+name = "Razer Stream Controller"
+vid = 0x1532
+pid = 0x0D06
+synapse_product_id = 3334
+kind = "other"
+protocol = "unknown"
+connection = ["usb"]
+lighting = { chroma = false }
+evidence = "synapse-js"
+
+[[device]]
+name = "Razer Stream Controller X"
+vid = 0x1532
+pid = 0x0D09
+synapse_product_id = 3337
+kind = "other"
+protocol = "unknown"
+connection = ["usb"]
+lighting = { chroma = false }
+evidence = "synapse-js"
+
+[[device]]
+name = "Razer Stargazer"
+vid = 0x1532
+pid = 0x0E01
+synapse_product_id = 3585
+kind = "other"
+protocol = "unknown"
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Kiyo"
+vid = 0x1532
+pid = 0x0E03
+synapse_product_id = 3587
+kind = "other"
+protocol = "unknown"
+connection = ["usb"]
+lighting = { chroma = false }
+evidence = "synapse-js"
+
+[[device]]
+name = "Razer Kiyo Pro"
+vid = 0x1532
+pid = 0x0E05
+synapse_product_id = 3589
+kind = "other"
+protocol = "unknown"
+connection = ["usb"]
+lighting = { chroma = false }
+evidence = "synapse-js"
+
+[[device]]
+name = "Razer Kiyo X"
+vid = 0x1532
+pid = 0x0E06
+synapse_product_id = 3590
+kind = "other"
+protocol = "unknown"
+connection = ["usb"]
+lighting = { chroma = false }
+evidence = "synapse-js"
+
+[[device]]
+name = "Razer Kiyo Pro Ultra"
+vid = 0x1532
+pid = 0x0E08
+synapse_product_id = 3592
+kind = "other"
+protocol = "unknown"
+connection = ["usb"]
+lighting = { chroma = false }
+evidence = "synapse-js"
+
+[[device]]
+name = "Razer Kiyo V2 Pro"
+vid = 0x1532
+pid = 0x0E0A
+synapse_product_id = 3594
+kind = "other"
+protocol = "unknown"
+connection = ["usb"]
+lighting = { chroma = false }
+evidence = "synapse-js"
+
+[[device]]
+name = "Razer Kiyo V2"
+vid = 0x1532
+pid = 0x0E0B
+synapse_product_id = 3595
+kind = "other"
+protocol = "unknown"
+connection = ["usb"]
+lighting = { chroma = false }
+evidence = "synapse-js"
+
+[[device]]
+name = "Razer Kiyo V2 X"
+vid = 0x1532
+pid = 0x0E0C
+synapse_product_id = 3596
+kind = "other"
+protocol = "unknown"
+connection = ["usb"]
+lighting = { chroma = false }
+evidence = "synapse-js"
+
+[[device]]
+name = "Razer Chroma Mug Holder"
+vid = 0x1532
+pid = 0x0F07
+synapse_product_id = 3847
+kind = "other"
+protocol = "2.5"
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "RAZER BASE STATION CHROMA"
+vid = 0x1532
+pid = 0x0F08
+synapse_product_id = 3848
+kind = "other"
+protocol = "2.5"
+connection = ["usb"]
+lighting = { matrix = [5, 7], leds = 15 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Chroma HDK"
+vid = 0x1532
+pid = 0x0F09
+synapse_product_id = 3849
+kind = "other"
+protocol = "2.5"
+connection = ["usb"]
+lighting = { matrix = [2, 32], leds = 64, regions = 4 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Laptop Stand Chroma"
+vid = 0x1532
+pid = 0x0F0D
+synapse_product_id = 3853
+kind = "other"
+protocol = "2.5"
+connection = ["usb"]
+lighting = { matrix = [10, 15], leds = 15 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Raptor 27"
+vid = 0x1532
+pid = 0x0F12
+synapse_product_id = 3858
+kind = "other"
+protocol = "2.5"
+connection = ["usb"]
+lighting = { matrix = [4, 6], leds = 12 }
+synapse_class = "rzDevice25Ex"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Lian Li 011 Dynamic Designed by Razer"
+vid = 0x1532
+pid = 0x0F13
+synapse_product_id = 3859
+kind = "other"
+protocol = "2.5"
+connection = ["usb"]
+lighting = { matrix = [24, 3], leds = 64, regions = 2 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Tomahawk Chassis"
+vid = 0x1532
+pid = 0x0F17
+synapse_product_id = 3863
+kind = "other"
+protocol = "2.5"
+connection = ["usb"]
+lighting = { matrix = [24, 2], leds = 40, regions = 2 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Core X Chroma"
+vid = 0x1532
+pid = 0x0F1A
+synapse_product_id = 3866
+kind = "other"
+protocol = "2.5"
+connection = ["usb"]
+lighting = { matrix = [2, 15], leds = 16 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Seiren Emote"
+vid = 0x1532
+pid = 0x0F1B
+synapse_product_id = 3867
+kind = "other"
+protocol = "unknown"
+connection = ["usb"]
+lighting = { chroma = false }
+evidence = "synapse-js"
+
+[[device]]
+name = "Razer Bungee V3 Chroma"
+vid = 0x1532
+pid = 0x0F1D
+synapse_product_id = 3869
+kind = "other"
+protocol = "2.5"
+connection = ["usb"]
+lighting = { matrix = [5, 3], leds = 8 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Chroma Addressable RGB Controller"
+vid = 0x1532
+pid = 0x0F1F
+synapse_product_id = 3871
+kind = "other"
+protocol = "2.5"
+connection = ["usb"]
+lighting = { matrix = [6, 160], leds = 480, regions = 6 }
+synapse_class = "rzDevice25Glitter"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "RAZER BASE STATION V2 CHROMA"
+vid = 0x1532
+pid = 0x0F20
+synapse_product_id = 3872
+kind = "other"
+protocol = "2.5"
+connection = ["usb"]
+lighting = { matrix = [5, 3], leds = 8 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Tomahawk Gaming Desktop"
+vid = 0x1532
+pid = 0x0F27
+synapse_product_id = 3879
+kind = "other"
+protocol = "2.5"
+connection = ["usb"]
+lighting = { matrix = [24, 2], leds = 48, regions = 1 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Raptor 27 (165Hz)"
+vid = 0x1532
+pid = 0x0F28
+synapse_product_id = 3880
+kind = "other"
+protocol = "2.5"
+connection = ["usb"]
+lighting = { matrix = [4, 6], leds = 12 }
+synapse_class = "rzDevice25Ex"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Laptop Stand V2 Chroma"
+vid = 0x1532
+pid = 0x0F2B
+synapse_product_id = 3883
+kind = "other"
+protocol = "2.5"
+connection = ["usb"]
+lighting = { matrix = [10, 15], leds = 15 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Chroma Wireless ARGB Controller"
+vid = 0x1532
+pid = 0x0F2C
+synapse_product_id = 3884
+kind = "other"
+protocol = "2.5"
+connection = ["dongle", "bluetooth"]
+bluetooth_pid = 0x0F2D
+lighting = { matrix = [3, 120], leds = 360, regions = 3 }
+synapse_class = "rzDevice25GlitterWireless"
+evidence = "synapse-manifest"
+[[device.variants]]
+pid = 0x0F2D
+connection = "bluetooth"
+protocol = "3.0"
+synapse_class = "rzDevice30"
+
+
+[[device]]
+name = "RAZER HANBO AIO 240MM ARGB"
+vid = 0x1532
+pid = 0x0F35
+synapse_product_id = 3893
+kind = "other"
+protocol = "unknown"
+connection = ["usb"]
+lighting = { matrix = [13, 35], leds = 52, regions = 4 }
+synapse_class = "rzDeviceElsa"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Head Cushion Chroma"
+vid = 0x1532
+pid = 0x0F36
+synapse_product_id = 3894
+kind = "other"
+protocol = "3.0"
+connection = ["usb", "bluetooth"]
+bluetooth_pid = 0x0F36
+lighting = { matrix = [5, 5], leds = 3 }
+synapse_class = "rzDevice30"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer PWM PC Fan Controller"
+vid = 0x1532
+pid = 0x0F3C
+synapse_product_id = 3900
+kind = "other"
+protocol = "unknown"
+connection = ["usb"]
+lighting = { chroma = false }
+evidence = "synapse-js"
+
+[[device]]
+name = "RAZER LAPTOP COOLING PAD"
+vid = 0x1532
+pid = 0x0F43
+synapse_product_id = 3907
+kind = "other"
+protocol = "2.5"
+connection = ["usb"]
+lighting = { matrix = [1, 18], leds = 18 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Freyja"
+vid = 0x1532
+pid = 0x0F45
+synapse_product_id = 3909
+kind = "other"
+protocol = "2.5"
+connection = ["dongle", "bluetooth"]
+bluetooth_pid = 0x0F46
+lighting = { chroma = false }
+synapse_class = "rzDevice25Esther"
+evidence = "synapse-manifest"
+[[device.variants]]
+pid = 0x0F46
+connection = "bluetooth"
+protocol = "2.5"
+synapse_class = "rzDevice25Esther"
+
+
+[[device]]
+name = "Razer Core X V2"
+vid = 0x1532
+pid = 0x0F51
+synapse_product_id = 3921
+kind = "other"
+protocol = "unknown"
+connection = ["usb"]
+evidence = "synapse-js"
+
+[[device]]
+name = "Razer Monitor Stand Chroma"
+vid = 0x1532
+pid = 0x0F59
+synapse_product_id = 3929
+kind = "other"
+protocol = "2.5"
+connection = ["usb"]
+lighting = { matrix = [1, 28], leds = 28 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Soma Pro"
+vid = 0x1532
+pid = 0x0F66
+synapse_product_id = 3942
+kind = "other"
+protocol = "unknown"
+connection = ["usb"]
+evidence = "synapse-js"
+
+[[device]]
+name = "Razer Base Station V3 Chroma"
+vid = 0x1532
+pid = 0x0F6A
+synapse_product_id = 3946
+kind = "other"
+protocol = "unknown"
+connection = ["usb"]
+evidence = "synapse-js"
+
+[[device]]
+name = "Razer Soma Sensa HD Haptics"
+vid = 0x1532
+pid = 0x0F6D
+synapse_product_id = 3949
+kind = "other"
+protocol = "unknown"
+connection = ["dongle", "bluetooth"]
+bluetooth_pid = 0x0F6E
+lighting = { chroma = false }
+evidence = "synapse-js"
+[[device.variants]]
+pid = 0x0F6E
+connection = "bluetooth"
+

@@ -1,0 +1,2065 @@
+# OpenSynapse device registry: mouse
+# Facts extracted from Razer Synapse 4 public device metadata + OpenRazer cross-reference.
+# Schema: data/devices/SCHEMA.md. Build notes: vault/Devices/Device Registry.md
+
+[[device]]
+name = "Razer DeathAdder"
+vid = 0x1532
+pid = 0x0007
+synapse_product_id = 7
+kind = "mouse"
+protocol = "unknown"
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Orochi"
+vid = 0x1532
+pid = 0x0013
+synapse_product_id = 19
+kind = "mouse"
+protocol = "2.5"
+transaction_id = 0xFF
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Orochi Wireless"
+vid = 0x1532
+pid = 0x0014
+synapse_product_id = 20
+kind = "mouse"
+protocol = "unknown"
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Naga"
+vid = 0x1532
+pid = 0x0015
+synapse_product_id = 21
+kind = "mouse"
+protocol = "2.5"
+transaction_id = 0xFF
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer DeathAdder 3.5G"
+vid = 0x1532
+pid = 0x0016
+synapse_product_id = 22
+kind = "mouse"
+protocol = "2.5"
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Naga Epic"
+vid = 0x1532
+pid = 0x001F
+synapse_product_id = 31
+kind = "mouse"
+protocol = "2.5"
+transaction_id = 0xFF
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Abyssus 1800 (Cyclosa Bundle)"
+vid = 0x1532
+pid = 0x0020
+synapse_product_id = 32
+kind = "mouse"
+protocol = "2.5"
+transaction_id = 0xFF
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Mamba 2012"
+vid = 0x1532
+pid = 0x0024
+synapse_product_id = 36
+kind = "mouse"
+protocol = "2.5"
+transaction_id = 0xFF
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer DeathAdder 3.5G Black"
+vid = 0x1532
+pid = 0x0029
+synapse_product_id = 41
+kind = "mouse"
+protocol = "2.5"
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Star Wars: The Old Republic Gaming Mouse by Razer"
+vid = 0x1532
+pid = 0x002A
+synapse_product_id = 42
+kind = "mouse"
+protocol = "unknown"
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Naga 2012"
+vid = 0x1532
+pid = 0x002E
+synapse_product_id = 46
+kind = "mouse"
+protocol = "2.5"
+transaction_id = 0xFF
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Imperator 2012"
+vid = 0x1532
+pid = 0x002F
+synapse_product_id = 47
+kind = "mouse"
+protocol = "2.5"
+transaction_id = 0xFF
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Star Wars: The Old Republic Gaming Mouse by Razer"
+vid = 0x1532
+pid = 0x0031
+synapse_product_id = 49
+kind = "mouse"
+protocol = "unknown"
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Ouroboros"
+vid = 0x1532
+pid = 0x0032
+synapse_product_id = 50
+kind = "mouse"
+protocol = "2.5"
+transaction_id = 0xFF
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Taipan"
+vid = 0x1532
+pid = 0x0034
+synapse_product_id = 52
+kind = "mouse"
+protocol = "2.5"
+transaction_id = 0xFF
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Krait 2013"
+vid = 0x1532
+pid = 0x0035
+synapse_product_id = 53
+kind = "mouse"
+protocol = "unknown"
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Naga Hex"
+vid = 0x1532
+pid = 0x0036
+synapse_product_id = 54
+kind = "mouse"
+protocol = "2.5"
+transaction_id = 0xFF
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer DeathAdder 2013"
+vid = 0x1532
+pid = 0x0037
+synapse_product_id = 55
+kind = "mouse"
+protocol = "2.5"
+transaction_id = 0xFF
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer DeathAdder 1800"
+vid = 0x1532
+pid = 0x0038
+synapse_product_id = 56
+kind = "mouse"
+protocol = "2.5"
+transaction_id = 0xFF
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Orochi 2013"
+vid = 0x1532
+pid = 0x0039
+synapse_product_id = 57
+kind = "mouse"
+protocol = "2.5"
+transaction_id = 0xFF
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Abyssus 1800"
+vid = 0x1532
+pid = 0x003C
+synapse_product_id = 60
+kind = "mouse"
+protocol = "unknown"
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Naga Epic Chroma"
+vid = 0x1532
+pid = 0x003E
+synapse_product_id = 62
+kind = "mouse"
+protocol = "2.5"
+transaction_id = 0xFF
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Naga 2014"
+vid = 0x1532
+pid = 0x0040
+synapse_product_id = 64
+kind = "mouse"
+protocol = "2.5"
+transaction_id = 0xFF
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Naga Hex V2"
+vid = 0x1532
+pid = 0x0041
+synapse_product_id = 65
+kind = "mouse"
+protocol = "2.5"
+transaction_id = 0xFF
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Abyssus 2014"
+vid = 0x1532
+pid = 0x0042
+synapse_product_id = 66
+kind = "mouse"
+protocol = "2.5"
+transaction_id = 0xFF
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer DeathAdder Chroma"
+vid = 0x1532
+pid = 0x0043
+synapse_product_id = 67
+kind = "mouse"
+protocol = "2.5"
+transaction_id = 0xFF
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Mamba RGB"
+vid = 0x1532
+pid = 0x0044
+synapse_product_id = 68
+kind = "mouse"
+protocol = "2.5"
+transaction_id = 0xFF
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Mamba TE"
+vid = 0x1532
+pid = 0x0046
+synapse_product_id = 70
+kind = "mouse"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0xFF
+dpi_min = 100
+dpi_max = 16000
+dpi_step = 50
+lighting = { matrix = [7, 5], leds = 16, regions = 3 }
+synapse_class = "rzDevice25Legacy"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Orochi RGB"
+vid = 0x1532
+pid = 0x0048
+synapse_product_id = 72
+kind = "mouse"
+protocol = "2.5"
+transaction_id = 0xFF
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Turret Mouse"
+vid = 0x1532
+pid = 0x0049
+synapse_product_id = 73
+kind = "mouse"
+protocol = "unknown"
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Diamondback RGB"
+vid = 0x1532
+pid = 0x004C
+synapse_product_id = 76
+kind = "mouse"
+protocol = "2.5"
+transaction_id = 0xFF
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer DeathAdder Pro"
+vid = 0x1532
+pid = 0x004D
+synapse_product_id = 77
+kind = "mouse"
+protocol = "unknown"
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Taipan 3500"
+vid = 0x1532
+pid = 0x004E
+synapse_product_id = 78
+kind = "mouse"
+protocol = "unknown"
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer DeathAdder SC"
+vid = 0x1532
+pid = 0x004F
+synapse_product_id = 79
+kind = "mouse"
+protocol = "2.5"
+transaction_id = 0xFF
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Naga Hex V2"
+vid = 0x1532
+pid = 0x0050
+synapse_product_id = 80
+kind = "mouse"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0x3F
+dpi_min = 100
+dpi_max = 16000
+dpi_step = 1
+lighting = { matrix = [7, 5], leds = 3, regions = 3 }
+synapse_class = "rzDevice25LegacyNoBrightness"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Naga Chroma"
+vid = 0x1532
+pid = 0x0053
+synapse_product_id = 83
+kind = "mouse"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0xFF
+dpi_min = 100
+dpi_max = 16000
+dpi_step = 1
+polling_rates = [500, 1000]
+lighting = { matrix = [7, 5], leds = 3, regions = 3 }
+synapse_class = "rzDevice25LegacyNoBrightness"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer DeathAdder 3500"
+vid = 0x1532
+pid = 0x0054
+synapse_product_id = 84
+kind = "mouse"
+protocol = "2.5"
+transaction_id = 0xFF
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Lancehead"
+vid = 0x1532
+pid = 0x0059
+synapse_product_id = 89
+kind = "mouse"
+protocol = "2.5"
+connection = ["usb", "dongle"]
+dongle_pid = 0x005A
+transaction_id = 0x3F
+dpi_min = 100
+dpi_max = 16000
+dpi_step = 50
+polling_rates = [125, 500, 1000]
+lighting = { matrix = [8, 5], leds = 16, regions = 3 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+[[device.variants]]
+pid = 0x005A
+connection = "dongle"
+protocol = "2.5"
+synapse_class = "rzDevice25"
+
+
+[[device]]
+name = "Razer Abyssus V2"
+vid = 0x1532
+pid = 0x005B
+synapse_product_id = 91
+kind = "mouse"
+protocol = "2.5"
+transaction_id = 0xFF
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Deathadder Elite"
+vid = 0x1532
+pid = 0x005C
+synapse_product_id = 92
+kind = "mouse"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0x3F
+dpi_min = 100
+dpi_max = 16000
+dpi_step = 50
+lighting = { matrix = [7, 5], leds = 2, regions = 2 }
+synapse_class = "rzDevice25NoBrightness"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Abyssus 2000"
+vid = 0x1532
+pid = 0x005E
+synapse_product_id = 94
+kind = "mouse"
+protocol = "2.5"
+transaction_id = 0xFF
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer DeathAdder 2000"
+vid = 0x1532
+pid = 0x005F
+synapse_product_id = 95
+kind = "mouse"
+protocol = "unknown"
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Lancehead TE"
+vid = 0x1532
+pid = 0x0060
+synapse_product_id = 96
+kind = "mouse"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0x3F
+dpi_min = 100
+dpi_max = 16000
+dpi_step = 50
+polling_rates = [125, 500, 1000]
+lighting = { matrix = [8, 5], leds = 16, regions = 3 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Atheris"
+vid = 0x1532
+pid = 0x0062
+synapse_product_id = 98
+kind = "mouse"
+protocol = "2.5"
+connection = ["dongle", "bluetooth"]
+bluetooth_pid = 0x0061
+transaction_id = 0x1F
+dpi_min = 200
+dpi_max = 7200
+dpi_step = 200
+lighting = { chroma = false }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+[[device.variants]]
+pid = 0x0061
+connection = "bluetooth"
+protocol = "3.0"
+synapse_class = "rzDevice30"
+
+
+[[device]]
+name = "Razer Jugan"
+vid = 0x1532
+pid = 0x0063
+synapse_product_id = 99
+kind = "mouse"
+protocol = "2.5"
+connection = ["usb"]
+dpi_min = 200
+dpi_max = 7200
+dpi_step = 100
+lighting = { matrix = [7, 5], leds = 1, regions = 1 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Basilisk"
+vid = 0x1532
+pid = 0x0064
+synapse_product_id = 100
+kind = "mouse"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0x3F
+dpi_min = 100
+dpi_max = 16000
+dpi_step = 50
+polling_rates = [125, 500, 1000]
+lighting = { matrix = [7, 5], leds = 2, regions = 2 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Basilisk Essential"
+vid = 0x1532
+pid = 0x0065
+synapse_product_id = 101
+kind = "mouse"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0x3F
+dpi_min = 200
+dpi_max = 6400
+dpi_step = 100
+polling_rates = [500, 1000]
+lighting = { matrix = [7, 5], leds = 1, regions = 1 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Naga Trinity"
+vid = 0x1532
+pid = 0x0067
+synapse_product_id = 103
+kind = "mouse"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0xFF
+dpi_min = 100
+dpi_max = 16000
+dpi_step = 50
+polling_rates = [125, 500, 1000]
+lighting = { matrix = [7, 5], leds = 3, regions = 3 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Mamba Hyperflux"
+vid = 0x1532
+pid = 0x0068
+synapse_product_id = 104
+kind = "mouse"
+protocol = "2.5"
+connection = ["usb", "dongle"]
+dongle_pid = 0x0069
+dpi_min = 100
+dpi_max = 16000
+dpi_step = 50
+polling_rates = [125, 500, 1000]
+lighting = { matrix = [9, 7], leds = 14, regions = 2 }
+synapse_class = "rzDevice25NoSerial"
+evidence = "synapse-manifest"
+[[device.variants]]
+pid = 0x0069
+connection = "dongle"
+protocol = "2.5"
+synapse_class = "rzDevice25"
+
+
+[[device]]
+name = "Razer Mamba Hyperflux"
+vid = 0x1532
+pid = 0x0069
+synapse_product_id = 105
+kind = "mouse"
+protocol = "2.5"
+connection = ["usb", "dongle"]
+lighting = { matrix = [7, 6], leds = 2, regions = 2 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer D.VA Razer Abyssus Elite"
+vid = 0x1532
+pid = 0x006A
+synapse_product_id = 106
+kind = "mouse"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0xFF
+dpi_min = 200
+dpi_max = 7200
+dpi_step = 100
+lighting = { matrix = [7, 5], leds = 1, regions = 1 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Abyssus Essential"
+vid = 0x1532
+pid = 0x006B
+synapse_product_id = 107
+kind = "mouse"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0xFF
+dpi_min = 200
+dpi_max = 7200
+dpi_step = 100
+lighting = { matrix = [7, 5], leds = 1, regions = 1 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Mamba Elite"
+vid = 0x1532
+pid = 0x006C
+synapse_product_id = 108
+kind = "mouse"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0x1F
+dpi_min = 100
+dpi_max = 16000
+dpi_step = 50
+polling_rates = [125, 500, 1000]
+lighting = { matrix = [9, 5], leds = 20, regions = 3 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer DeathAdder Essential"
+vid = 0x1532
+pid = 0x006E
+synapse_product_id = 110
+kind = "mouse"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0xFF
+dpi_min = 200
+dpi_max = 6400
+dpi_step = 100
+lighting = { chroma = false }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Lancehead Wireless"
+vid = 0x1532
+pid = 0x0070
+synapse_product_id = 112
+kind = "mouse"
+protocol = "2.5"
+connection = ["usb", "dongle"]
+dongle_pid = 0x006F
+transaction_id = 0x3F
+dpi_min = 100
+dpi_max = 16000
+dpi_step = 50
+polling_rates = [125, 500, 1000]
+lighting = { matrix = [8, 5], leds = 16, regions = 3 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+[[device.variants]]
+pid = 0x006F
+connection = "dongle"
+protocol = "2.5"
+synapse_class = "rzDevice25"
+
+
+[[device]]
+name = "Razer DeathAdder Essential White Edition"
+vid = 0x1532
+pid = 0x0071
+synapse_product_id = 113
+kind = "mouse"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0xFF
+dpi_min = 200
+dpi_max = 6400
+dpi_step = 100
+lighting = { chroma = false }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Mamba Wireless"
+vid = 0x1532
+pid = 0x0073
+synapse_product_id = 115
+kind = "mouse"
+protocol = "2.5"
+connection = ["usb", "dongle"]
+dongle_pid = 0x0072
+transaction_id = 0x3F
+dpi_min = 100
+dpi_max = 16000
+dpi_step = 100
+polling_rates = [125, 500, 1000]
+lighting = { matrix = [7, 5], leds = 2, regions = 2 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+[[device.variants]]
+pid = 0x0072
+connection = "dongle"
+protocol = "2.5"
+synapse_class = "rzDevice25"
+
+
+[[device]]
+name = "Razer Abyssus Lite"
+vid = 0x1532
+pid = 0x0074
+synapse_product_id = 116
+kind = "mouse"
+protocol = "2.5"
+connection = ["usb"]
+dpi_min = 200
+dpi_max = 6400
+dpi_step = 100
+lighting = { matrix = [7, 5], leds = 1, regions = 1 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Turret Mouse Xbox One Edition"
+vid = 0x1532
+pid = 0x0075
+synapse_product_id = 117
+kind = "mouse"
+protocol = "2.5"
+connection = ["usb", "dongle"]
+dongle_pid = 0x0904
+dpi_min = 100
+dpi_max = 16000
+dpi_step = 50
+polling_rates = [125, 500, 1000]
+lighting = { matrix = [7, 6], leds = 2, regions = 2 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+[[device.variants]]
+pid = 0x0904
+connection = "dongle"
+protocol = "2.5"
+synapse_class = "rzDevice25"
+
+
+[[device]]
+name = "Razer Viper"
+vid = 0x1532
+pid = 0x0078
+synapse_product_id = 120
+kind = "mouse"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0xFF
+dpi_min = 100
+dpi_max = 16000
+dpi_step = 50
+lighting = { matrix = [7, 5], leds = 1, regions = 1 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Viper Ultimate"
+vid = 0x1532
+pid = 0x007A
+synapse_product_id = 122
+kind = "mouse"
+protocol = "2.5"
+connection = ["usb", "dongle"]
+dongle_pid = 0x007B
+transaction_id = 0xFF
+dpi_min = 100
+dpi_max = 20000
+dpi_step = 50
+battery = true
+lighting = { matrix = [7, 5], leds = 1, regions = 1 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+[[device.variants]]
+pid = 0x007B
+connection = "dongle"
+protocol = "2.5"
+synapse_class = "rzDevice25"
+
+
+[[device]]
+name = "Razer Deathadder V2 Pro"
+vid = 0x1532
+pid = 0x007C
+synapse_product_id = 124
+kind = "mouse"
+protocol = "2.5"
+connection = ["usb", "dongle", "bluetooth"]
+dongle_pid = 0x007D
+bluetooth_pid = 0x008E
+transaction_id = 0x3F
+dpi_min = 100
+dpi_max = 20000
+dpi_step = 50
+polling_rates = [125, 500, 1000]
+battery = true
+lighting = { matrix = [7, 5], leds = 1, regions = 1 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+[[device.variants]]
+pid = 0x007D
+connection = "dongle"
+protocol = "2.5"
+synapse_class = "rzDevice25DualLinkMouse"
+
+[[device.variants]]
+pid = 0x008E
+connection = "bluetooth"
+protocol = "3.0"
+synapse_class = "rzDevice30"
+
+
+[[device]]
+name = "Razer Pro Click"
+vid = 0x1532
+pid = 0x0080
+synapse_product_id = 128
+kind = "mouse"
+protocol = "2.5"
+connection = ["usb", "dongle", "bluetooth"]
+dongle_pid = 0x0077
+bluetooth_pid = 0x0076
+transaction_id = 0x1F
+dpi_min = 100
+dpi_max = 16000
+dpi_step = 50
+lighting = { chroma = false }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+[[device.variants]]
+pid = 0x0077
+connection = "dongle"
+protocol = "2.5"
+synapse_class = "rzDevice25"
+
+[[device.variants]]
+pid = 0x0076
+connection = "bluetooth"
+protocol = "3.0"
+synapse_class = "rzDevice30"
+
+
+[[device]]
+name = "Razer Basilisk X HyperSpeed"
+vid = 0x1532
+pid = 0x0083
+synapse_product_id = 131
+kind = "mouse"
+protocol = "2.5"
+connection = ["dongle", "bluetooth"]
+bluetooth_pid = 0x0082
+transaction_id = 0xFF
+dpi_min = 100
+dpi_max = 16000
+dpi_step = 50
+polling_rates = [125, 500, 1000]
+lighting = { chroma = false }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+[[device.variants]]
+pid = 0x0082
+connection = "bluetooth"
+protocol = "3.0"
+synapse_class = "rzDevice30"
+
+
+[[device]]
+name = "Razer Deathadder V2"
+vid = 0x1532
+pid = 0x0084
+synapse_product_id = 132
+kind = "mouse"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0x3F
+dpi_min = 100
+dpi_max = 20000
+dpi_step = 50
+lighting = { matrix = [7, 5], leds = 2, regions = 2 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Basilisk V2"
+vid = 0x1532
+pid = 0x0085
+synapse_product_id = 133
+kind = "mouse"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0x1F
+dpi_min = 100
+dpi_max = 20000
+dpi_step = 50
+lighting = { matrix = [7, 5], leds = 2, regions = 2 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Basilisk Ultimate"
+vid = 0x1532
+pid = 0x0086
+synapse_product_id = 134
+kind = "mouse"
+protocol = "2.5"
+connection = ["usb", "dongle"]
+dongle_pid = 0x0088
+transaction_id = 0x1F
+dpi_min = 100
+dpi_max = 20000
+dpi_step = 50
+battery = true
+lighting = { matrix = [9, 5], leds = 14, regions = 3 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+[[device.variants]]
+pid = 0x0088
+connection = "dongle"
+protocol = "2.5"
+synapse_class = "rzDevice25"
+
+
+[[device]]
+name = "Razer Viper Mini"
+vid = 0x1532
+pid = 0x008A
+synapse_product_id = 138
+kind = "mouse"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0xFF
+dpi_min = 200
+dpi_max = 8500
+dpi_step = 100
+lighting = { matrix = [7, 5], leds = 1, regions = 1 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Deathadder V2 Mini"
+vid = 0x1532
+pid = 0x008C
+synapse_product_id = 140
+kind = "mouse"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0x3F
+dpi_min = 200
+dpi_max = 8500
+dpi_step = 100
+polling_rates = [125, 500, 1000]
+lighting = { matrix = [7, 5], leds = 1, regions = 1 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Naga Left Handed Edition"
+vid = 0x1532
+pid = 0x008D
+synapse_product_id = 141
+kind = "mouse"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0x1F
+dpi_min = 100
+dpi_max = 20000
+dpi_step = 100
+polling_rates = [125, 500, 1000]
+lighting = { matrix = [7, 5], leds = 3, regions = 3 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Naga Pro"
+vid = 0x1532
+pid = 0x008F
+synapse_product_id = 143
+kind = "mouse"
+protocol = "2.5"
+connection = ["usb", "dongle", "bluetooth"]
+dongle_pid = 0x0090
+bluetooth_pid = 0x0092
+transaction_id = 0x1F
+dpi_min = 100
+dpi_max = 20000
+dpi_step = 50
+polling_rates = [125, 500, 1000]
+battery = true
+lighting = { matrix = [7, 5], leds = 3, regions = 3 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+[[device.variants]]
+pid = 0x0090
+connection = "dongle"
+protocol = "2.5"
+synapse_class = "rzDevice25DualLinkMouse"
+
+[[device.variants]]
+pid = 0x0092
+connection = "bluetooth"
+protocol = "3.0"
+synapse_class = "rzDevice30"
+
+
+[[device]]
+name = "Razer Viper 8Khz"
+vid = 0x1532
+pid = 0x0091
+synapse_product_id = 145
+kind = "mouse"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0xFF
+dpi_min = 100
+dpi_max = 20000
+dpi_step = 50
+polling_rates = [125, 500, 1000, 2000, 4000, 5000, 8000]
+lighting = { matrix = [7, 5], leds = 1, regions = 1 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Naga Classic Edition"
+vid = 0x1532
+pid = 0x0093
+synapse_product_id = 147
+kind = "mouse"
+protocol = "2.5"
+connection = ["usb"]
+dpi_min = 100
+dpi_max = 16000
+dpi_step = 50
+polling_rates = [125, 500, 1000]
+lighting = { matrix = [7, 5], leds = 3, regions = 3 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Orochi V2"
+vid = 0x1532
+pid = 0x0094
+synapse_product_id = 148
+kind = "mouse"
+protocol = "2.5"
+connection = ["dongle", "bluetooth"]
+bluetooth_pid = 0x0095
+dual_link = true
+transaction_id = 0x1F
+dpi_min = 100
+dpi_max = 18000
+dpi_step = 50
+polling_rates = [125, 500, 1000]
+lighting = { chroma = false }
+synapse_class = "rzDevice25DualLinkMouse"
+evidence = "synapse-manifest"
+[[device.variants]]
+pid = 0x0095
+connection = "bluetooth"
+protocol = "2.5"
+synapse_class = "rzDevice25DualLinkMouse"
+
+
+[[device]]
+name = "Razer Naga X"
+vid = 0x1532
+pid = 0x0096
+synapse_product_id = 150
+kind = "mouse"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0x1F
+dpi_min = 100
+dpi_max = 18000
+dpi_step = 50
+polling_rates = [125, 500, 1000]
+lighting = { matrix = [7, 5], leds = 2, regions = 2 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer DeathAdder Essential"
+vid = 0x1532
+pid = 0x0098
+synapse_product_id = 152
+kind = "mouse"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0xFF
+dpi_min = 200
+dpi_max = 6400
+dpi_step = 100
+polling_rates = [500, 1000]
+lighting = { chroma = false }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Basilisk V3"
+vid = 0x1532
+pid = 0x0099
+synapse_product_id = 153
+kind = "mouse"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0x1F
+dpi_min = 100
+dpi_max = 26000
+dpi_step = 50
+lighting = { matrix = [7, 5], leds = 11, regions = 3 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Pro Click Mini"
+vid = 0x1532
+pid = 0x009A
+synapse_product_id = 154
+kind = "mouse"
+protocol = "2.5"
+connection = ["dongle", "bluetooth"]
+bluetooth_pid = 0x009B
+transaction_id = 0x1F
+dpi_min = 200
+dpi_max = 12000
+dpi_step = 50
+lighting = { chroma = false }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+[[device.variants]]
+pid = 0x009B
+connection = "bluetooth"
+protocol = "3.0"
+synapse_class = "rzDevice30"
+
+
+[[device]]
+name = "Razer DeathAdder V2 X Hyperspeed"
+vid = 0x1532
+pid = 0x009C
+synapse_product_id = 156
+kind = "mouse"
+protocol = "2.5"
+connection = ["dongle", "bluetooth"]
+bluetooth_pid = 0x009D
+dual_link = true
+transaction_id = 0x1F
+dpi_min = 100
+dpi_max = 14000
+dpi_step = 100
+polling_rates = [125, 500, 1000]
+lighting = { chroma = false }
+synapse_class = "rzDevice25DualLinkMouse"
+evidence = "synapse-manifest"
+[[device.variants]]
+pid = 0x009D
+connection = "bluetooth"
+protocol = "3.0"
+synapse_class = "rzDevice30"
+
+
+[[device]]
+name = "Razer Viper Mini Signature Edition"
+vid = 0x1532
+pid = 0x009E
+synapse_product_id = 158
+kind = "mouse"
+protocol = "2.5"
+connection = ["usb", "dongle"]
+dongle_pid = 0x009F
+dual_link = true
+transaction_id = 0x1F
+dpi_min = 100
+dpi_max = 30000
+dpi_step = 50
+polling_rates = [125, 500, 1000]
+lighting = { chroma = false }
+synapse_class = "rzDevice25DualLinkMouse"
+evidence = "synapse-manifest"
+[[device.variants]]
+pid = 0x009F
+connection = "dongle"
+protocol = "2.5"
+synapse_class = "rzDevice25DualLinkMouse"
+
+
+[[device]]
+name = "Razer Deathadder V2 Lite"
+vid = 0x1532
+pid = 0x00A1
+synapse_product_id = 161
+kind = "mouse"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0x1F
+dpi_min = 200
+dpi_max = 8500
+dpi_step = 100
+polling_rates = [125, 500, 1000]
+lighting = { matrix = [7, 5], leds = 1, regions = 1 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Cobra"
+vid = 0x1532
+pid = 0x00A3
+synapse_product_id = 163
+kind = "mouse"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0xFF
+dpi_min = 200
+dpi_max = 8500
+dpi_step = 100
+lighting = { matrix = [7, 5], leds = 1, regions = 1 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Viper V2 Pro"
+vid = 0x1532
+pid = 0x00A5
+synapse_product_id = 165
+kind = "mouse"
+protocol = "2.5"
+connection = ["usb", "dongle"]
+dongle_pid = 0x00A6
+dual_link = true
+transaction_id = 0x1F
+dpi_min = 100
+dpi_max = 30000
+dpi_step = 50
+battery = true
+lighting = { chroma = false }
+synapse_class = "rzDevice25DualLinkMouse"
+evidence = "synapse-manifest"
+[[device.variants]]
+pid = 0x00A6
+connection = "dongle"
+protocol = "2.5"
+synapse_class = "rzDevice25DualLinkMouse"
+
+
+[[device]]
+name = "Razer Naga V2 Pro"
+vid = 0x1532
+pid = 0x00A7
+synapse_product_id = 167
+kind = "mouse"
+protocol = "2.5"
+connection = ["usb", "dongle", "bluetooth"]
+dongle_pid = 0x00A8
+bluetooth_pid = 0x00A9
+transaction_id = 0x1F
+dpi_min = 100
+dpi_max = 30000
+dpi_step = 50
+battery = true
+lighting = { matrix = [7, 5], leds = 2, regions = 2 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+[[device.variants]]
+pid = 0x00A8
+connection = "dongle"
+protocol = "2.5"
+synapse_class = "rzDevice25DualLinkMouse"
+
+[[device.variants]]
+pid = 0x00A9
+connection = "bluetooth"
+protocol = "3.0"
+synapse_class = "rzDevice30"
+
+
+[[device]]
+name = "Razer Basilisk V3 Pro"
+vid = 0x1532
+pid = 0x00AA
+synapse_product_id = 170
+kind = "mouse"
+protocol = "2.5"
+connection = ["usb", "dongle", "bluetooth"]
+dongle_pid = 0x00AB
+bluetooth_pid = 0x00AC
+transaction_id = 0x1F
+dpi_min = 100
+dpi_max = 30000
+dpi_step = 50
+polling_rates = [125, 500, 1000]
+battery = true
+lighting = { matrix = [7, 5], leds = 13, regions = 3 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+[[device.variants]]
+pid = 0x00AB
+connection = "dongle"
+protocol = "2.5"
+synapse_class = "rzDevice25DualLinkMouse"
+
+[[device.variants]]
+pid = 0x00AC
+connection = "bluetooth"
+protocol = "3.0"
+synapse_class = "rzDevice30"
+
+
+[[device]]
+name = "Razer Cobra Pro"
+vid = 0x1532
+pid = 0x00AF
+synapse_product_id = 175
+kind = "mouse"
+protocol = "2.5"
+connection = ["usb", "dongle", "bluetooth"]
+dongle_pid = 0x00B0
+bluetooth_pid = 0x00B1
+transaction_id = 0x1F
+dpi_min = 100
+dpi_max = 30000
+dpi_step = 50
+polling_rates = [125, 500, 1000]
+battery = true
+lighting = { matrix = [7, 5], leds = 11, regions = 3 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+[[device.variants]]
+pid = 0x00B0
+connection = "dongle"
+protocol = "2.5"
+synapse_class = "rzDevice25DualLinkMouse"
+
+[[device.variants]]
+pid = 0x00B1
+connection = "bluetooth"
+protocol = "3.0"
+synapse_class = "rzDevice30"
+
+
+[[device]]
+name = "Razer DeathAdder V3"
+vid = 0x1532
+pid = 0x00B2
+synapse_product_id = 178
+kind = "mouse"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0x1F
+dpi_min = 100
+dpi_max = 30000
+dpi_step = 50
+polling_rates = [125, 500, 1000]
+lighting = { chroma = false }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Naga V2 Hyperspeed"
+vid = 0x1532
+pid = 0x00B4
+synapse_product_id = 180
+kind = "mouse"
+protocol = "2.5"
+connection = ["dongle", "bluetooth"]
+bluetooth_pid = 0x00B5
+dual_link = true
+transaction_id = 0x1F
+dpi_min = 100
+dpi_max = 30000
+dpi_step = 50
+battery = true
+lighting = { chroma = false }
+synapse_class = "rzDevice25DualLinkMouse"
+evidence = "synapse-manifest"
+[[device.variants]]
+pid = 0x00B5
+connection = "bluetooth"
+protocol = "3.0"
+synapse_class = "rzDevice30"
+
+
+[[device]]
+name = "Razer DeathAdder V3 Pro"
+vid = 0x1532
+pid = 0x00B6
+synapse_product_id = 182
+kind = "mouse"
+protocol = "2.5"
+connection = ["usb", "dongle"]
+dongle_pid = 0x00B7
+transaction_id = 0x1F
+dpi_min = 100
+dpi_max = 30000
+dpi_step = 50
+polling_rates = [125, 500, 1000]
+lighting = { chroma = false }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+[[device.variants]]
+pid = 0x00B7
+connection = "dongle"
+protocol = "2.5"
+synapse_class = "rzDevice25DualLinkMouse"
+
+
+[[device]]
+name = "Razer Viper V3 HyperSpeed"
+vid = 0x1532
+pid = 0x00B8
+synapse_product_id = 184
+kind = "mouse"
+protocol = "2.5"
+connection = ["dongle"]
+dual_link = true
+transaction_id = 0x1F
+dpi_min = 100
+dpi_max = 30000
+dpi_step = 50
+polling_rates = [125, 500, 1000]
+battery = true
+lighting = { chroma = false }
+synapse_class = "rzDevice25DualLinkMouse"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Basilisk V3 X HyperSpeed"
+vid = 0x1532
+pid = 0x00B9
+synapse_product_id = 185
+kind = "mouse"
+protocol = "2.5"
+connection = ["dongle", "bluetooth"]
+bluetooth_pid = 0x00BA
+dual_link = true
+transaction_id = 0x1F
+dpi_min = 100
+dpi_max = 18000
+dpi_step = 50
+polling_rates = [125, 500, 1000]
+lighting = { matrix = [7, 5], leds = 1, regions = 1 }
+synapse_class = "rzDevice25DualLinkMouse"
+evidence = "synapse-manifest"
+[[device.variants]]
+pid = 0x00BA
+connection = "bluetooth"
+protocol = "3.0"
+synapse_class = "rzDevice30"
+
+
+[[device]]
+name = "Razer DeathAdder V4 Pro"
+vid = 0x1532
+pid = 0x00BE
+synapse_product_id = 190
+kind = "mouse"
+protocol = "2.5"
+connection = ["usb", "dongle"]
+dongle_pid = 0x00BF
+transaction_id = 0x1F
+dpi_min = 100
+dpi_max = 45000
+dpi_step = 50
+polling_rates = [125, 500, 1000, 2000, 4000, 8000]
+battery = true
+lighting = { chroma = false }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+[[device.variants]]
+pid = 0x00BF
+connection = "dongle"
+protocol = "2.5"
+synapse_class = "rzDevice25"
+
+
+[[device]]
+name = "Razer Viper V3 Pro"
+vid = 0x1532
+pid = 0x00C0
+synapse_product_id = 192
+kind = "mouse"
+protocol = "2.5"
+connection = ["usb", "dongle"]
+dongle_pid = 0x00C1
+transaction_id = 0x1F
+dpi_min = 100
+dpi_max = 35000
+dpi_step = 50
+polling_rates = [125, 500, 1000]
+battery = true
+lighting = { chroma = false }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+[[device.variants]]
+pid = 0x00C1
+connection = "dongle"
+protocol = "2.5"
+synapse_class = "rzDevice25"
+
+
+[[device]]
+name = "Razer DeathAdder V3 Pro Hyperpolling Technology"
+vid = 0x1532
+pid = 0x00C2
+synapse_product_id = 194
+kind = "mouse"
+protocol = "2.5"
+connection = ["usb", "dongle"]
+dongle_pid = 0x00C3
+transaction_id = 0x1F
+dpi_min = 100
+dpi_max = 30000
+dpi_step = 50
+polling_rates = [125, 500, 1000]
+lighting = { chroma = false }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+[[device.variants]]
+pid = 0x00C3
+connection = "dongle"
+protocol = "2.5"
+synapse_class = "rzDevice25"
+
+
+[[device]]
+name = "Razer DeathAdder V3 Hyperspeed"
+vid = 0x1532
+pid = 0x00C4
+synapse_product_id = 196
+kind = "mouse"
+protocol = "2.5"
+connection = ["usb", "dongle"]
+dongle_pid = 0x00C5
+transaction_id = 0x1F
+dpi_min = 100
+dpi_max = 20000
+dpi_step = 50
+polling_rates = [125, 500, 1000]
+battery = true
+lighting = { chroma = false }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+[[device.variants]]
+pid = 0x00C5
+connection = "dongle"
+protocol = "2.5"
+synapse_class = "rzDevice25DualLinkMouse"
+
+
+[[device]]
+name = "Razer Pro Click V2 Vertical Edition"
+vid = 0x1532
+pid = 0x00C7
+synapse_product_id = 199
+kind = "mouse"
+protocol = "2.5"
+connection = ["usb", "dongle", "bluetooth"]
+dongle_pid = 0x00C8
+bluetooth_pid = 0x00C9
+transaction_id = 0x1F
+dpi_min = 100
+dpi_max = 30000
+dpi_step = 50
+battery = true
+lighting = { matrix = [9, 10], leds = 18, regions = 3 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+[[device.variants]]
+pid = 0x00C8
+connection = "dongle"
+protocol = "2.5"
+synapse_class = "rzDevice25DualLinkMouse"
+
+[[device.variants]]
+pid = 0x00C9
+connection = "bluetooth"
+protocol = "3.0"
+synapse_class = "rzDevice30"
+
+
+[[device]]
+name = "Razer Basilisk V3 35K"
+vid = 0x1532
+pid = 0x00CB
+synapse_product_id = 203
+kind = "mouse"
+protocol = "2.5"
+connection = ["usb"]
+transaction_id = 0x1F
+dpi_min = 100
+dpi_max = 35000
+dpi_step = 1
+polling_rates = [125, 500, 1000]
+lighting = { matrix = [7, 5], leds = 11, regions = 3 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Basilisk V3 Pro 35K"
+vid = 0x1532
+pid = 0x00CC
+synapse_product_id = 204
+kind = "mouse"
+protocol = "2.5"
+connection = ["usb", "dongle", "bluetooth"]
+dongle_pid = 0x00CD
+bluetooth_pid = 0x00CE
+transaction_id = 0x1F
+dpi_min = 100
+dpi_max = 35000
+dpi_step = 50
+polling_rates = [125, 500, 1000]
+battery = true
+lighting = { matrix = [7, 5], leds = 13, regions = 3 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+[[device.variants]]
+pid = 0x00CD
+connection = "dongle"
+protocol = "2.5"
+synapse_class = "rzDevice25DualLinkMouse"
+
+[[device.variants]]
+pid = 0x00CE
+connection = "bluetooth"
+protocol = "3.0"
+synapse_class = "rzDevice30"
+
+
+[[device]]
+name = "Razer Pro Click V2"
+vid = 0x1532
+pid = 0x00D0
+synapse_product_id = 208
+kind = "mouse"
+protocol = "2.5"
+connection = ["usb", "dongle", "bluetooth"]
+dongle_pid = 0x00D1
+bluetooth_pid = 0x00D2
+transaction_id = 0x1F
+dpi_min = 100
+dpi_max = 30000
+dpi_step = 50
+battery = true
+lighting = { matrix = [7, 8], leds = 14, regions = 3 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+[[device.variants]]
+pid = 0x00D1
+connection = "dongle"
+protocol = "2.5"
+synapse_class = "rzDevice25DualLinkMouse"
+
+[[device.variants]]
+pid = 0x00D2
+connection = "bluetooth"
+protocol = "3.0"
+synapse_class = "rzDevice30"
+
+
+[[device]]
+name = "Razer Basilisk Mobile"
+vid = 0x1532
+pid = 0x00D3
+synapse_product_id = 211
+kind = "mouse"
+protocol = "2.5"
+connection = ["usb", "dongle", "bluetooth"]
+dongle_pid = 0x00D4
+bluetooth_pid = 0x00D5
+transaction_id = 0x1F
+dpi_min = 100
+dpi_max = 18000
+dpi_step = 50
+polling_rates = [125, 500, 1000]
+battery = true
+lighting = { matrix = [7, 5], leds = 2 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+[[device.variants]]
+pid = 0x00D4
+connection = "dongle"
+protocol = "2.5"
+synapse_class = "rzDevice25DualLinkMouse"
+
+[[device.variants]]
+pid = 0x00D5
+connection = "bluetooth"
+protocol = "3.0"
+synapse_class = "rzDevice30"
+
+
+[[device]]
+name = "Razer Basilisk V3 Pro 35K Phantom Green Edition"
+vid = 0x1532
+pid = 0x00D6
+synapse_product_id = 214
+kind = "mouse"
+protocol = "2.5"
+connection = ["usb", "dongle", "bluetooth"]
+dongle_pid = 0x00D7
+bluetooth_pid = 0x00D8
+transaction_id = 0x1F
+dpi_min = 100
+dpi_max = 35000
+dpi_step = 50
+battery = true
+lighting = { matrix = [7, 5], leds = 12, regions = 2 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+[[device.variants]]
+pid = 0x00D7
+connection = "dongle"
+protocol = "2.5"
+synapse_class = "rzDevice25DualLinkMouse"
+
+[[device.variants]]
+pid = 0x00D8
+connection = "bluetooth"
+protocol = "3.0"
+synapse_class = "rzDevice30"
+
+
+[[device]]
+name = "Razer Cobra HyperSpeed"
+vid = 0x1532
+pid = 0x00DA
+synapse_product_id = 218
+kind = "mouse"
+protocol = "2.5"
+connection = ["usb", "dongle", "bluetooth"]
+dongle_pid = 0x00DB
+bluetooth_pid = 0x00DC
+transaction_id = 0x1F
+dpi_min = 100
+dpi_max = 26000
+dpi_step = 50
+polling_rates = [125, 500, 1000]
+battery = true
+lighting = { matrix = [7, 5], leds = 4, regions = 2 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+[[device.variants]]
+pid = 0x00DB
+connection = "dongle"
+protocol = "2.5"
+synapse_class = "rzDevice25DualLinkMouse"
+
+[[device.variants]]
+pid = 0x00DC
+connection = "bluetooth"
+protocol = "3.0"
+synapse_class = "rzDevice30"
+
+
+[[device]]
+name = "Razer Krakoff"
+vid = 0x1532
+pid = 0x00DD
+synapse_product_id = 221
+kind = "mouse"
+protocol = "unknown"
+connection = ["dongle"]
+dpi_min = 100
+dpi_max = 45000
+dpi_step = 1
+polling_rates = [125, 500, 1000, 2000, 4000, 8000]
+evidence = "synapse-js"
+
+[[device]]
+name = "Razer Viper V3 Pro SE"
+vid = 0x1532
+pid = 0x00DE
+synapse_product_id = 222
+kind = "mouse"
+protocol = "2.5"
+connection = ["dongle"]
+dongle_pid = 0x00DF
+transaction_id = 0x1F
+dpi_min = 100
+dpi_max = 35000
+dpi_step = 1
+polling_rates = [125, 500, 1000]
+battery = true
+evidence = "synapse-js"
+[[device.variants]]
+pid = 0x00DF
+connection = "dongle"
+
+
+[[device]]
+name = "Razer Orochi V2"
+vid = 0x1532
+pid = 0x00E0
+synapse_product_id = 224
+kind = "mouse"
+protocol = "unknown"
+connection = ["dongle", "bluetooth"]
+bluetooth_pid = 0x00E1
+dpi_min = 100
+dpi_max = 18000
+dpi_step = 50
+polling_rates = [125, 500, 1000]
+battery = true
+lighting = { chroma = false }
+evidence = "synapse-js"
+[[device.variants]]
+pid = 0x00E1
+connection = "bluetooth"
+
+
+[[device]]
+name = "Razer Basilisk V4 Pro"
+vid = 0x1532
+pid = 0x00E2
+synapse_product_id = 226
+kind = "mouse"
+protocol = "unknown"
+connection = ["dongle", "bluetooth"]
+dongle_pid = 0x00E3
+bluetooth_pid = 0x00E4
+dpi_min = 100
+dpi_max = 50000
+dpi_step = 1
+polling_rates = [125, 500, 1000, 2000, 4000, 8000]
+evidence = "synapse-js"
+[[device.variants]]
+pid = 0x00E3
+connection = "dongle"
+
+[[device.variants]]
+pid = 0x00E4
+connection = "bluetooth"
+
+
+[[device]]
+name = "Razer Viper V4 Pro"
+vid = 0x1532
+pid = 0x00E5
+synapse_product_id = 229
+kind = "mouse"
+protocol = "unknown"
+connection = ["dongle"]
+dongle_pid = 0x00E6
+dpi_min = 100
+dpi_max = 50000
+dpi_step = 50
+polling_rates = [125, 500, 1000, 2000, 4000, 8000]
+battery = true
+evidence = "synapse-js"
+[[device.variants]]
+pid = 0x00E6
+connection = "dongle"
+
+
+[[device]]
+name = "Razer Naga V3 Pro"
+vid = 0x1532
+pid = 0x00E7
+synapse_product_id = 231
+kind = "mouse"
+protocol = "unknown"
+connection = ["dongle", "bluetooth"]
+dongle_pid = 0x00E8
+bluetooth_pid = 0x00E9
+dpi_min = 100
+dpi_max = 50000
+dpi_step = 50
+battery = true
+evidence = "synapse-js"
+[[device.variants]]
+pid = 0x00E8
+connection = "dongle"
+
+[[device.variants]]
+pid = 0x00E9
+connection = "bluetooth"
+
+
+[[device]]
+name = "Razer Basilisk V4 HyperSpeed"
+vid = 0x1532
+pid = 0x00EB
+synapse_product_id = 235
+kind = "mouse"
+protocol = "unknown"
+connection = ["dongle", "bluetooth"]
+dongle_pid = 0x00EA
+bluetooth_pid = 0x00EC
+dpi_min = 100
+dpi_max = 33000
+dpi_step = 1
+polling_rates = [125, 500, 1000, 2000, 4000, 8000]
+evidence = "synapse-js"
+[[device.variants]]
+pid = 0x00EA
+connection = "dongle"
+
+[[device.variants]]
+pid = 0x00EC
+connection = "bluetooth"
+
+
+[[device]]
+name = "Razer DeathAdder V4 Pro Carbon Fiber Edition"
+vid = 0x1532
+pid = 0x00EF
+synapse_product_id = 239
+kind = "mouse"
+protocol = "unknown"
+connection = ["dongle"]
+dongle_pid = 0x00F0
+dpi_min = 100
+dpi_max = 50000
+dpi_step = 50
+polling_rates = [125, 500, 1000, 2000, 4000, 8000]
+battery = true
+evidence = "synapse-js"
+[[device.variants]]
+pid = 0x00F0
+connection = "dongle"
+
+
+[[device]]
+name = "Razer Turret Mouse Gears Of War 5 Edition"
+vid = 0x1532
+pid = 0x0A22
+synapse_product_id = 2594
+kind = "mouse"
+protocol = "2.5"
+connection = ["usb", "dongle"]
+dongle_pid = 0x0A21
+dpi_min = 100
+dpi_max = 16000
+dpi_step = 50
+polling_rates = [125, 500, 1000]
+lighting = { matrix = [7, 5], leds = 2, regions = 2 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+[[device.variants]]
+pid = 0x0A21
+connection = "dongle"
+protocol = "2.5"
+synapse_class = "rzDevice25"
+
+
+[[device]]
+name = "Razer Viper V4 HyperSpeed"
+vid = 0x1532
+pid = 0xB005
+synapse_product_id = 45061
+kind = "mouse"
+protocol = "unknown"
+connection = ["dongle", "bluetooth"]
+bluetooth_pid = 0xB006
+dpi_min = 100
+dpi_max = 33000
+dpi_step = 50
+polling_rates = [125, 500, 1000, 2000, 4000, 8000]
+battery = true
+lighting = { chroma = false }
+evidence = "synapse-js"
+[[device.variants]]
+pid = 0xB006
+connection = "bluetooth"
+
+
+[[device]]
+name = "Razer DeathAdder V4 HyperSpeed"
+vid = 0x1532
+pid = 0xB007
+synapse_product_id = 45063
+kind = "mouse"
+protocol = "unknown"
+connection = ["dongle", "bluetooth"]
+bluetooth_pid = 0xB008
+dpi_min = 100
+dpi_max = 33000
+dpi_step = 10
+polling_rates = [125, 500, 1000, 2000, 4000, 8000]
+battery = true
+lighting = { chroma = false }
+evidence = "synapse-js"
+[[device.variants]]
+pid = 0xB008
+connection = "bluetooth"
+
+
+[[device]]
+name = "Razer Basilisk V3 Pro 35K - Xbox 25 Anniversary Edition"
+vid = 0x1532
+pid = 0xB00A
+synapse_product_id = 45066
+kind = "mouse"
+protocol = "unknown"
+connection = ["dongle", "bluetooth"]
+dongle_pid = 0xB00B
+bluetooth_pid = 0xB00C
+dpi_min = 100
+dpi_max = 35000
+dpi_step = 50
+polling_rates = [125, 500, 1000]
+evidence = "synapse-js"
+[[device.variants]]
+pid = 0xB00B
+connection = "dongle"
+
+[[device.variants]]
+pid = 0xB00C
+connection = "bluetooth"
+

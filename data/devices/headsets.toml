@@ -1,0 +1,1113 @@
+# OpenSynapse device registry: headset, speaker
+# Facts extracted from Razer Synapse 4 public device metadata + OpenRazer cross-reference.
+# Schema: data/devices/SCHEMA.md. Build notes: vault/Devices/Device Registry.md
+
+[[device]]
+name = "Star Wars: The Old Republic Gaming Headset by Razer"
+vid = 0x1532
+pid = 0x002C
+synapse_product_id = 44
+kind = "headset"
+protocol = "unknown"
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Kraken BT Sanrio Limited Edition"
+vid = 0x1532
+pid = 0x0309
+synapse_product_id = 777
+kind = "headset"
+protocol = "unknown"
+connection = ["usb", "bluetooth"]
+bluetooth_pid = 0x0309
+lighting = { matrix = [1, 2], leds = 2, regions = 1 }
+synapse_class = "AudioAWKittyBLE"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Kraken 7.1"
+vid = 0x1532
+pid = 0x0501
+synapse_product_id = 1281
+kind = "headset"
+protocol = "unknown"
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Kraken USB"
+vid = 0x1532
+pid = 0x0502
+synapse_product_id = 1282
+kind = "headset"
+protocol = "unknown"
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Kraken 7.1 Chroma"
+vid = 0x1532
+pid = 0x0504
+synapse_product_id = 1284
+kind = "headset"
+protocol = "unknown"
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Kraken 7.1 Blue"
+vid = 0x1532
+pid = 0x0506
+synapse_product_id = 1286
+kind = "headset"
+protocol = "unknown"
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Kraken USB Crossfire"
+vid = 0x1532
+pid = 0x0507
+synapse_product_id = 1287
+kind = "headset"
+protocol = "unknown"
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Kraken 7.1 Special Edition"
+vid = 0x1532
+pid = 0x050D
+synapse_product_id = 1293
+kind = "headset"
+protocol = "unknown"
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer ManOWar 7.1"
+vid = 0x1532
+pid = 0x050F
+synapse_product_id = 1295
+kind = "headset"
+protocol = "unknown"
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Kraken 7.1 V2"
+vid = 0x1532
+pid = 0x0510
+synapse_product_id = 1296
+kind = "headset"
+protocol = "unknown"
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Electra V2 USB"
+vid = 0x1532
+pid = 0x0514
+synapse_product_id = 1300
+kind = "headset"
+protocol = "unknown"
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Nari Ultimate"
+vid = 0x1532
+pid = 0x051A
+synapse_product_id = 1306
+kind = "headset"
+protocol = "unknown"
+connection = ["dongle"]
+lighting = { matrix = [1, 1], leds = 1, regions = 1 }
+synapse_class = "AudioAvneraDevice"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Nari"
+vid = 0x1532
+pid = 0x051C
+synapse_product_id = 1308
+kind = "headset"
+protocol = "unknown"
+connection = ["dongle"]
+lighting = { matrix = [1, 1], leds = 1, regions = 1 }
+synapse_class = "AudioAvneraDevice"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Nari Essential"
+vid = 0x1532
+pid = 0x051E
+synapse_product_id = 1310
+kind = "headset"
+protocol = "unknown"
+connection = ["usb"]
+lighting = { chroma = false }
+evidence = "synapse-js"
+
+[[device]]
+name = "RAZER USB AUDIO CONTROLLER"
+vid = 0x1532
+pid = 0x0520
+synapse_product_id = 1312
+kind = "headset"
+protocol = "unknown"
+connection = ["usb"]
+lighting = { chroma = false }
+evidence = "synapse-js"
+
+[[device]]
+name = "Razer Kraken Kitty Edition"
+vid = 0x1532
+pid = 0x0521
+synapse_product_id = 1313
+kind = "headset"
+protocol = "unknown"
+connection = ["usb"]
+evidence = "synapse-js"
+
+[[device]]
+name = "Razer Kraken X USB"
+vid = 0x1532
+pid = 0x0526
+synapse_product_id = 1318
+kind = "headset"
+protocol = "unknown"
+connection = ["usb"]
+lighting = { chroma = false }
+synapse_class = "AudioKrakenXUSB"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Kraken Ultimate"
+vid = 0x1532
+pid = 0x0527
+synapse_product_id = 1319
+kind = "headset"
+protocol = "unknown"
+connection = ["dongle"]
+lighting = { matrix = [1, 1], leds = 1, regions = 1 }
+synapse_class = "AudioKrakenUltimate"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer BlackShark V2 Pro"
+vid = 0x1532
+pid = 0x0528
+synapse_product_id = 1320
+kind = "headset"
+protocol = "unknown"
+connection = ["dongle"]
+lighting = { chroma = false }
+evidence = "synapse-js"
+
+[[device]]
+name = "Razer USB Sound Card"
+vid = 0x1532
+pid = 0x0529
+synapse_product_id = 1321
+kind = "headset"
+protocol = "unknown"
+connection = ["usb"]
+lighting = { chroma = false }
+evidence = "synapse-js"
+
+[[device]]
+name = "Razer Odessa T1"
+vid = 0x1532
+pid = 0x052A
+synapse_product_id = 1322
+kind = "headset"
+protocol = "unknown"
+evidence = "inferred"
+
+[[device]]
+name = "Razer Kraken V3 Pro"
+vid = 0x1532
+pid = 0x052D
+synapse_product_id = 1325
+kind = "headset"
+protocol = "unknown"
+connection = ["dongle"]
+dongle_pid = 0x052C
+evidence = "synapse-js"
+[[device.variants]]
+pid = 0x052C
+connection = "dongle"
+protocol = "unknown"
+synapse_class = "AudioNXPDevice"
+
+
+[[device]]
+name = "Razer Kraken BT Kitty Edition"
+vid = 0x1532
+pid = 0x0530
+synapse_product_id = 1328
+kind = "headset"
+protocol = "unknown"
+connection = ["usb", "bluetooth"]
+bluetooth_pid = 0x0530
+lighting = { matrix = [1, 2], leds = 2, regions = 1 }
+synapse_class = "AudioAWKittyBLE"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Kraken V3 Hypersense"
+vid = 0x1532
+pid = 0x0533
+synapse_product_id = 1331
+kind = "headset"
+protocol = "unknown"
+connection = ["usb"]
+lighting = { matrix = [1, 1], leds = 1, regions = 1 }
+synapse_class = "AudioKrystalT2"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Kraken BT - Hello Kitty and Friends Edition"
+vid = 0x1532
+pid = 0x0534
+synapse_product_id = 1332
+kind = "headset"
+protocol = "unknown"
+connection = ["usb", "bluetooth"]
+bluetooth_pid = 0x0534
+lighting = { matrix = [1, 2], leds = 2, regions = 1 }
+synapse_class = "AudioAWKittyBLE"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Kraken V3 X"
+vid = 0x1532
+pid = 0x0537
+synapse_product_id = 1335
+kind = "headset"
+protocol = "unknown"
+connection = ["usb"]
+lighting = { matrix = [1, 1], leds = 1, regions = 1 }
+synapse_class = "AudioKrystalT3"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Barracuda Pro"
+vid = 0x1532
+pid = 0x0539
+synapse_product_id = 1337
+kind = "headset"
+protocol = "unknown"
+connection = ["dongle"]
+dongle_pid = 0x053A
+lighting = { chroma = false }
+evidence = "synapse-js"
+[[device.variants]]
+pid = 0x053A
+connection = "dongle"
+
+
+[[device]]
+name = "Razer Barracuda 2.4"
+vid = 0x1532
+pid = 0x053B
+synapse_product_id = 1339
+kind = "headset"
+protocol = "unknown"
+connection = ["dongle"]
+dongle_pid = 0x053C
+lighting = { chroma = false }
+evidence = "synapse-js"
+[[device.variants]]
+pid = 0x053C
+connection = "dongle"
+
+
+[[device]]
+name = "Razer Kraken V3"
+vid = 0x1532
+pid = 0x0549
+synapse_product_id = 1353
+kind = "headset"
+protocol = "unknown"
+connection = ["usb"]
+lighting = { matrix = [1, 1], leds = 1, regions = 1 }
+synapse_class = "AudioKrystalT2"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Kraken Kitty V2 Pro"
+vid = 0x1532
+pid = 0x0554
+synapse_product_id = 1364
+kind = "headset"
+protocol = "unknown"
+connection = ["usb"]
+lighting = { matrix = [5, 5], leds = 4, regions = 1 }
+synapse_class = "AudioKrakenKittyV2Pro"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer BlackShark V2 Pro"
+vid = 0x1532
+pid = 0x0555
+synapse_product_id = 1365
+kind = "headset"
+protocol = "unknown"
+connection = ["dongle"]
+lighting = { chroma = false }
+evidence = "synapse-js"
+
+[[device]]
+name = "Razer Kraken Kitty V2"
+vid = 0x1532
+pid = 0x0560
+synapse_product_id = 1376
+kind = "headset"
+protocol = "unknown"
+connection = ["usb"]
+lighting = { matrix = [1, 1], leds = 1, regions = 1 }
+synapse_class = "AudioKrakenKittyT3"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Kraken Kitty V2 BT"
+vid = 0x1532
+pid = 0x0562
+synapse_product_id = 1378
+kind = "headset"
+protocol = "unknown"
+connection = ["usb", "bluetooth"]
+bluetooth_pid = 0x0562
+lighting = { matrix = [1, 2], leds = 2, regions = 1 }
+synapse_class = "AudioAWKittyBLE"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Kraken V4 Pro"
+vid = 0x1532
+pid = 0x0567
+synapse_product_id = 1383
+kind = "headset"
+protocol = "unknown"
+connection = ["usb", "dongle", "bluetooth"]
+dongle_pid = 0x0568
+bluetooth_pid = 0x0572
+lighting = { matrix = [4, 4], leds = 9 }
+synapse_class = "AudioBillieT1Wired"
+evidence = "synapse-manifest"
+[[device.variants]]
+pid = 0x0568
+connection = "dongle"
+protocol = "unknown"
+synapse_class = "AudioBillieT1Dongle"
+
+[[device.variants]]
+pid = 0x0572
+connection = "bluetooth"
+
+
+[[device]]
+name = "Razer Kraken V4"
+vid = 0x1532
+pid = 0x056B
+synapse_product_id = 1387
+kind = "headset"
+protocol = "unknown"
+connection = ["usb", "dongle"]
+dongle_pid = 0x056C
+lighting = { matrix = [4, 4], leds = 9 }
+synapse_class = "AudioBillieT2"
+evidence = "synapse-manifest"
+[[device.variants]]
+pid = 0x056C
+connection = "dongle"
+protocol = "unknown"
+synapse_class = "AudioBillieT2Dongle"
+
+
+[[device]]
+name = "Razer Kraken V4 X"
+vid = 0x1532
+pid = 0x056D
+synapse_product_id = 1389
+kind = "headset"
+protocol = "unknown"
+connection = ["usb"]
+lighting = { matrix = [1, 2], leds = 2 }
+synapse_class = "AudioKrystalT3"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer BlackShark V2 Hyperspeed"
+vid = 0x1532
+pid = 0x056E
+synapse_product_id = 1390
+kind = "headset"
+protocol = "unknown"
+connection = ["dongle"]
+dongle_pid = 0x0565
+lighting = { chroma = false }
+evidence = "synapse-js"
+[[device.variants]]
+pid = 0x0565
+connection = "dongle"
+
+
+[[device]]
+name = "Razer Clio"
+vid = 0x1532
+pid = 0x0570
+synapse_product_id = 1392
+kind = "headset"
+protocol = "unknown"
+connection = ["dongle"]
+lighting = { chroma = false }
+evidence = "synapse-js"
+
+[[device]]
+name = "Razer Barracuda X Chroma"
+vid = 0x1532
+pid = 0x0574
+synapse_product_id = 1396
+kind = "headset"
+protocol = "unknown"
+connection = ["dongle"]
+lighting = { matrix = [4, 4], leds = 6 }
+synapse_class = "AudioMabelT3CDongle"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer BlackShark V3 Pro"
+vid = 0x1532
+pid = 0x0576
+synapse_product_id = 1398
+kind = "headset"
+protocol = "unknown"
+connection = ["dongle", "bluetooth"]
+dongle_pid = 0x0577
+bluetooth_pid = 0x0575
+lighting = { chroma = false }
+evidence = "synapse-js"
+[[device.variants]]
+pid = 0x0577
+connection = "dongle"
+
+[[device.variants]]
+pid = 0x0575
+connection = "bluetooth"
+
+
+[[device]]
+name = "Razer BlackShark V3"
+vid = 0x1532
+pid = 0x0579
+synapse_product_id = 1401
+kind = "headset"
+protocol = "unknown"
+connection = ["dongle", "bluetooth"]
+dongle_pid = 0x057A
+bluetooth_pid = 0x0578
+lighting = { chroma = false }
+evidence = "synapse-js"
+[[device.variants]]
+pid = 0x057A
+connection = "dongle"
+
+[[device.variants]]
+pid = 0x0578
+connection = "bluetooth"
+
+
+[[device]]
+name = "Razer BlackShark V3 X"
+vid = 0x1532
+pid = 0x057C
+synapse_product_id = 1404
+kind = "headset"
+protocol = "unknown"
+connection = ["dongle", "bluetooth"]
+dongle_pid = 0x057D
+bluetooth_pid = 0x057B
+lighting = { chroma = false }
+evidence = "synapse-js"
+[[device.variants]]
+pid = 0x057D
+connection = "dongle"
+
+[[device.variants]]
+pid = 0x057B
+connection = "bluetooth"
+
+
+[[device]]
+name = "Razer Kraken V2 BT Hello Kitty and Friends Edition"
+vid = 0x1532
+pid = 0x057E
+synapse_product_id = 1406
+kind = "headset"
+protocol = "unknown"
+connection = ["usb", "bluetooth"]
+bluetooth_pid = 0x057E
+lighting = { matrix = [1, 2], leds = 2, regions = 1 }
+synapse_class = "AudioAWKittyBLE"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer | Sanrio Characters Limited Edition Wireless Headset"
+vid = 0x1532
+pid = 0x057F
+synapse_product_id = 1407
+kind = "headset"
+protocol = "unknown"
+connection = ["usb", "bluetooth"]
+bluetooth_pid = 0x057F
+lighting = { matrix = [1, 2], leds = 2, regions = 1 }
+synapse_class = "AudioAWKittyBLE"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Barracuda Pro"
+vid = 0x1532
+pid = 0x0583
+synapse_product_id = 1411
+kind = "headset"
+protocol = "unknown"
+connection = ["dongle"]
+lighting = { chroma = false }
+evidence = "synapse-js"
+
+[[device]]
+name = "Razer Barracuda 2.4"
+vid = 0x1532
+pid = 0x0584
+synapse_product_id = 1412
+kind = "headset"
+protocol = "unknown"
+connection = ["dongle"]
+lighting = { chroma = false }
+evidence = "synapse-js"
+
+[[device]]
+name = "Razer Kraken Kitty V3 Pro"
+vid = 0x1532
+pid = 0x0587
+synapse_product_id = 1415
+kind = "headset"
+protocol = "unknown"
+connection = ["usb", "dongle", "bluetooth"]
+dongle_pid = 0x0588
+bluetooth_pid = 0x0589
+lighting = { matrix = [5, 5], leds = 10 }
+synapse_class = "AudioBillieT2"
+evidence = "synapse-manifest"
+[[device.variants]]
+pid = 0x0588
+connection = "dongle"
+protocol = "unknown"
+synapse_class = "AudioBillieT2Dongle"
+
+[[device.variants]]
+pid = 0x0589
+connection = "bluetooth"
+
+
+[[device]]
+name = "Razer Hammerhead V3"
+vid = 0x1532
+pid = 0x058C
+synapse_product_id = 1420
+kind = "headset"
+protocol = "unknown"
+connection = ["dongle"]
+evidence = "synapse-js"
+
+[[device]]
+name = "Razer Barracuda V2 Pro"
+vid = 0x1532
+pid = 0x0593
+synapse_product_id = 1427
+kind = "headset"
+protocol = "unknown"
+connection = ["dongle"]
+dongle_pid = 0x0592
+lighting = { chroma = false }
+evidence = "synapse-js"
+[[device.variants]]
+pid = 0x0592
+connection = "dongle"
+
+
+[[device]]
+name = "Razer Kraken V4 X Sensa HD Haptics"
+vid = 0x1532
+pid = 0x059F
+synapse_product_id = 1439
+kind = "headset"
+protocol = "unknown"
+connection = ["usb"]
+evidence = "synapse-js"
+
+[[device]]
+name = "Razer Carol T2"
+vid = 0x1532
+pid = 0x05A2
+synapse_product_id = 1442
+kind = "headset"
+protocol = "unknown"
+connection = ["dongle"]
+lighting = { chroma = false }
+evidence = "synapse-js"
+
+[[device]]
+name = "Razer Barracuda V2 X"
+vid = 0x1532
+pid = 0x05B3
+synapse_product_id = 1459
+kind = "headset"
+protocol = "unknown"
+connection = ["dongle"]
+dongle_pid = 0x05B2
+evidence = "synapse-js"
+[[device.variants]]
+pid = 0x05B2
+connection = "dongle"
+
+
+[[device]]
+name = "Razer Kraken Kitty V3"
+vid = 0x1532
+pid = 0x05B6
+synapse_product_id = 1462
+kind = "headset"
+protocol = "unknown"
+connection = ["usb"]
+evidence = "synapse-js"
+
+[[device]]
+name = "Razer Hammerhead V3 Chroma"
+vid = 0x1532
+pid = 0x05B9
+synapse_product_id = 1465
+kind = "headset"
+protocol = "unknown"
+connection = ["usb"]
+evidence = "synapse-js"
+
+[[device]]
+name = "Razer ManOWar"
+vid = 0x1532
+pid = 0x0A02
+synapse_product_id = 2562
+kind = "headset"
+protocol = "unknown"
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Kaira Pro for Xbox"
+vid = 0x1532
+pid = 0x0A25
+synapse_product_id = 2597
+kind = "headset"
+protocol = "unknown"
+bluetooth_pid = 0x0A26
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Kaira for Xbox"
+vid = 0x1532
+pid = 0x0A27
+synapse_product_id = 2599
+kind = "headset"
+protocol = "unknown"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Hammerhead True Wireless V2"
+vid = 0x1532
+pid = 0x0A32
+synapse_product_id = 2610
+kind = "headset"
+protocol = "unknown"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Kaira Pro HyperSpeed"
+vid = 0x1532
+pid = 0x0A34
+synapse_product_id = 2612
+kind = "headset"
+protocol = "unknown"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer BlackShark V3 Pro XBOX"
+vid = 0x1532
+pid = 0x0A4E
+synapse_product_id = 2638
+kind = "headset"
+protocol = "unknown"
+connection = ["dongle", "bluetooth"]
+dongle_pid = 0x0A55
+bluetooth_pid = 0x0A4F
+lighting = { chroma = false }
+evidence = "synapse-js"
+[[device.variants]]
+pid = 0x0A55
+connection = "dongle"
+
+[[device.variants]]
+pid = 0x0A4F
+connection = "bluetooth"
+
+
+[[device]]
+name = "Razer BlackShark V3 XBOX"
+vid = 0x1532
+pid = 0x0A51
+synapse_product_id = 2641
+kind = "headset"
+protocol = "unknown"
+connection = ["dongle", "bluetooth"]
+dongle_pid = 0x0A58
+bluetooth_pid = 0x0A52
+lighting = { chroma = false }
+evidence = "synapse-js"
+[[device.variants]]
+pid = 0x0A58
+connection = "dongle"
+
+[[device.variants]]
+pid = 0x0A52
+connection = "bluetooth"
+
+
+[[device]]
+name = "Razer BlackShark V3 X Xbox"
+vid = 0x1532
+pid = 0x0A54
+synapse_product_id = 2644
+kind = "headset"
+protocol = "unknown"
+connection = ["dongle", "bluetooth"]
+dongle_pid = 0x0A5B
+bluetooth_pid = 0x0A56
+lighting = { chroma = false }
+evidence = "synapse-js"
+[[device.variants]]
+pid = 0x0A5B
+connection = "dongle"
+
+[[device.variants]]
+pid = 0x0A56
+connection = "bluetooth"
+
+
+[[device]]
+name = "Razer Hammerhead V3 HyperSpeed"
+vid = 0x1532
+pid = 0x0A61
+synapse_product_id = 2657
+kind = "headset"
+protocol = "unknown"
+connection = ["dongle", "bluetooth"]
+bluetooth_pid = 0x0A62
+lighting = { chroma = false }
+evidence = "synapse-js"
+[[device.variants]]
+pid = 0x0A62
+connection = "bluetooth"
+
+
+[[device]]
+name = "Razer Hammerhead V3 X Hyperspeed"
+vid = 0x1532
+pid = 0x0A64
+synapse_product_id = 2660
+kind = "headset"
+protocol = "unknown"
+connection = ["dongle", "bluetooth"]
+bluetooth_pid = 0x0A65
+lighting = { chroma = false }
+evidence = "synapse-js"
+[[device.variants]]
+pid = 0x0A65
+connection = "bluetooth"
+
+
+[[device]]
+name = "Razer Hammerhead V3 X Hyperspeed for Xbox"
+vid = 0x1532
+pid = 0x0A68
+synapse_product_id = 2664
+kind = "headset"
+protocol = "unknown"
+connection = ["dongle", "bluetooth"]
+bluetooth_pid = 0x0A65
+lighting = { chroma = false }
+evidence = "synapse-js"
+[[device.variants]]
+pid = 0x0A65
+connection = "bluetooth"
+
+
+[[device]]
+name = "Razer Hammerhead V3 X Hyperspeed"
+vid = 0x1532
+pid = 0x0A6C
+synapse_product_id = 2668
+kind = "headset"
+protocol = "unknown"
+connection = ["dongle", "bluetooth"]
+bluetooth_pid = 0x0A6D
+lighting = { chroma = false }
+evidence = "synapse-js"
+[[device.variants]]
+pid = 0x0A6D
+connection = "bluetooth"
+
+
+[[device]]
+name = "Razer Hammerhead V3 X Hyperspeed Kuromi Edition"
+vid = 0x1532
+pid = 0x0A81
+synapse_product_id = 2689
+kind = "headset"
+protocol = "unknown"
+connection = ["dongle", "bluetooth"]
+bluetooth_pid = 0x0A82
+lighting = { chroma = false }
+evidence = "synapse-js"
+[[device.variants]]
+pid = 0x0A82
+connection = "bluetooth"
+
+
+[[device]]
+name = "Razer Tiamat 7.1 V2"
+vid = 0x1532
+pid = 0x0F03
+synapse_product_id = 3843
+kind = "headset"
+protocol = "unknown"
+synapse4 = false
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Kraken Kitty Edition"
+vid = 0x1532
+pid = 0x0F19
+kind = "headset"
+protocol = "2.5"
+evidence = "openrazer"
+
+[[device]]
+name = "Razer BlackShark V3 Pro PS"
+vid = 0x1532
+pid = 0x101C
+synapse_product_id = 4124
+kind = "headset"
+protocol = "unknown"
+connection = ["dongle", "bluetooth"]
+dongle_pid = 0x101B
+bluetooth_pid = 0x101D
+lighting = { chroma = false }
+evidence = "synapse-js"
+[[device.variants]]
+pid = 0x101B
+connection = "dongle"
+
+[[device.variants]]
+pid = 0x101D
+connection = "bluetooth"
+
+
+[[device]]
+name = "Razer BlackShark V3 PS"
+vid = 0x1532
+pid = 0x101E
+synapse_product_id = 4126
+kind = "headset"
+protocol = "unknown"
+connection = ["dongle", "bluetooth"]
+bluetooth_pid = 0x1020
+lighting = { chroma = false }
+evidence = "synapse-js"
+[[device.variants]]
+pid = 0x1020
+connection = "bluetooth"
+
+
+[[device]]
+name = "Razer BlackShark V3 X PS"
+vid = 0x1532
+pid = 0x1022
+synapse_product_id = 4130
+kind = "headset"
+protocol = "unknown"
+connection = ["dongle", "bluetooth"]
+dongle_pid = 0x1021
+bluetooth_pid = 0x1023
+lighting = { chroma = false }
+evidence = "synapse-js"
+[[device.variants]]
+pid = 0x1021
+connection = "dongle"
+
+[[device.variants]]
+pid = 0x1023
+connection = "bluetooth"
+
+
+[[device]]
+name = "Razer Nommo Chroma"
+vid = 0x1532
+pid = 0x0517
+synapse_product_id = 1303
+kind = "speaker"
+protocol = "2.5"
+connection = ["usb"]
+lighting = { matrix = [12, 24], leds = 48, regions = 2 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Nommo Pro"
+vid = 0x1532
+pid = 0x0518
+synapse_product_id = 1304
+kind = "speaker"
+protocol = "2.5"
+connection = ["usb"]
+lighting = { matrix = [4, 8], leds = 16, regions = 2 }
+synapse_class = "rzDevice25"
+evidence = "synapse-manifest"
+
+[[device]]
+name = "Razer Leviathan V2"
+vid = 0x1532
+pid = 0x0532
+synapse_product_id = 1330
+kind = "speaker"
+protocol = "2.5"
+connection = ["usb", "bluetooth"]
+bluetooth_pid = 0x054C
+lighting = { matrix = [1, 18], leds = 18, regions = 1 }
+synapse_class = "rzDevice25Noa"
+evidence = "synapse-manifest"
+[[device.variants]]
+pid = 0x054C
+connection = "bluetooth"
+
+
+[[device]]
+name = "Razer Leviathan V2 Pro"
+vid = 0x1532
+pid = 0x0548
+synapse_product_id = 1352
+kind = "speaker"
+protocol = "2.5"
+connection = ["usb", "bluetooth"]
+bluetooth_pid = 0x0558
+lighting = { matrix = [1, 30], leds = 30, regions = 1 }
+synapse_class = "rzDevice25Noa"
+evidence = "synapse-manifest"
+[[device.variants]]
+pid = 0x0558
+connection = "bluetooth"
+
+
+[[device]]
+name = "Razer Leviathan V2 X"
+vid = 0x1532
+pid = 0x054A
+synapse_product_id = 1354
+kind = "speaker"
+protocol = "2.5"
+connection = ["usb", "bluetooth"]
+bluetooth_pid = 0x0559
+lighting = { matrix = [1, 14], leds = 14, regions = 1 }
+synapse_class = "rzDevice25NoaT3"
+evidence = "synapse-manifest"
+[[device.variants]]
+pid = 0x0559
+connection = "bluetooth"
+
+
+[[device]]
+name = "Razer Nommo V2 Pro"
+vid = 0x1532
+pid = 0x055A
+synapse_product_id = 1370
+kind = "speaker"
+protocol = "2.5"
+connection = ["usb", "bluetooth"]
+bluetooth_pid = 0x055B
+lighting = { matrix = [1, 2], leds = 12, regions = 2 }
+synapse_class = "rzDevice25NommoV2Pro"
+evidence = "synapse-manifest"
+[[device.variants]]
+pid = 0x055B
+connection = "bluetooth"
+
+
+[[device]]
+name = "Razer Nommo V2"
+vid = 0x1532
+pid = 0x055C
+synapse_product_id = 1372
+kind = "speaker"
+protocol = "2.5"
+connection = ["usb", "bluetooth"]
+bluetooth_pid = 0x055D
+lighting = { matrix = [1, 2], leds = 12, regions = 2 }
+synapse_class = "rzDevice25NommoV2Pro"
+evidence = "synapse-manifest"
+[[device.variants]]
+pid = 0x055D
+connection = "bluetooth"
+
+
+[[device]]
+name = "Razer Nommo V2 X"
+vid = 0x1532
+pid = 0x055E
+synapse_product_id = 1374
+kind = "speaker"
+protocol = "unknown"
+connection = ["usb"]
+lighting = { chroma = false }
+evidence = "synapse-js"
+
+[[device]]
+name = "Razer Leviathan V2"
+vid = 0x1532
+pid = 0x05A3
+synapse_product_id = 1443
+kind = "speaker"
+protocol = "unknown"
+connection = ["usb"]
+evidence = "synapse-js"
+
+[[device]]
+name = "Razer Mako"
+vid = 0x1532
+pid = 0x05AB
+synapse_product_id = 1451
+kind = "speaker"
+protocol = "unknown"
+connection = ["usb"]
+evidence = "synapse-js"
+
+[[device]]
+name = "Razer Mako X"
+vid = 0x1532
+pid = 0x05AD
+synapse_product_id = 1453
+kind = "speaker"
+protocol = "unknown"
+connection = ["usb"]
+evidence = "synapse-js"

@@ -7,3 +7,4 @@
 # Never commit Razer proprietary code or captures with personal data
 /re-artifacts/
 *.pcapng
+vault/.obsidian/
