@@ -1,10 +1,40 @@
 //! Onboard button assignment (class 0x02). `vault/Protocol/Commands 2.5.md`.
 //!
-//! The data bytes per function type are **unknown**, so this module only frames
-//! raw assignments. Typed functions come after a USB capture (phase 3).
+//! Data bytes are known for the function types in [`function`] (USB capture,
+//! `vault/RE-Log/2026-11-09 Button remap capture.md`); others stay raw.
 
 use crate::command::*;
 use crate::{ProtocolError, Request, fixed, need};
+
+/// Function type IDs whose data layout was seen in a capture (observed).
+pub mod function {
+    /// Data `[buttonId]`, e.g. `[4]` = mouse button 4.
+    pub const MOUSE_BUTTON: u8 = 1;
+    /// Data `[buttonId]`; `[1]` = double left click (button inferred).
+    pub const DOUBLE_CLICK: u8 = 11;
+}
+
+/// Assign a plain mouse button (`1` left … `8`) to `button`.
+pub fn mouse_button(profile: u8, button: u8, layer: Layer, target: u8) -> ButtonAssignment {
+    ButtonAssignment {
+        profile,
+        button,
+        layer,
+        function: function::MOUSE_BUTTON,
+        data: vec![target],
+    }
+}
+
+/// Make `button` send a double click of `target` (1 = left).
+pub fn double_click(profile: u8, button: u8, layer: Layer, target: u8) -> ButtonAssignment {
+    ButtonAssignment {
+        profile,
+        button,
+        layer,
+        function: function::DOUBLE_CLICK,
+        data: vec![target],
+    }
+}
 
 /// Mapping layer (observed: 0 normal, 1 HyperShift).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -42,7 +72,9 @@ pub fn set_button_assignment(a: &ButtonAssignment) -> Result<Request, ProtocolEr
         a.data.len() as u8,
     ];
     args.extend_from_slice(&a.data);
-    Request::new(SET_BUTTON_ASSIGNMENT, &args)
+    // Observed size 10; only longer data (macros etc.) needs more.
+    let size = SET_BUTTON_ASSIGNMENT.size.max(args.len() as u8);
+    Request::with_size(SET_BUTTON_ASSIGNMENT, size, &args)
 }
 
 pub fn parse_button_assignment(args: &[u8]) -> Result<ButtonAssignment, ProtocolError> {
@@ -82,9 +114,38 @@ mod tests {
             data: vec![1, 0],
         };
         let r = set_button_assignment(&a).unwrap().encode(0);
-        assert_eq!((r.class(), r.command_id(), r.data_size()), (0x02, 0x0C, 80));
+        assert_eq!((r.class(), r.command_id(), r.data_size()), (0x02, 0x0C, 10));
         assert_eq!(&r.args()[..7], &[1, 4, 1, 1, 2, 1, 0]);
         assert_eq!(parse_button_assignment(r.args()).unwrap(), a);
+    }
+
+    /// Byte-exact against the Synapse capture (2026-11-09, Viper V3 HyperSpeed).
+    #[test]
+    fn matches_capture() {
+        let dbl = set_button_assignment(&double_click(1, 4, Layer::Normal, 1))
+            .unwrap()
+            .encode(0x06);
+        let mut want = [0u8; 90];
+        want[..14].copy_from_slice(&[0x00, 0x06, 0, 0, 0, 0x0a, 0x02, 0x0c, 1, 4, 0, 0x0b, 1, 1]);
+        want[88] = 0x0a;
+        assert_eq!(dbl.as_bytes(), &want);
+
+        let back = set_button_assignment(&mouse_button(1, 4, Layer::Normal, 4))
+            .unwrap()
+            .encode(0x07);
+        assert_eq!(
+            &back.as_bytes()[..14],
+            &[0x00, 0x07, 0, 0, 0, 0x0a, 0x02, 0x0c, 1, 4, 0, 0x01, 1, 4,]
+        );
+        assert_eq!(back.as_bytes()[88], 0x05);
+    }
+
+    #[test]
+    fn long_data_grows_size() {
+        let mut a = mouse_button(1, 4, Layer::Normal, 4);
+        a.data = vec![0; 20];
+        let r = set_button_assignment(&a).unwrap().encode(0);
+        assert_eq!(r.data_size(), 25);
     }
 
     #[test]

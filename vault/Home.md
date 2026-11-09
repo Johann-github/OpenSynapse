@@ -17,5 +17,5 @@ Entry point. Repo root is the vault; code lives in `crates/`.
 - [[Decisions/ADR-0001 Clean-room reverse engineering]]
 - [[Decisions/ADR-0002 Lean by design]]
 - [[Decisions/ADR-0003 Own Windows HID backend]]
-- RE-Log: [[RE-Log/2026-11-09 Target survey]] · [[RE-Log/2026-11-09 Protocol 2.5]] · [[RE-Log/2026-11-09 Protocol 3.0 4.0 and events]] · [[RE-Log/2026-11-09 Windows transport]] · [[RE-Log/2026-11-09 Device database]] · [[RE-Log/2026-11-09 Hardware read test]]
+- RE-Log: [[RE-Log/2026-11-09 Target survey]] · [[RE-Log/2026-11-09 Protocol 2.5]] · [[RE-Log/2026-11-09 Protocol 3.0 4.0 and events]] · [[RE-Log/2026-11-09 Windows transport]] · [[RE-Log/2026-11-09 Device database]] · [[RE-Log/2026-11-09 Hardware read test]] · [[RE-Log/2026-11-09 Button remap capture]]
 - Templates: [[Templates/RE-Log]], [[Templates/Protocol Command]], [[Templates/Device]]

@@ -42,7 +42,9 @@ updated: 2026-11-09
 - Hardware reads succeeded: firmware, serial, device mode, battery, charging, DPI,
   DPI stages, polling (00/85 works), sleep (300).
 - Hardware writes succeeded with read-back + restore: DPI storage 0 and 1, polling
-  00/05, sleep 07/03. → [[RE-Log/2026-11-09 Hardware read test]] → [[RE-Log/2026-11-09 Hardware read test]]
+  00/05, sleep 07/03. → [[RE-Log/2026-11-09 Hardware read test]]
+- USB capture of a Synapse button remap decoded: 02/0C uses data_size 10; mouse button =
+  function 1 `[buttonId]`, double-click = function 11 `[01]`. → [[RE-Log/2026-11-09 Button remap capture]]
 
 ### Budgets ([[Decisions/ADR-0002 Lean by design]])
 | Metric | Target | Measured | |
@@ -62,7 +64,10 @@ device. Fixed with a native Windows backend → [[Decisions/ADR-0003 Own Windows
 ## Open questions (carry over)
 - ~~Storage byte meaning~~ resolved (observed, power-cycle test): 0 = volatile, 1 = persistent; a storage-1 write also sets the active value.
 - Viper: polling 00/05 works on the dongle (observed); 00/40 untested. Sleep unit: seconds (inferred, 300 read).
-- Button-assignment data bytes per function type.
+- Button-assignment data bytes: functions 1 and 11 known; key, DPI, macro etc. still unknown.
+  Does the onboard mapping act once Synapse is closed (device leaves driver mode)?
+- Wireshark: the Viper dongle hangs on USBPcap3 (device 3.9). USBPcapCMD.exe had to be copied
+  into `%APPDATA%\Wireshark\extcap`.
 - Event collection usage page/report on the Viper.
 - 81 products without manifest → protocol unknown.
 

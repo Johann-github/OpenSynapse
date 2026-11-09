@@ -81,7 +81,7 @@ Which polling command the Viper supports is chosen by the per-product UI (not ca
 | Cmd | Dir | size | Args | Tag |
 |---|---|---|---|---|
 | 02/84 Button ID list | get | 80 | → `[total, ids…]` | observed |
-| 02/0C Single Button Assignment | set | 80 | `[profile, buttonId, mode, functionId, dataLen, data…]` | observed |
+| 02/0C Single Button Assignment | set | 10 (capture; 80 in the command table) | `[profile, buttonId, mode, functionId, dataLen, data…]` | observed |
 | 02/8C Single Button Assignment | get | 80 | req `[profile, buttonId, mode]` → same as set | observed |
 | 02/8E Button Assignment List | get | 80 | req `[profile, mode, idOffset]` | observed |
 | 02/A5 · 02/25 Button Mapping Mode | get/set | 2 | `[profile, mode]` | observed |
@@ -92,7 +92,11 @@ Which polling command the Viper supports is chosen by the per-product UI (not ca
 - mode: 0 normal, 1 HyperShift (observed).
 - functionId: 0 off, 1 mouse button, 2 key, 3/4/5/15 macro types, 6 DPI, 7 profile, 8 lighting, 9 power keys, 10 media keys, 11 double-click, 12 mode key, 13 turbo key, 14 turbo button, 16 controller, 17 Razer key, 18 scroll mode, 21 Win8 shortcut (observed).
 - buttonId: 1 left, 2 right, 3 wheel click, 4–8 buttons 4–8, 9 wheel up, 10 wheel down, 11 DPI up, 12 DPI down, 13 user select, 14 profile switch, 15 sniper, 16–31 macro 1–16, 52/53 tilt L/R, 57 HyperShift, 104/105 scroll L/R, 106 free/notch switch, 121 rapid fire (observed).
-- Data bytes per functionId are built by the per-product UI — unknown.
+- Data bytes per functionId are built by the per-product UI. Known from a USB capture
+  ([[2026-11-09 Button remap capture]]):
+  - functionId 1 (mouse button): data `[buttonId]`, e.g. `[4]` = button 4 (observed).
+  - functionId 11 (double-click): data `[01]`, `01` = left button (byte observed, meaning inferred).
+  - All others: unknown.
 
 ### Profiles (class 0x05)
 

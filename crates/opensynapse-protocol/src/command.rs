@@ -49,7 +49,8 @@ commands! {
 
     // Buttons (class 0x02)
     GET_BUTTON_ASSIGNMENT = (0x02, 0x8C, 80);
-    SET_BUTTON_ASSIGNMENT = (0x02, 0x0C, 80);
+    /// Synapse sends data_size 10 (capture, 2026-11-09); longer data grows it.
+    SET_BUTTON_ASSIGNMENT = (0x02, 0x0C, 10);
 
     // Legacy LED (class 0x03)
     GET_LED_STATE = (0x03, 0x80, 3);
