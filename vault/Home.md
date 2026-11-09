@@ -6,13 +6,15 @@ tags: [moc]
 Entry point. Repo root is the vault; code lives in `crates/`.
 
 ## Maps
+- [[Status]] — **current phase, next steps, handoff**
 - [[Architecture/Crates]] — crate map, where code lives
 - [[Protocol/Overview]] — Razer HID protocol families (2.5 / 3.0 / 4.0)
+  - [[Protocol/Report Format 2.5]] · [[Protocol/Commands 2.5]] · [[Protocol/Protocol 3.0 and 4.0]] · [[Protocol/Hardware Events]] · [[Protocol/Windows Transport]]
 - [[Devices/Device Registry]] — supported devices, PIDs, capabilities
 - [[Architecture/Synapse 4 Anatomy]] — how Synapse 4 is built (RE target map)
 
 ## Process
 - [[Decisions/ADR-0001 Clean-room reverse engineering]]
 - [[Decisions/ADR-0002 Lean by design]]
-- [[RE-Log/2026-11-09 Target survey]]
+- RE-Log: [[RE-Log/2026-11-09 Target survey]] · [[RE-Log/2026-11-09 Protocol 2.5]] · [[RE-Log/2026-11-09 Protocol 3.0 4.0 and events]] · [[RE-Log/2026-11-09 Windows transport]] · [[RE-Log/2026-11-09 Device database]]
 - Templates: [[Templates/RE-Log]], [[Templates/Protocol Command]], [[Templates/Device]]

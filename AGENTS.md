@@ -5,7 +5,7 @@ Razer Viper V3 HyperSpeed, PID 0x00B8), Linux/macOS second.
 
 ## Repo = Obsidian vault
 - Research notes in `vault/`, linked with `[[wikilinks]]`. Every finding goes into a
-  note **before** code depends on it. Start at `vault/Home.md`.
+  note **before** code depends on it. Start at `vault/Status.md` (handoff), then `vault/Home.md`.
 - Each crate has a `README.md` that links to the vault notes it implements.
 - Log RE work in `vault/RE-Log/YYYY-MM-DD <topic>.md` (use `vault/Templates/RE-Log.md`).
 - Protocol facts: `vault/Protocol/`. Device facts: `vault/Devices/` + `data/devices/`.

@@ -12,4 +12,4 @@ Detailed notes (filled by RE passes):
 - [[Protocol/Hardware Events]]
 - [[Protocol/Windows Transport]]
 
-Status: 🟡 in progress.
+Status: ✅ RE pass 1 done (2026-11-09). Viper V3 HyperSpeed uses **2.5**. Open questions: [[Status]].
