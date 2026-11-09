@@ -7,8 +7,9 @@ use crate::{ProtocolError, Request, be16, fixed, need};
 
 /// Byte 0 of every DPI command.
 ///
-/// Meaning is **inferred** from OpenRazer (0 = not stored, 1 = stored on device);
-/// Synapse's own choice is unknown. See open questions in `vault/Status.md`.
+/// Observed on the Viper V3 HyperSpeed (power-cycle test, `vault/RE-Log/2026-11-09
+/// Hardware read test.md`): 0 is lost on power-off, 1 survives it, and a write with
+/// 1 also changes the active value.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Storage {
     Volatile = 0,

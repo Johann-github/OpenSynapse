@@ -92,8 +92,18 @@ Synapse closed. `dpi set 1600 --persistent --apply`, then `dpi get` (storage 0),
 - (observed) A storage-1 write also changes the active (storage-0) value immediately.
 - (observed) Before the test both storages held 800, so reads alone do not show whether
   they can differ.
-- (inferred, OpenRazer) 0 = volatile, 1 = persistent. Still to confirm with a power cycle
-  after a storage-0-only change.
+
+### Power-cycle test (storage 0 vs 1)
+1. `dpi set 1600 --apply` (storage 0 only).
+2. Read storage 1 (dry run of `dpi set 800 --persistent`): **800**. Read storage 0: **1600**.
+3. Mouse switched off and on with the bottom switch → `dpi get` (storage 0): **800**.
+
+- (observed) Storage 0 and storage 1 hold separate DPI values. A storage-0 write leaves
+  storage 1 unchanged.
+- (observed) After a power cycle the active DPI equals the storage-1 value. **Storage 0 =
+  volatile, storage 1 = persistent** (matches OpenRazer's naming).
+- (observed) A first attempt still read 1600. The mouse had most likely not really been
+  switched off then; only the second, confirmed switch-off reset the value.
 
 ## Open questions
 - Does a storage-0 DPI set survive a power cycle (expected: no)?
@@ -102,5 +112,4 @@ Synapse closed. `dpi set 1600 --persistent --apply`, then `dpi get` (storage 0),
 - Each CLI call takes ~600 ms; the `tasklist` check dominates (see [[Status]]).
 
 ## Next
-- Power cycle after a storage-0-only DPI change: does the device return to the storage-1 value?
 - Idle test for the sleep-timer unit.

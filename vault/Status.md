@@ -60,7 +60,7 @@ device. Fixed with a native Windows backend → [[Decisions/ADR-0003 Own Windows
 - USB capture with Wireshark + USBPcap while changing settings in Synapse, to resolve open questions.
 
 ## Open questions (carry over)
-- Storage byte: 0 and 1 both work; a storage-1 write also sets the active value (observed). Volatile vs persistent still needs a power-cycle test.
+- ~~Storage byte meaning~~ resolved (observed, power-cycle test): 0 = volatile, 1 = persistent; a storage-1 write also sets the active value.
 - Viper: polling 00/05 works on the dongle (observed); 00/40 untested. Sleep unit: seconds (inferred, 300 read).
 - Button-assignment data bytes per function type.
 - Event collection usage page/report on the Viper.

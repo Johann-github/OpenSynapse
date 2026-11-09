@@ -70,7 +70,7 @@ pub enum DpiAction {
         y: Option<u16>,
         #[command(flatten)]
         write: WriteOpts,
-        /// Store on the device (storage byte 1) instead of volatile (0). Meaning inferred.
+        /// Store on the device (storage byte 1, survives power-off) instead of volatile (0).
         #[arg(long)]
         persistent: bool,
     },
