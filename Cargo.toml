@@ -1,0 +1,41 @@
+[workspace]
+resolver = "3"
+members = [
+    "crates/opensynapse",
+    "crates/opensynapse-core",
+    "crates/opensynapse-protocol",
+    "crates/opensynapse-device-registry",
+    "crates/opensynapse-hid",
+    "crates/opensynapse-cli",
+]
+default-members = ["crates/opensynapse"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.99"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/Johann-github/OpenSynapse"
+description = "Native, local-first alternative to Razer Synapse, written in Rust"
+
+[workspace.dependencies]
+opensynapse-core = { path = "crates/opensynapse-core" }
+opensynapse-protocol = { path = "crates/opensynapse-protocol" }
+opensynapse-device-registry = { path = "crates/opensynapse-device-registry" }
+opensynapse-hid = { path = "crates/opensynapse-hid" }
+opensynapse-cli = { path = "crates/opensynapse-cli" }
+hidapi = { version = "2", default-features = false, features = ["windows-native"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "0.8"
+clap = { version = "4", features = ["derive", "env"] }
+anyhow = "1"
+thiserror = "2"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", default-features = false, features = ["fmt", "env-filter"] }
+
+[workspace.lints.rust]
+unsafe_code = "deny"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }

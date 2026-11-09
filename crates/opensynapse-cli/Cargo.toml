@@ -1,0 +1,20 @@
+[package]
+name = "opensynapse-cli"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "CLI dispatch for OpenSynapse."
+
+[lints]
+workspace = true
+
+[dependencies]
+clap.workspace = true
+anyhow.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+opensynapse-hid.workspace = true
+opensynapse-device-registry.workspace = true
+opensynapse-protocol.workspace = true

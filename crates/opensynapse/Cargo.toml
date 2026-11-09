@@ -1,0 +1,20 @@
+[package]
+name = "opensynapse"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "OpenSynapse CLI binary."
+
+[lints]
+workspace = true
+
+[dependencies]
+anyhow.workspace = true
+opensynapse-cli.workspace = true
+clap.workspace = true
+
+[[bin]]
+name = "opensynapse"
+path = "src/main.rs"

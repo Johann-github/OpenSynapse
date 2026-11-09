@@ -1,0 +1,7 @@
+{
+  "userIgnoreFilters": ["target/", ".git/"],
+  "newFileLocation": "folder",
+  "newFileFolderPath": "vault",
+  "attachmentFolderPath": "vault/Attachments",
+  "alwaysUpdateLinks": true
+}

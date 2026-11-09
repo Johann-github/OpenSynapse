@@ -1,0 +1,14 @@
+[package]
+name = "opensynapse-protocol"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Pure encode/decode of Razer HID reports. No I/O."
+
+[lints]
+workspace = true
+
+[dependencies]
+thiserror.workspace = true

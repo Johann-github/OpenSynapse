@@ -1,0 +1,18 @@
+[package]
+name = "opensynapse-hid"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "hidapi transport and device sessions."
+
+[lints]
+workspace = true
+
+[dependencies]
+hidapi.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+opensynapse-protocol.workspace = true
+opensynapse-device-registry.workspace = true

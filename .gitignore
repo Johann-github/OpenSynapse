@@ -1,0 +1,9 @@
+/target
+**/*.rs.bk
+# Obsidian per-user state
+.obsidian/workspace*.json
+.obsidian/cache
+.trash/
+# Never commit Razer proprietary code or captures with personal data
+/re-artifacts/
+*.pcapng
