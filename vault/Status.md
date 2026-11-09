@@ -11,8 +11,8 @@ updated: 2026-11-09
 |---|---|
 | 0 Setup (tools, repo, vault, workspace) | ✅ done |
 | 1 Reverse engineering (protocol, transport, device DB) | ✅ done (open questions below) |
-| 2 Implementation (protocol, registry, hid, CLI) | ⏭️ **next** |
-| 3 Hardware test on Viper V3 HyperSpeed + USB capture | ⏳ after phase 2 |
+| 2 Implementation (protocol, registry, hid, CLI) | ✅ done 2026-11-09 (budget miss below) |
+| 3 Hardware test on Viper V3 HyperSpeed + USB capture | ⏭️ **next** |
 | 4 Agent (background service) + GUI | ⏳ later |
 
 ## Key facts (details in linked notes)
@@ -24,16 +24,38 @@ updated: 2026-11-09
 - Events: input report ID 5, byte 1 = event id. → [[Protocol/Hardware Events]]
 - Device DB: 448 products in `data/devices/*.toml`, schema `data/devices/SCHEMA.md`. → [[Devices/Device Registry]]
 
-## Phase 2 plan (next session)
-Use agents in parallel where independent; follow `AGENTS.md` (clean-room + lean rules).
-1. `opensynapse-protocol`: `Report` (90-byte) encode/decode, CRC, status enum, transaction counter, typed commands (device info, DPI, stages, polling both variants, battery, charging, sleep, low-battery, buttons, profiles, lighting 0F + 03), event decoder. Unit tests with hand-built byte vectors.
-2. `opensynapse-device-registry`: load `data/devices/*.toml` (embed at compile time with `include_str!`), lookup by VID/PID incl. variants.
-3. `opensynapse-hid`: hidapi enumerate/match (usage page/usage/interface), zero-access open, send/get feature report with 25 ms pacing + retry/busy logic from [[Protocol/Report Format 2.5]]; warn if `RazerAppEngine.exe` runs.
-4. `opensynapse-cli`: `list`, `info`, `battery`, `dpi get|set`, `dpi-stages`, `polling get|set`, `sleep get|set`. Writes opt-in, read first.
-5. Measure budgets from [[Decisions/ADR-0002 Lean by design]] (binary size, startup).
+## Phase 2 result (2026-11-09)
+- `opensynapse-protocol`: frame/CRC/status/transaction counter, command table, typed
+  device/DPI/stages/polling (both variants)/battery/charging/sleep/low-battery/profiles/
+  buttons (raw)/lighting 0F + 03, event decoder. 36 unit tests.
+- `opensynapse-device-registry`: embeds `data/devices/*.toml`, parses on first use (~12 ms
+  release), lookup by primary → variant → dongle PID, `dpi_valid`. 5 tests.
+- `opensynapse-hid`: enumerate, control-collection match (iface 0, UP 0x0001/U 0x0002),
+  `Session::execute` with Synapse's SET/GET/busy/resend rules (25 ms, 10 in / 20 out),
+  `RazerAppEngine.exe` check via `tasklist`. 8 mock tests.
+- `opensynapse-cli`: `list`, `info`, `battery`, `dpi get|set`, `dpi-stages`,
+  `polling get|set` (auto: period 00/05, falls back to hyper 00/40 on "not supported"),
+  `sleep get|set`. Writes = dry run unless `--apply`; read old → write → read back →
+  print restore command. Volatile DPI storage by default (`--persistent` opt-in).
+- Live check: `opensynapse list` finds `00B8 Razer Viper V3 HyperSpeed (protocol 2.5,
+  control: yes)`.
+- First hardware read (`info`) succeeded: firmware, serial, device mode. → [[RE-Log/2026-11-09 Hardware read test]]
+
+### Budgets ([[Decisions/ADR-0002 Lean by design]])
+| Metric | Target | Measured | |
+|---|---|---|---|
+| CLI binary (release) | < 5 MB | 1.29 MB | ✅ |
+| `opensynapse list` | < 200 ms | 245–285 ms | ❌ |
+
+Cause of the miss: `hidapi` 2.6.7 `HidApi::new()` always enumerates **every** HID
+collection and reads its strings (~200 ms on the dev PC, 37 collections incl. sim-racing
+gear); `disable_device_discovery` only affects libusb. Fix options: own Windows
+enumeration that filters on `VID_1532` in the interface path before opening (needs
+`unsafe` + `windows-sys`), or an upstream hidapi change for a non-scanning constructor.
 
 ## Phase 3 plan
-- Read-only commands first on the real mouse (firmware, serial, battery, DPI get).
+- Read-only commands first on the real mouse: `opensynapse info`, `battery`, `dpi get`,
+  `dpi-stages`, `polling get`, `sleep get` (add `-v` to log every report).
 - USB capture with Wireshark + USBPcap while changing settings in Synapse, to resolve open questions.
 
 ## Open questions (carry over)
