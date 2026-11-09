@@ -188,7 +188,7 @@ pub fn run(cli: Cli) -> Result<()> {
                 )?;
                 if write.apply {
                     let now = dev.query(&power::get_sleep_time(), power::parse_sleep_time)?;
-                    verify("sleep timer", now, value)?;
+                    verify("sleep timer", now, value, "")?;
                 }
                 Ok(())
             }
@@ -281,7 +281,12 @@ fn dpi_set(dev: &mut Target, x: u16, y: u16, persistent: bool, write: WriteOpts)
     dev.write(
         write,
         &format!("DPI {old} -> {new}"),
-        &format!("dpi set {} --y {} --apply", old.x, old.y),
+        &format!(
+            "dpi set {} --y {}{} --apply",
+            old.x,
+            old.y,
+            if persistent { " --persistent" } else { "" }
+        ),
         &dpi::set_dpi(storage, new),
     )?;
     if write.apply {
@@ -289,6 +294,7 @@ fn dpi_set(dev: &mut Target, x: u16, y: u16, persistent: bool, write: WriteOpts)
             "DPI",
             dev.query(&dpi::get_dpi(storage), dpi::parse_dpi)?,
             new,
+            "",
         )?;
     }
     Ok(())
@@ -347,7 +353,12 @@ fn polling_set(
         &req,
     )?;
     if write.apply {
-        verify("polling rate", polling_get(dev, Some(v), profile)?.0, hz)?;
+        verify(
+            "polling rate",
+            polling_get(dev, Some(v), profile)?.0,
+            hz,
+            " Hz",
+        )?;
     }
     Ok(())
 }
@@ -368,12 +379,13 @@ fn unsupported(e: &anyhow::Error) -> bool {
     )
 }
 
-fn verify<T: PartialEq + std::fmt::Display>(what: &str, now: T, want: T) -> Result<()> {
+/// Compare a read-back value; `unit` is appended to both values (e.g. " Hz").
+fn verify<T: PartialEq + std::fmt::Display>(what: &str, now: T, want: T, unit: &str) -> Result<()> {
     if now == want {
-        println!("Verified: {what} is now {now}.");
+        println!("Verified: {what} is now {now}{unit}.");
         Ok(())
     } else {
-        bail!("{what} reads back as {now}, expected {want}")
+        bail!("{what} reads back as {now}{unit}, expected {want}{unit}")
     }
 }
 

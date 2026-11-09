@@ -53,12 +53,54 @@ Synapse closed. `opensynapse -v dpi set 1600 --apply`:
 - (observed) A set reply echoes the request arguments.
 - (observed) Whole read → write → read-back took ~90 ms, no busy status.
 
+### Polling rate write (period variant)
+Synapse closed. `polling set 500 --apply`, then `polling set 1000 --apply`:
+
+| Step | Request args | Reply args |
+|---|---|---|
+| 00/85 read | — | `01` (1000 Hz) |
+| 00/05 set | `02` | `02` echoed, status 0x02 |
+| 00/85 read-back | — | `02` (500 Hz) |
+
+- (observed) On the HyperSpeed dongle (PID 0x00B8) the period variant 00/05 / 00/85 both
+  reads **and writes** the polling rate. The restore to 1000 Hz (`01`) also read back correctly.
+
+### Sleep timer write
+Synapse closed. `sleep set 600 --apply`, then `sleep set 300 --apply`:
+
+| Step | Request args | Reply args |
+|---|---|---|
+| 07/83 read | — | `01 2C` (300) |
+| 07/03 set | `02 58` | `02 58` echoed, status 0x02 |
+| 07/83 read-back | — | `02 58` (600) |
+
+- (observed) 07/03 / 07/83 write and read the sleep time as big-endian u16. Restoring 300 read back correctly.
+- (unknown) Unit is still unconfirmed (seconds inferred). Needs an idle test.
+
+### Persistent DPI write (storage 1)
+Synapse closed. `dpi set 1600 --persistent --apply`, then `dpi get` (storage 0), then
+`dpi set 800 --persistent --apply`:
+
+| Step | Request args | Reply args |
+|---|---|---|
+| 04/85 read, storage 1 | `01` | `01 03 20 03 20 00 00` (800) |
+| 04/05 set, storage 1 | `01 06 40 06 40 00 00` | echoed, status 0x02 |
+| 04/85 read-back, storage 1 | `01` | `01 06 40 06 40 00 00` (1600) |
+| 04/85 read, storage 0 | `00` | 1600 |
+
+- (observed) Storage byte 1 is accepted for read and write and echoed in replies.
+- (observed) A storage-1 write also changes the active (storage-0) value immediately.
+- (observed) Before the test both storages held 800, so reads alone do not show whether
+  they can differ.
+- (inferred, OpenRazer) 0 = volatile, 1 = persistent. Still to confirm with a power cycle
+  after a storage-0-only change.
+
 ## Open questions
 - Does a storage-0 DPI set survive a power cycle (expected: no)?
 - Device mode with Synapse closed (normal = 0?).
 - Does 00/C0 (HyperPolling) also answer on this PID? (Only relevant with the 8 kHz dongle.)
-- Storage 0 vs 1 on reads: does `dpi get` with storage 1 return a different value?
 - Each CLI call takes ~600 ms; the `tasklist` check dominates (see [[Status]]).
 
 ## Next
-- Restore 800 DPI; test storage 1 (`--persistent`) and a power cycle.
+- Power cycle after a storage-0-only DPI change: does the device return to the storage-1 value?
+- Idle test for the sleep-timer unit.

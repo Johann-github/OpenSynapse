@@ -40,7 +40,9 @@ updated: 2026-11-09
 - Live check: `opensynapse list` finds `00B8 Razer Viper V3 HyperSpeed (protocol 2.5,
   control: yes)`.
 - Hardware reads succeeded: firmware, serial, device mode, battery, charging, DPI,
-  DPI stages, polling (00/85 works), sleep (300). → [[RE-Log/2026-11-09 Hardware read test]]
+  DPI stages, polling (00/85 works), sleep (300).
+- Hardware writes succeeded with read-back + restore: DPI storage 0 and 1, polling
+  00/05, sleep 07/03. → [[RE-Log/2026-11-09 Hardware read test]] → [[RE-Log/2026-11-09 Hardware read test]]
 
 ### Budgets ([[Decisions/ADR-0002 Lean by design]])
 | Metric | Target | Measured | |
@@ -58,7 +60,7 @@ device. Fixed with a native Windows backend → [[Decisions/ADR-0003 Own Windows
 - USB capture with Wireshark + USBPcap while changing settings in Synapse, to resolve open questions.
 
 ## Open questions (carry over)
-- Storage byte meaning in DPI/polling (0 volatile / 1 persistent?).
+- Storage byte: 0 and 1 both work; a storage-1 write also sets the active value (observed). Volatile vs persistent still needs a power-cycle test.
 - Viper: polling 00/05 works on the dongle (observed); 00/40 untested. Sleep unit: seconds (inferred, 300 read).
 - Button-assignment data bytes per function type.
 - Event collection usage page/report on the Viper.
