@@ -12,14 +12,36 @@ updated: 2026-11-09
 | 0 Setup (tools, repo, vault, workspace) | ✅ done |
 | 1 Reverse engineering (protocol, transport, device DB) | ✅ done (open questions below) |
 | 2 Implementation (protocol, registry, hid, CLI) | ✅ done 2026-11-09 (budget miss below) |
-| 3 Hardware test on Viper V3 HyperSpeed + USB capture | ⏭️ **next** |
+| 3 Hardware test on Viper V3 HyperSpeed + USB capture | 🔄 **in progress** (reads/writes ✅, first capture ✅) |
 | 4 Agent (background service) + GUI | ⏳ later |
+
+## ▶ Resume here (next session)
+State at end of 2026-11-09: everything committed and pushed on `main`. The mouse is
+back at its defaults: 800 DPI (storage 0 and 1), 1000 Hz, sleep 300, button 4 = mouse button 4.
+
+Next tasks, in order:
+1. **CLI `buttons get`**: read 02/8C for profile 1, button 4, layer normal. Expect
+   function 1, data `[04]`. Builders and parser already exist in
+   `crates/opensynapse-protocol/src/buttons.rs` (`get_button_assignment`,
+   `parse_button_assignment`). Wire them into `crates/opensynapse-cli/src/lib.rs` like `sleep get`.
+2. **CLI `buttons set`** (dry run unless `--apply`; read old → write → read back → print
+   restore): first only `mouse-button <n>` and `double-click`. Test on button 4, then restore.
+3. **Onboard test without Synapse**: close Synapse (`RazerAppEngine.exe`), read the device
+   mode, set button 4 = double-click via the CLI, and check whether the mouse double-clicks
+   on its own. Restore afterwards.
+4. **More captures** (Wireshark → **USBPcap3**, filter `usb.setup.wLength == 90`, save
+   to `~/re-work/`): in Synapse, map one button to a keyboard key, to DPI up and to off.
+   Decode the result with
+   `tshark -r <file> -Y "usb.device_address == 9 && usb.data_len == 98" -T fields -e frame.time_relative -e usb.data_fragment`.
+   The device address can change after replugging: check with `-Y usb.idVendor`.
+
+Before every commit: `cargo fmt --all --check && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace`.
 
 ## Key facts (details in linked notes)
 - Viper V3 HyperSpeed = PID 0x00B8, Synapse product id 184, **protocol 2.5**, class `rzDevice25DualLinkMouse`, interface 0, 25 ms timing, no RGB, 100–30000 DPI step 50, 125/500/1000 Hz. → [[Devices/Viper V3 HyperSpeed]]
 - Report: 90 bytes (+ report ID 0 = 91 on Windows), XOR CRC bytes 2..87, rolling transaction ID 0..0x1E. → [[Protocol/Report Format 2.5]]
 - Commands (DPI 04/05, stages 04/06, polling 00/05 + 00/40, battery 07/80, charging 07/84, sleep 07/03, buttons 02/0C, profiles 05/xx). → [[Protocol/Commands 2.5]]
-- Windows: plain hidapi works; open MI_00 usage page 0x0001 / usage 0x0002, feature reports only, no read/write. → [[Protocol/Windows Transport]]
+- Windows: native SetupAPI/HidD backend (ADR-0003; hidapi only off Windows); open MI_00 usage page 0x0001 / usage 0x0002, feature reports only, no read/write. → [[Protocol/Windows Transport]]
 - Protocol 3.0 = BLE, 4.0 = 64-byte report ID 2 frame reusing 2.5 commands. → [[Protocol/Protocol 3.0 and 4.0]]
 - Events: input report ID 5, byte 1 = event id. → [[Protocol/Hardware Events]]
 - Device DB: 448 products in `data/devices/*.toml`, schema `data/devices/SCHEMA.md`. → [[Devices/Device Registry]]
@@ -27,12 +49,12 @@ updated: 2026-11-09
 ## Phase 2 result (2026-11-09)
 - `opensynapse-protocol`: frame/CRC/status/transaction counter, command table, typed
   device/DPI/stages/polling (both variants)/battery/charging/sleep/low-battery/profiles/
-  buttons (raw)/lighting 0F + 03, event decoder. 36 unit tests.
+  buttons (raw)/lighting 0F + 03, event decoder. 36 unit tests at the end of phase 2, 38 today.
 - `opensynapse-device-registry`: embeds `data/devices/*.toml`, parses on first use (~12 ms
   release), lookup by primary → variant → dongle PID, `dpi_valid`. 5 tests.
 - `opensynapse-hid`: enumerate, control-collection match (iface 0, UP 0x0001/U 0x0002),
   `Session::execute` with Synapse's SET/GET/busy/resend rules (25 ms, 10 in / 20 out),
-  `RazerAppEngine.exe` check via `tasklist`. 8 mock tests.
+  `RazerAppEngine.exe` check (now via ToolHelp snapshot, see ADR-0003). 8 mock tests.
 - `opensynapse-cli`: `list`, `info`, `battery`, `dpi get|set`, `dpi-stages`,
   `polling get|set` (auto: period 00/05, falls back to hyper 00/40 on "not supported"),
   `sleep get|set`. Writes = dry run unless `--apply`; read old → write → read back →
@@ -56,10 +78,12 @@ updated: 2026-11-09
 The first build missed the `list` budget (245–285 ms) because hidapi scans every HID
 device. Fixed with a native Windows backend → [[Decisions/ADR-0003 Own Windows HID backend]].
 
-## Phase 3 plan
-- Read-only commands first on the real mouse: `opensynapse info`, `battery`, `dpi get`,
-  `dpi-stages`, `polling get`, `sleep get` (add `-v` to log every report).
-- USB capture with Wireshark + USBPcap while changing settings in Synapse, to resolve open questions.
+## Phase 3 log (2026-11-09)
+- ✅ All read commands on the real mouse (`-v` logs every report).
+- ✅ Writes with read-back + restore: DPI (volatile/persistent), polling, sleep.
+- ✅ Power-cycle test: DPI storage 0 = volatile, 1 = persistent.
+- ✅ USB capture of a Synapse button remap decoded (functions 1 and 11).
+- ⏭️ Continue with "Resume here" above.
 
 ## Open questions (carry over)
 - ~~Storage byte meaning~~ resolved (observed, power-cycle test): 0 = volatile, 1 = persistent; a storage-1 write also sets the active value.
@@ -75,7 +99,8 @@ device. Fixed with a native Windows backend → [[Decisions/ADR-0003 Own Windows
 - Rust: `~/.cargo/bin` (add to PATH in Git Bash: `export PATH="$HOME/.cargo/bin:$PATH"`).
 - REA: `rea` CLI + MCP registered for Claude Code (needs restart to load tools). Node 24.18 (< REA's 24.22, works with warning).
 - Ghidra 12.1.4: `~/tools/ghidra_12.1.4_PUBLIC`, env `GHIDRA_INSTALL_DIR` set (user). JDK 21 via winget.
-- Wireshark + USBPcap installed (USBPcap active after reboot).
+- Wireshark + USBPcap installed. Viper dongle on **USBPcap3**; `USBPcapCMD.exe` copied to
+  `%APPDATA%\Wireshark\extcap` (otherwise no USBPcap interfaces). tshark: `C:\Program Files\Wireshark\tshark.exe`.
 - RE material (never commit): `~/re-work/`
   - `synapse4/app` extracted app.asar · `synapse4/swcache` service-worker cache dump · `synapse4/bm/assets` background-manager JS · `synapse4/pretty` prettified · `synapse4/products`, `synapse4/fetched` manifests · `native/` native analysis
   - `tools/dump_simple_cache.py` cache dumper · `tools/agent-scripts/` (device DB `extract.py`/`build.py`, command-table dumps `cmds.txt`, `tbl*.md`)
