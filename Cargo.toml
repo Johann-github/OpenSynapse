@@ -7,6 +7,7 @@ members = [
     "crates/opensynapse-device-registry",
     "crates/opensynapse-hid",
     "crates/opensynapse-cli",
+    "crates/opensynapse-desktop",
 ]
 default-members = ["crates/opensynapse"]
 
