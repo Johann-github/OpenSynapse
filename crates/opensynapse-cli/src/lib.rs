@@ -7,6 +7,7 @@ use anyhow::{Context, Result, bail};
 use clap::{Args, Parser, Subcommand};
 use opensynapse_device_registry::{Device, Match, Protocol, RAZER_VID, Registry};
 use opensynapse_hid::{DEFAULT_INTERFACE, DeviceSession, HidEntry, HidError, Timing, Transport};
+use opensynapse_protocol::buttons::{self, ButtonAssignment, Known, Layer};
 use opensynapse_protocol::{Request, Status, device, dpi, polling, power};
 
 #[derive(Parser)]
@@ -57,6 +58,11 @@ pub enum Command {
         #[command(subcommand)]
         action: SleepAction,
     },
+    /// Read or set an onboard button assignment.
+    Buttons {
+        #[command(subcommand)]
+        action: ButtonsAction,
+    },
 }
 
 #[derive(Subcommand)]
@@ -96,6 +102,56 @@ pub enum SleepAction {
         #[command(flatten)]
         write: WriteOpts,
     },
+}
+
+#[derive(Subcommand)]
+pub enum ButtonsAction {
+    /// Show what a button is assigned to.
+    Get {
+        /// Button ID on the device.
+        button: u8,
+        #[command(flatten)]
+        slot: ButtonSlot,
+    },
+    /// Assign a button. Without --apply this only shows what would be sent.
+    Set {
+        /// Button ID on the device.
+        button: u8,
+        /// What the button should do.
+        action: ButtonKind,
+        /// Target button (1 = left). Required for mouse-button; double-click defaults to 1.
+        target: Option<u8>,
+        #[command(flatten)]
+        slot: ButtonSlot,
+        #[command(flatten)]
+        write: WriteOpts,
+    },
+}
+
+#[derive(Args, Clone, Copy)]
+pub struct ButtonSlot {
+    /// Onboard profile.
+    #[arg(long, default_value_t = 1)]
+    profile: u8,
+    /// Use the HyperShift layer instead of the normal one.
+    #[arg(long)]
+    hypershift: bool,
+}
+
+impl ButtonSlot {
+    fn layer(self) -> Layer {
+        if self.hypershift {
+            Layer::HyperShift
+        } else {
+            Layer::Normal
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, clap::ValueEnum)]
+pub enum ButtonKind {
+    MouseButton,
+    DoubleClick,
 }
 
 #[derive(Args, Clone, Copy)]
@@ -192,6 +248,20 @@ pub fn run(cli: Cli) -> Result<()> {
                 }
                 Ok(())
             }
+        },
+        Command::Buttons { action } => match action {
+            ButtonsAction::Get { button, slot } => {
+                let a = button_get(&mut dev, button, slot)?;
+                println!("Button: {a}");
+                Ok(())
+            }
+            ButtonsAction::Set {
+                button,
+                action,
+                target,
+                slot,
+                write,
+            } => button_set(&mut dev, button, action, target, slot, write),
         },
     }
 }
@@ -296,6 +366,86 @@ fn dpi_set(dev: &mut Target, x: u16, y: u16, persistent: bool, write: WriteOpts)
             new,
             "",
         )?;
+    }
+    Ok(())
+}
+
+fn button_get(dev: &mut Target, button: u8, slot: ButtonSlot) -> Result<ButtonAssignment> {
+    dev.query(
+        &buttons::get_button_assignment(slot.profile, button, slot.layer()),
+        buttons::parse_button_assignment,
+    )
+}
+
+/// The assignment `buttons set` asks for.
+fn requested_assignment(
+    button: u8,
+    kind: ButtonKind,
+    target: Option<u8>,
+    slot: ButtonSlot,
+) -> Result<ButtonAssignment> {
+    let (p, l) = (slot.profile, slot.layer());
+    Ok(match kind {
+        ButtonKind::MouseButton => {
+            let Some(t) = target else {
+                bail!("mouse-button needs a target button, e.g. `mouse-button 4`")
+            };
+            buttons::mouse_button(p, button, l, t)
+        }
+        ButtonKind::DoubleClick => buttons::double_click(p, button, l, target.unwrap_or(1)),
+    })
+}
+
+/// CLI arguments that recreate `old`, or `None` if the CLI cannot express it yet.
+fn button_restore(old: &ButtonAssignment) -> Option<String> {
+    let action = match old.known()? {
+        Known::MouseButton(t) => format!("mouse-button {t}"),
+        Known::DoubleClick(t) => format!("double-click {t}"),
+    };
+    let hs = if old.layer == Layer::HyperShift {
+        " --hypershift"
+    } else {
+        ""
+    };
+    Some(format!(
+        "buttons set {} {action} --profile {}{hs} --apply",
+        old.button, old.profile
+    ))
+}
+
+fn button_set(
+    dev: &mut Target,
+    button: u8,
+    kind: ButtonKind,
+    target: Option<u8>,
+    slot: ButtonSlot,
+    write: WriteOpts,
+) -> Result<()> {
+    let new = requested_assignment(button, kind, target, slot)?;
+    let req = buttons::set_button_assignment(&new)?;
+    let old = button_get(dev, button, slot)?;
+    let restore = button_restore(&old);
+    if restore.is_none() {
+        println!(
+            "Note: the current assignment (function {}, data {:?}) cannot be expressed by the \
+             CLI yet; write these raw values down to restore it later.",
+            old.function, old.data
+        );
+    }
+    dev.write(
+        write,
+        &format!("button {old} -> {new}"),
+        restore.as_deref().unwrap_or(""),
+        &req,
+    )?;
+    if write.apply {
+        if restore.is_none() {
+            println!(
+                "To restore: not possible with the CLI yet (old function {}, data {:?}).",
+                old.function, old.data
+            );
+        }
+        verify("button", button_get(dev, button, slot)?, new, "")?;
     }
     Ok(())
 }
@@ -477,10 +627,13 @@ impl Target {
         }
         self.session.execute(req)?;
         println!("Changed {change}.");
-        println!(
-            "To restore: opensynapse --pid {:04X} {restore}",
-            self.entry.pid
-        );
+        // Empty: the caller explains why there is no restore command.
+        if !restore.is_empty() {
+            println!(
+                "To restore: opensynapse --pid {:04X} {restore}",
+                self.entry.pid
+            );
+        }
         Ok(())
     }
 }
@@ -522,5 +675,87 @@ mod tests {
             "--apply",
         ]);
         assert!(cli.is_ok());
+    }
+
+    fn parse_buttons_set(args: &[&str]) -> Result<(ButtonAssignment, WriteOpts)> {
+        let argv = ["opensynapse", "buttons", "set"]
+            .into_iter()
+            .chain(args.iter().copied());
+        let cli = Cli::try_parse_from(argv)?;
+        let Command::Buttons {
+            action:
+                ButtonsAction::Set {
+                    button,
+                    action,
+                    target,
+                    slot,
+                    write,
+                },
+        } = cli.command
+        else {
+            panic!("parsed wrong command")
+        };
+        Ok((requested_assignment(button, action, target, slot)?, write))
+    }
+
+    #[test]
+    fn buttons_set_parsing() {
+        let (a, w) = parse_buttons_set(&["4", "mouse-button", "5"]).unwrap();
+        assert_eq!(a, buttons::mouse_button(1, 4, Layer::Normal, 5));
+        assert!(!w.apply);
+
+        let (a, w) = parse_buttons_set(&[
+            "5",
+            "double-click",
+            "--profile",
+            "2",
+            "--hypershift",
+            "--apply",
+        ])
+        .unwrap();
+        assert_eq!(a, buttons::double_click(2, 5, Layer::HyperShift, 1));
+        assert!(w.apply);
+
+        assert!(parse_buttons_set(&["4", "mouse-button"]).is_err());
+        assert!(parse_buttons_set(&["4", "macro"]).is_err());
+    }
+
+    #[test]
+    fn buttons_get_defaults() {
+        let cli = Cli::try_parse_from(["opensynapse", "buttons", "get", "3"]).unwrap();
+        let Command::Buttons {
+            action: ButtonsAction::Get { button, slot },
+        } = cli.command
+        else {
+            panic!("parsed wrong command")
+        };
+        assert_eq!((button, slot.profile, slot.layer()), (3, 1, Layer::Normal));
+    }
+
+    #[test]
+    fn button_restore_command() {
+        assert_eq!(
+            button_restore(&buttons::mouse_button(1, 4, Layer::Normal, 4)).as_deref(),
+            Some("buttons set 4 mouse-button 4 --profile 1 --apply")
+        );
+        assert_eq!(
+            button_restore(&buttons::double_click(3, 5, Layer::HyperShift, 1)).as_deref(),
+            Some("buttons set 5 double-click 1 --profile 3 --hypershift --apply")
+        );
+        let key = ButtonAssignment {
+            function: 2,
+            data: vec![0, 4],
+            ..buttons::mouse_button(1, 4, Layer::Normal, 4)
+        };
+        assert_eq!(button_restore(&key), None);
+    }
+
+    /// The restore command parses back to the old assignment.
+    #[test]
+    fn button_restore_roundtrips() {
+        let old = buttons::double_click(2, 6, Layer::HyperShift, 1);
+        let cmd = button_restore(&old).unwrap();
+        let args: Vec<&str> = cmd.split(' ').skip(2).collect();
+        assert_eq!(parse_buttons_set(&args).unwrap().0, old);
     }
 }

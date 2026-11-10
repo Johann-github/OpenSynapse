@@ -53,6 +53,59 @@ pub struct ButtonAssignment {
     pub data: Vec<u8>,
 }
 
+/// An assignment whose data layout is known (see [`function`]).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Known {
+    /// Plain mouse button (`1` left …).
+    MouseButton(u8),
+    /// Double click of the given button (`1` left).
+    DoubleClick(u8),
+}
+
+impl ButtonAssignment {
+    /// The decoded action, if function and data match a known layout.
+    pub fn known(&self) -> Option<Known> {
+        match (self.function, self.data.as_slice()) {
+            (function::MOUSE_BUTTON, &[t]) => Some(Known::MouseButton(t)),
+            (function::DOUBLE_CLICK, &[t]) => Some(Known::DoubleClick(t)),
+            _ => None,
+        }
+    }
+}
+
+impl std::fmt::Display for Known {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Known::MouseButton(t) => write!(f, "mouse button {t}"),
+            Known::DoubleClick(t) => write!(f, "double-click {t}"),
+        }
+    }
+}
+
+impl std::fmt::Display for Layer {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            Layer::Normal => "normal",
+            Layer::HyperShift => "hypershift",
+        })
+    }
+}
+
+/// `profile 1, button 4, normal layer: mouse button 4 (function 1, data [4])`.
+impl std::fmt::Display for ButtonAssignment {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "profile {}, button {}, {} layer: ",
+            self.profile, self.button, self.layer
+        )?;
+        if let Some(k) = self.known() {
+            write!(f, "{k} ")?;
+        }
+        write!(f, "(function {}, data {:?})", self.function, self.data)
+    }
+}
+
 const HEADER: usize = 5;
 
 pub fn get_button_assignment(profile: u8, button: u8, layer: Layer) -> Request {
@@ -153,6 +206,35 @@ mod tests {
         let r = get_button_assignment(1, 2, Layer::Normal).encode(0);
         assert_eq!(r.command_id(), 0x8C);
         assert_eq!(&r.args()[..3], &[1, 2, 0]);
+    }
+
+    #[test]
+    fn known_and_display() {
+        let a = mouse_button(1, 4, Layer::Normal, 5);
+        assert_eq!(a.known(), Some(Known::MouseButton(5)));
+        assert_eq!(
+            a.to_string(),
+            "profile 1, button 4, normal layer: mouse button 5 (function 1, data [5])"
+        );
+        let d = double_click(2, 5, Layer::HyperShift, 1);
+        assert_eq!(d.known(), Some(Known::DoubleClick(1)));
+        assert!(d.to_string().contains("hypershift layer: double-click 1"));
+        let raw = ButtonAssignment {
+            data: vec![0, 4],
+            function: 2,
+            ..a.clone()
+        };
+        assert_eq!(raw.known(), None);
+        assert!(
+            raw.to_string()
+                .ends_with("layer: (function 2, data [0, 4])")
+        );
+        // Known function with unexpected data length stays raw.
+        let odd = ButtonAssignment {
+            data: vec![1, 0],
+            ..a
+        };
+        assert_eq!(odd.known(), None);
     }
 
     #[test]
