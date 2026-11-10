@@ -8,7 +8,8 @@ IPC comes later ([[Architecture/Crates]]).
   Only protocol 2.5 devices can be selected.
 - Right, grouped: Device (firmware, serial, mode, battery, charging), DPI (current, stages
   with the active one in brackets), Polling, Power (sleep timer, raw value), Buttons
-  (button 4/5 on profile 1, normal mode; read-only). "Refresh" reads everything again.
+  (button 4/5 on profile 1, normal mode; read-only; reply byte 2 of 02/8C, meaning
+  unknown, is not shown). "Refresh" reads everything again.
 - Writes: DPI (volatile), polling rate, sleep timer. Same safety pattern as the CLI
   (`src/ops.rs`): check against the registry range → refuse while `RazerAppEngine.exe`
   runs unless the confirm box is ticked → read old → write → read back → show the result

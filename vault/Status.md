@@ -16,22 +16,21 @@ updated: 2026-11-10
 | 4 Agent (background service) + GUI | ⏳ later |
 
 ## ▶ Resume here (next session)
-State at end of 2026-11-10: `buttons get|set` with `mouse-button`, `double-click`, `key`, `dpi-up`.
-Hardware-tested without Synapse: double-click and key A work onboard. Button 4 = mouse button 4, active stage 2, DPI 800. DPI up = one stage per press (from the active-stage index).
-→ [[RE-Log/2026-11-10 Onboard button test]], [[RE-Log/2026-11-10 Button capture key and DPI]]
+State at end of 2026-11-10: phase 3 done except "off"/"DPI down" captures; phase 4 started.
+- CLI: `buttons get|set|list` (mouse-button, double-click, key, dpi-up; normal + HyperShift),
+  `dpi-stages get|set --active`, `profile export|apply` (TOML, restore snapshot). All hardware-tested.
+- GUI `opensynapse-desktop` (egui, green accent, 4.4 MB): read panel + guarded DPI/polling/sleep writes. User-checked.
+- Viper has separate HyperShift slots; reply byte 2 of 02/8C is unknown (not a mode echo).
+- Mouse state: defaults, DPI 800 (stage 2), 1000 Hz, sleep 300 s.
+→ [[RE-Log/2026-11-10 Onboard button test]], [[RE-Log/2026-11-10 Button capture key and DPI]], [[Decisions/ADR-0004 GUI toolkit egui]]
 
 Next tasks, in order:
-1. **Resolve the 02/0C|8C third byte** ("layer"?): see the layer puzzle in
-   [[RE-Log/2026-11-10 Button capture key and DPI]]. Fix `buttons`, `profile export|apply` and the GUI after that.
-2. **GUI hardware check**: run `target/release/opensynapse-desktop.exe`, check the read panel and idle CPU/RAM
-   ([[Decisions/ADR-0004 GUI toolkit egui]]). Release exe 4.4 MB.
-3. `profile export|apply` (CLI) and `opensynapse-core` profiles (TOML) are merged; `apply` is untested on hardware.
-2. **Capture "off" and "DPI down"** in Synapse (Wireshark → USBPcap3, save to `~/re-work/`).
-   Warning: the dongle hangs on USBPcap3; stop the capture right after the clicks, then replug.
-   Decode: `tshark -r <file> -Y "usb.device_address == 9 && usb.data_len == 98" -T fields -e frame.time_relative -e usb.data_fragment`
-   (address can change after replug: check with `-Y usb.idVendor`).
-3. Power-cycle test: does a button assignment survive unplugging the dongle?
-4. Then: phase 4 planning (agent + GUI).
+1. `profile apply`: skip writes whose value is already set (today it rewrites unchanged values).
+2. GUI: button editor (normal + HyperShift) and DPI stage editor, using the core profile model.
+3. Captures for "off" and "DPI down" (USBPcap3; stop right after the clicks, the dongle hangs → replug).
+   Decode: `tshark -r <file> -Y "usb.device_address == 9 && usb.data_len == 98" -T fields -e frame.time_relative -e usb.data_fragment`.
+4. Background agent (`opensynapse-agent`, event-driven) + IPC; measure GUI idle CPU/RAM.
+5. Power-cycle test: does a button assignment survive unplugging the dongle?
 
 Before every commit: `cargo fmt --all --check && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace`.
 

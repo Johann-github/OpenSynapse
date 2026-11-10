@@ -37,7 +37,7 @@ mods = ["ctrl"]              # optional: ctrl, shift, alt, win
 action = "mouse-button"      # also "double-click"; target 1 (left) ..= 8
 target = 5
 
-[hypershift.buttons.4]       # HyperShift mode
+[hypershift.buttons.4]       # HyperShift mode (separate slot; absent = not written)
 action = "dpi-up"
 ```
 

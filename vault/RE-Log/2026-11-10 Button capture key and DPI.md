@@ -56,7 +56,9 @@ All frames: class 02, command 0C, data_size 10, args `[profile, button, layer, f
 - So the Viper **has separate HyperShift slots and GET honours the mode**. The earlier "ignores the mode"
   inference was wrong: both modes just have the same factory defaults. Reply byte 2 is not a mode echo
   (button 5 replies 1 in both modes; meaning unknown).
-- Code fix in progress: drop the experimental HyperShift gate, export both modes again.
+- Code fixed: no experimental HyperShift gate; `profile export` writes HyperShift entries that differ from normal.
+- (observed) `profile apply` of an exported (identical) profile with `--apply`: 8 writes (stages, polling, sleep,
+  buttons 1–5), each verified by read-back; restore snapshot written first. Mouse state unchanged.
 - Effect: `profile export` puts buttons 1/2/3/5 under `[hypershift.buttons]`. Do not use `profile apply`
   for buttons until this is resolved.
 

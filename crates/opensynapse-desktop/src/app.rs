@@ -284,14 +284,10 @@ impl App {
                     for (b, a) in &snap.buttons {
                         let text = field(a, |r| {
                             let a = &r.assignment;
-                            let mut t = match a.known() {
+                            match a.known() {
                                 Some(k) => k.to_string(),
                                 None => format!("function {}, data {:?}", a.function, a.data),
-                            };
-                            if r.echo_differs() {
-                                t.push_str(&format!(" (device echoed mode {})", r.mode_echo));
                             }
-                            t
                         });
                         kv(ui, &format!("Button {b}"), text);
                     }

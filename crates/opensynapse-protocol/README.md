@@ -8,11 +8,14 @@ Pure encode/decode of Razer protocol 2.5 reports. No I/O, fully unit-tested.
 - `device`, `dpi`, `polling`, `power`, `profile`, `buttons`, `lighting` — typed request
   builders (`get_*`/`set_*` → `Request`) and reply parsers (`parse_*(report.args())`).
 - `buttons`: byte 2 of 02/0C and 02/8C is the **mode** (`Mode::Normal` 0,
-  `Mode::HyperShift` 1; Synapse 4 code). `parse_button_assignment(args, requested)`
-  returns the requested mode plus the raw echoed byte (`ButtonReply::mode_echo`),
-  because the Viper V3 HyperSpeed ignores the requested mode in its 02/8C reply
-  (hardware). 02/8E `get_button_assignment_list` / `parse_button_assignment_list` give
-  the raw reply only (layout unknown).
+  `Mode::HyperShift` 1; Synapse 4 code). The Viper V3 HyperSpeed keeps a separate
+  slot per mode and answers 02/8C from the requested one (hardware, observed).
+  `parse_button_assignment(args, requested)` returns the assignment with the requested
+  mode plus the raw reply byte 2 (`ButtonReply::reply_byte2`); that byte is not the
+  mode and its meaning is unknown. 02/8E `get_button_assignment_list` /
+  `parse_button_assignment_list` return the raw reply; `ButtonAssignmentList::records()`
+  splits it into `(button_id, function, data)` using 8-byte records
+  `[buttonId, function, dataLen, data×5]`, ending at button ID 0 (layout inferred).
 - `hid_usage` — key names ↔ USB-HID keyboard usage IDs and modifier bits (public HID spec).
 - `event` — hardware-event decoder (records 5/9). Implements [[Protocol/Hardware Events]].
 

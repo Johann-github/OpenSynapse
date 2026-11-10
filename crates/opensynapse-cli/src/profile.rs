@@ -19,8 +19,7 @@ use opensynapse_protocol::buttons::{self, ButtonAssignment, Known, Mode};
 use opensynapse_protocol::{Request, dpi, hid_usage, power};
 
 use crate::{
-    HYPERSHIFT_WARNING, PollingVariant, Target, WriteOpts, active_label, polling_get,
-    polling_request, read_button,
+    PollingVariant, Target, WriteOpts, active_label, polling_get, polling_request, read_button,
 };
 
 /// Onboard profile slot that `profile export` reads and `profile apply` writes
@@ -124,6 +123,20 @@ pub(crate) fn export_profile(state: &DeviceState) -> Export {
         p.hypershift = Some(hs);
     }
     Export { profile: p, notes }
+}
+
+/// Drop each `[hypershift.buttons.N]` entry that equals `[buttons.N]`, so an export
+/// lists only HyperShift mappings that differ from the normal one. Only for
+/// `profile export`: the restore snapshot keeps every slot it read, because it must
+/// undo exactly what apply overwrites.
+pub(crate) fn drop_redundant_hypershift(p: &mut Profile) {
+    if let Some(hs) = &mut p.hypershift {
+        hs.buttons
+            .retain(|id, action| p.buttons.get(id) != Some(&*action));
+        if hs.buttons.is_empty() {
+            p.hypershift = None;
+        }
+    }
 }
 
 /// Stages as a profile section: stage IDs must be the positions 1, 2, … (that is
@@ -280,18 +293,13 @@ pub(crate) struct ReadSpec {
 
 impl ReadSpec {
     /// Everything export covers: persistent DPI stages, polling, sleep, and `ids` in
-    /// normal mode (plus HyperShift mode if `hypershift`).
-    pub fn export(ids: &[u8], hypershift: bool) -> Self {
-        let modes: &[Mode] = if hypershift {
-            &[Mode::Normal, Mode::HyperShift]
-        } else {
-            &[Mode::Normal]
-        };
+    /// normal mode, then in HyperShift mode.
+    pub fn export(ids: &[u8]) -> Self {
         Self {
             dpi: Some(dpi::Storage::Persistent),
             polling: true,
             sleep: true,
-            buttons: modes
+            buttons: [Mode::Normal, Mode::HyperShift]
                 .iter()
                 .flat_map(|&m| ids.iter().map(move |&b| (m, b)))
                 .collect(),
@@ -373,26 +381,10 @@ fn header(dev: &Target, what: &str) -> String {
 }
 
 /// `profile export`.
-pub(crate) fn export(
-    dev: &mut Target,
-    ids: &ButtonList,
-    out: Option<&Path>,
-    hypershift: bool,
-) -> Result<()> {
-    if hypershift {
-        eprintln!(
-            "warning: exporting HyperShift buttons. This device answers button reads the \
-             same for normal and HyperShift mode, so the [hypershift] entries may just \
-             repeat the normal mapping."
-        );
-    } else {
-        eprintln!(
-            "note: only normal-mode buttons are exported; the device does not return \
-             separate HyperShift data. Use --hypershift to export them anyway."
-        );
-    }
-    let (state, _, mut notes) = read_state(dev, &ReadSpec::export(&ids.0, hypershift), true)?;
-    let ex = export_profile(&state);
+pub(crate) fn export(dev: &mut Target, ids: &ButtonList, out: Option<&Path>) -> Result<()> {
+    let (state, _, mut notes) = read_state(dev, &ReadSpec::export(&ids.0), true)?;
+    let mut ex = export_profile(&state);
+    drop_redundant_hypershift(&mut ex.profile);
     notes.extend(ex.notes);
     for n in &notes {
         eprintln!("note: {n}");
@@ -413,19 +405,10 @@ pub(crate) fn export(
 }
 
 /// `profile apply`.
-pub(crate) fn apply(
-    dev: &mut Target,
-    file: &Path,
-    write: WriteOpts,
-    volatile: bool,
-    experimental_hypershift: bool,
-) -> Result<()> {
+pub(crate) fn apply(dev: &mut Target, file: &Path, write: WriteOpts, volatile: bool) -> Result<()> {
     let text =
         std::fs::read_to_string(file).with_context(|| format!("cannot read {}", file.display()))?;
     let profile = Profile::from_toml(&text).with_context(|| file.display().to_string())?;
-    if let Some(why) = hypershift_refusal(&profile, experimental_hypershift) {
-        bail!("{}: {why}", file.display());
-    }
     let limits = limits_for(dev.device);
     if let Err(e) = profile.validate(&limits) {
         bail!("{}: {e}", file.display());
@@ -478,15 +461,10 @@ pub(crate) fn apply(
     let problems = snapshot_problems(&plan, &snap.profile, &limits);
     let restore = restore_path(file, Path::exists);
     let hint = format!(
-        "To restore: opensynapse --pid {:04X} profile apply {} --apply{}{}",
+        "To restore: opensynapse --pid {:04X} profile apply {} --apply{}",
         dev.entry.pid,
         restore.display(),
         if volatile { " --volatile" } else { "" },
-        if snap.profile.hypershift.is_some() {
-            " --experimental-hypershift"
-        } else {
-            ""
-        }
     );
     let change = |w: &PlannedWrite| {
         let old = setting_value(&snap.profile, w.setting).unwrap_or_else(|| "?".into());
@@ -539,23 +517,6 @@ pub(crate) fn apply(
     Ok(())
 }
 
-/// Why `p` may not be applied: it has HyperShift button entries and
-/// `--experimental-hypershift` was not given.
-pub(crate) fn hypershift_refusal(p: &Profile, experimental: bool) -> Option<String> {
-    let ids: Vec<String> = p
-        .all_buttons()
-        .filter(|(m, _, _)| *m == Mode::HyperShift)
-        .map(|(_, id, _)| id.0.to_string())
-        .collect();
-    (!ids.is_empty() && !experimental).then(|| {
-        format!(
-            "HyperShift button(s) {} refused. {HYPERSHIFT_WARNING} Add \
-             --experimental-hypershift to apply them anyway.",
-            ids.join(", ")
-        )
-    })
-}
-
 /// Send one planned write, read the setting back and check that re-encoding the
 /// read-back value gives the same request.
 fn write_one(dev: &mut Target, w: &PlannedWrite, target: &opensynapse_core::Target) -> Result<()> {
@@ -595,7 +556,8 @@ fn read_back(
             (format!("{v} s"), power::set_sleep_time(v))
         }
         Setting::Button { mode, button } => {
-            // Rebuilt with the requested mode; the device's mode echo is not trusted.
+            // Rebuilt with the requested mode (the slot that was read); reply byte 2
+            // is not the mode.
             let r = read_button(dev, p, button, mode)?;
             (
                 r.to_string(),
@@ -876,9 +838,7 @@ target = 4
         assert_eq!(spec.dpi, Some(dpi::Storage::Volatile));
         assert!(spec.polling && !spec.sleep);
         assert_eq!(spec.buttons, [(Mode::Normal, 4), (Mode::HyperShift, 5)]);
-        let e = ReadSpec::export(&[1, 2], false);
-        assert_eq!(e.buttons, [(Mode::Normal, 1), (Mode::Normal, 2)]);
-        let e = ReadSpec::export(&[1, 2], true);
+        let e = ReadSpec::export(&[1, 2]);
         assert_eq!(
             e.buttons,
             [
@@ -891,14 +851,92 @@ target = 4
     }
 
     #[test]
-    fn hypershift_entries_need_opt_in() {
+    fn export_keeps_only_differing_hypershift() {
+        let state = DeviceState {
+            pid: 0x00B8,
+            buttons: vec![
+                buttons::mouse_button(1, 4, Mode::Normal, 4),
+                buttons::mouse_button(1, 5, Mode::Normal, 5),
+                raw(6, Mode::Normal, 9, vec![1]),
+                buttons::mouse_button(1, 4, Mode::HyperShift, 4), // same as normal
+                buttons::mouse_button(1, 5, Mode::HyperShift, 4), // differs
+                buttons::dpi_up(1, 6, Mode::HyperShift),          // normal not expressible
+            ],
+            ..DeviceState::default()
+        };
+        let mut p = export_profile(&state).profile;
+        // The snapshot form keeps every slot read.
+        assert_eq!(p.hypershift.as_ref().unwrap().buttons.len(), 3);
+        drop_redundant_hypershift(&mut p);
+        let hs: Vec<u8> = p
+            .hypershift
+            .as_ref()
+            .unwrap()
+            .buttons
+            .keys()
+            .map(|b| b.0)
+            .collect();
+        assert_eq!(hs, [5, 6]);
+        assert_eq!(
+            setting_value(
+                &p,
+                Setting::Button {
+                    mode: Mode::HyperShift,
+                    button: 5
+                }
+            )
+            .as_deref(),
+            Some("mouse button 4")
+        );
+        // All equal: no [hypershift] section at all.
+        let mut same = export_profile(&DeviceState {
+            buttons: vec![
+                buttons::mouse_button(1, 4, Mode::Normal, 4),
+                buttons::mouse_button(1, 4, Mode::HyperShift, 4),
+            ],
+            ..DeviceState::default()
+        })
+        .profile;
+        drop_redundant_hypershift(&mut same);
+        assert!(same.hypershift.is_none());
+        assert!(!same.to_toml().unwrap().contains("hypershift"));
+    }
+
+    /// Apply snapshots the HyperShift slot it overwrites, even when it equals the
+    /// normal mapping (the snapshot is not deduplicated).
+    #[test]
+    fn snapshot_keeps_hypershift_equal_to_normal() {
         let p = Profile::from_toml(APPLY).unwrap();
-        let why = hypershift_refusal(&p, false).unwrap();
-        assert!(why.contains("button(s) 5 refused"), "{why}");
-        assert!(why.contains("--experimental-hypershift"), "{why}");
-        assert_eq!(hypershift_refusal(&p, true), None);
-        let normal_only = Profile::from_toml("[buttons.4]\naction = \"dpi-up\"").unwrap();
-        assert_eq!(hypershift_refusal(&normal_only, false), None);
+        let spec = ReadSpec::for_profile(&p, dpi::Storage::Persistent);
+        assert!(spec.buttons.contains(&(Mode::HyperShift, 5)));
+        let state = DeviceState {
+            pid: 0x00B8,
+            stages: Some(stages(1, &[400, 800])),
+            polling_hz: Some(1000),
+            sleep: None,
+            buttons: vec![
+                buttons::mouse_button(1, 4, Mode::Normal, 5),
+                buttons::mouse_button(1, 5, Mode::Normal, 5),
+                buttons::mouse_button(1, 5, Mode::HyperShift, 5),
+            ],
+        };
+        let snap = export_profile(&state).profile;
+        assert_eq!(
+            snap.buttons.get(&ButtonId(5)),
+            Some(&ButtonAction::MouseButton { target: 5 })
+        );
+        assert_eq!(
+            setting_value(
+                &snap,
+                Setting::Button {
+                    mode: Mode::HyperShift,
+                    button: 5
+                }
+            )
+            .as_deref(),
+            Some("mouse button 5")
+        );
+        assert!(snapshot_problems(&plan_for(APPLY), &snap, &viper()).is_empty());
     }
 
     #[test]

@@ -79,7 +79,8 @@ pub enum Command {
 #[derive(Subcommand)]
 pub enum ProfileAction {
     /// Read DPI stages (persistent), polling, sleep and button assignments (onboard
-    /// profile 1, normal mode) and print them as a profile.
+    /// profile 1, normal and HyperShift mode) and print them as a profile. A
+    /// HyperShift entry is only written when it differs from the normal mapping.
     Export {
         /// Button IDs to read, e.g. `1-5` or `1,2,4`.
         #[arg(long, value_parser = profile::parse_button_list, default_value = "1-5")]
@@ -87,10 +88,6 @@ pub enum ProfileAction {
         /// Write to this file instead of stdout.
         #[arg(long)]
         out: Option<PathBuf>,
-        /// Also export HyperShift-mode buttons. The device may answer HyperShift reads
-        /// with the normal mapping, so these entries can be wrong.
-        #[arg(long)]
-        hypershift: bool,
     },
     /// Apply a profile. Without --apply this only shows what would be sent. With
     /// --apply, the current values are saved to `<name>.restore.toml` first.
@@ -102,9 +99,6 @@ pub enum ProfileAction {
         /// Write the DPI stages to volatile storage (byte 0) instead of persistent (1).
         #[arg(long)]
         volatile: bool,
-        /// Allow `[hypershift.buttons.N]` entries (experimental, see `buttons set`).
-        #[arg(long)]
-        experimental_hypershift: bool,
     },
 }
 
@@ -191,14 +185,11 @@ pub enum ButtonsAction {
         mods: Vec<u8>,
         #[command(flatten)]
         slot: ButtonSlot,
-        /// Needed with --hypershift: HyperShift writes are experimental.
-        #[arg(long)]
-        experimental_hypershift: bool,
         #[command(flatten)]
         write: WriteOpts,
     },
-    /// Read-only probe of 02/8E "Get Button Assignment List"; prints the raw reply.
-    /// The data layout is unknown.
+    /// Read 02/8E "Get Button Assignment List" and print one line per button
+    /// (record layout inferred). `-v` also prints the raw reply.
     List {
         #[command(flatten)]
         slot: ButtonSlot,
@@ -207,12 +198,6 @@ pub enum ButtonsAction {
         offset: u8,
     },
 }
-
-/// Why HyperShift button writes need `--experimental-hypershift`.
-pub(crate) const HYPERSHIFT_WARNING: &str = "HyperShift (mode 1) button writes are \
-     experimental: the Viper V3 HyperSpeed answers button reads the same for mode 0 and \
-     mode 1, so it may have only one slot per button. It is unknown whether a mode 1 \
-     write overwrites the normal mapping.";
 
 #[derive(Args, Clone, Copy)]
 pub struct ButtonSlot {
@@ -292,6 +277,7 @@ pub fn run(cli: Cli) -> Result<()> {
             .with_writer(std::io::stderr)
             .init();
     }
+    let verbose = cli.verbose;
     let transport = Transport::new().context("cannot enumerate HID devices")?;
     if let Command::List = cli.command {
         return list(&transport);
@@ -361,12 +347,8 @@ pub fn run(cli: Cli) -> Result<()> {
             ButtonsAction::Get { button, slot } => {
                 let r = button_get(&mut dev, button, slot)?;
                 println!("Button: {r}");
-                if r.echo_differs() {
-                    println!(
-                        "Note: the reply's mode byte ({}) is not trusted; this device ignores \
-                         the requested mode, so the mode shown is the one requested.",
-                        r.mode_echo
-                    );
+                if verbose {
+                    println!("Reply byte 2: {} (meaning unknown)", r.reply_byte2);
                 }
                 Ok(())
             }
@@ -376,33 +358,22 @@ pub fn run(cli: Cli) -> Result<()> {
                 target,
                 mods,
                 slot,
-                experimental_hypershift,
                 write,
             } => {
-                let new = requested_assignment(
-                    button,
-                    action,
-                    target.as_deref(),
-                    &mods,
-                    slot,
-                    experimental_hypershift,
-                )?;
+                let new = requested_assignment(button, action, target.as_deref(), &mods, slot)?;
                 button_set(&mut dev, new, slot, write)
             }
-            ButtonsAction::List { slot, offset } => buttons_list(&mut dev, slot, offset),
+            ButtonsAction::List { slot, offset } => buttons_list(&mut dev, slot, offset, verbose),
         },
         Command::Profile { action } => match action {
-            ProfileAction::Export {
-                buttons,
-                out,
-                hypershift,
-            } => profile::export(&mut dev, &buttons, out.as_deref(), hypershift),
+            ProfileAction::Export { buttons, out } => {
+                profile::export(&mut dev, &buttons, out.as_deref())
+            }
             ProfileAction::Apply {
                 file,
                 write,
                 volatile,
-                experimental_hypershift,
-            } => profile::apply(&mut dev, &file, write, volatile, experimental_hypershift),
+            } => profile::apply(&mut dev, &file, write, volatile),
         },
     }
 }
@@ -621,8 +592,8 @@ fn button_get(dev: &mut Target, button: u8, slot: ButtonSlot) -> Result<ButtonRe
     read_button(dev, slot.profile, button, slot.mode())
 }
 
-/// 02/8C for `mode`. The result carries the requested mode; the device's echo of
-/// it is not trusted (`buttons::parse_button_assignment`).
+/// 02/8C for `mode`. The result carries the requested mode; reply byte 2 is kept
+/// raw (`buttons::parse_button_assignment`).
 pub(crate) fn read_button(
     dev: &mut Target,
     profile: u8,
@@ -635,23 +606,50 @@ pub(crate) fn read_button(
     )
 }
 
-/// `buttons list`: send 02/8E once and print the raw reply.
-fn buttons_list(dev: &mut Target, slot: ButtonSlot, offset: u8) -> Result<()> {
+/// `buttons list`: send 02/8E once and print one line per record (plus the raw
+/// reply with `verbose`).
+fn buttons_list(dev: &mut Target, slot: ButtonSlot, offset: u8, verbose: bool) -> Result<()> {
     let mode = slot.mode();
-    println!(
-        "Request 02/8E: profile {}, mode {} ({mode}), offset {offset}",
-        slot.profile, mode as u8
-    );
     let l = dev.query(
         &buttons::get_button_assignment_list(slot.profile, mode, offset),
         buttons::parse_button_assignment_list,
     )?;
-    println!(
-        "Reply: profile {}, mode {}, offset {}",
-        l.profile, l.mode, l.id_offset
-    );
-    println!("Data: {}", hex_trimmed(&l.data));
+    if verbose {
+        println!(
+            "Request 02/8E: profile {}, mode {} ({mode}), offset {offset}",
+            slot.profile, mode as u8
+        );
+        println!(
+            "Reply: profile {}, mode {}, offset {}",
+            l.profile, l.mode, l.id_offset
+        );
+        println!("Data: {}", hex_trimmed(&l.data));
+    }
+    let lines = list_lines(slot.profile, mode, &l);
+    if lines.is_empty() {
+        println!("No button records in the reply.");
+    }
+    for line in lines {
+        println!("{line}");
+    }
     Ok(())
+}
+
+/// One `buttons get`-style line per 02/8E record, with the requested mode.
+fn list_lines(profile: u8, mode: Mode, l: &buttons::ButtonAssignmentList) -> Vec<String> {
+    l.records()
+        .into_iter()
+        .map(|(button, function, data)| {
+            ButtonAssignment {
+                profile,
+                button,
+                mode,
+                function,
+                data,
+            }
+            .to_string()
+        })
+        .collect()
 }
 
 /// Space-separated hex; trailing zero bytes are summarised.
@@ -671,12 +669,8 @@ fn requested_assignment(
     target: Option<&str>,
     mods: &[u8],
     slot: ButtonSlot,
-    experimental_hypershift: bool,
 ) -> Result<ButtonAssignment> {
     let (p, l) = (slot.profile, slot.mode());
-    if l == Mode::HyperShift && !experimental_hypershift {
-        bail!("{HYPERSHIFT_WARNING} Add --experimental-hypershift to write anyway.");
-    }
     if !mods.is_empty() && kind != ButtonKind::Key {
         bail!("--mods only applies to `key`");
     }
@@ -730,7 +724,7 @@ fn button_restore(old: &ButtonAssignment) -> Option<String> {
         Known::DpiUp => "dpi-up".to_string(),
     };
     let hs = if old.mode == Mode::HyperShift {
-        " --hypershift --experimental-hypershift"
+        " --hypershift"
     } else {
         ""
     };
@@ -1123,7 +1117,6 @@ mod tests {
                     target,
                     mods,
                     slot,
-                    experimental_hypershift,
                     write,
                 },
         } = cli.command
@@ -1131,14 +1124,7 @@ mod tests {
             panic!("parsed wrong command")
         };
         Ok((
-            requested_assignment(
-                button,
-                action,
-                target.as_deref(),
-                &mods,
-                slot,
-                experimental_hypershift,
-            )?,
+            requested_assignment(button, action, target.as_deref(), &mods, slot)?,
             write,
         ))
     }
@@ -1155,7 +1141,6 @@ mod tests {
             "--profile",
             "2",
             "--hypershift",
-            "--experimental-hypershift",
             "--apply",
         ])
         .unwrap();
@@ -1177,11 +1162,13 @@ mod tests {
         assert!(parse_buttons_set(&["4", "key", "a", "--mods", "hyper"]).is_err());
         assert!(parse_buttons_set(&["4", "mouse-button", "4", "--mods", "ctrl"]).is_err());
         assert!(parse_buttons_set(&["4", "dpi-up", "2"]).is_err());
-        // HyperShift writes are opt-in (dry run included).
-        let e = parse_buttons_set(&["4", "dpi-up", "--hypershift"])
-            .err()
-            .unwrap();
-        assert!(e.to_string().contains("--experimental-hypershift"), "{e}");
+        let (a, _) = parse_buttons_set(&["4", "dpi-up", "--hypershift"]).unwrap();
+        assert_eq!(a, buttons::dpi_up(1, 4, Mode::HyperShift));
+        // The removed opt-in flag is rejected.
+        assert!(
+            parse_buttons_set(&["4", "dpi-up", "--hypershift", "--experimental-hypershift"])
+                .is_err()
+        );
     }
 
     #[test]
@@ -1220,6 +1207,22 @@ mod tests {
     }
 
     #[test]
+    fn list_lines_use_requested_mode() {
+        let mut args = vec![
+            1, 1, 0, 0x05, 0x01, 0x01, 0x04, 0, 0, 0, 0, 0x60, 0x06, 0x01, 0x06,
+        ];
+        args.resize(80, 0);
+        let l = buttons::parse_button_assignment_list(&args).unwrap();
+        assert_eq!(
+            list_lines(1, Mode::HyperShift, &l),
+            [
+                "profile 1, button 5, HyperShift mode: mouse button 4 (function 1, data [4])",
+                "profile 1, button 96, HyperShift mode: (function 6, data [6])",
+            ]
+        );
+    }
+
+    #[test]
     fn hex_trimming() {
         assert_eq!(hex_trimmed(&[0x01, 0xab, 0, 0]), "01 ab (+2 zero bytes)");
         assert_eq!(hex_trimmed(&[0x01, 0x02]), "01 02");
@@ -1246,10 +1249,7 @@ mod tests {
         );
         assert_eq!(
             button_restore(&buttons::double_click(3, 5, Mode::HyperShift, 1)).as_deref(),
-            Some(
-                "buttons set 5 double-click 1 --profile 3 --hypershift \
-                 --experimental-hypershift --apply"
-            )
+            Some("buttons set 5 double-click 1 --profile 3 --hypershift --apply")
         );
         assert_eq!(
             button_restore(&buttons::keyboard(1, 4, Mode::Normal, 0x00, 0x04)).as_deref(),
@@ -1288,36 +1288,20 @@ mod tests {
 
     #[test]
     fn profile_parsing() {
-        let ProfileAction::Export {
-            buttons,
-            out,
-            hypershift,
-        } = parse_profile(&["export"]).unwrap()
-        else {
+        let ProfileAction::Export { buttons, out } = parse_profile(&["export"]).unwrap() else {
             panic!("parsed wrong action")
         };
         assert_eq!(buttons.0, [1, 2, 3, 4, 5]);
         assert_eq!(out, None);
-        assert!(!hypershift);
-        let ProfileAction::Export {
-            buttons,
-            out,
-            hypershift,
-        } = parse_profile(&[
-            "export",
-            "--buttons",
-            "4,6-7",
-            "--out",
-            "p.toml",
-            "--hypershift",
-        ])
-        .unwrap()
+        let ProfileAction::Export { buttons, out } =
+            parse_profile(&["export", "--buttons", "4,6-7", "--out", "p.toml"]).unwrap()
         else {
             panic!("parsed wrong action")
         };
         assert_eq!(buttons.0, [4, 6, 7]);
         assert_eq!(out, Some(PathBuf::from("p.toml")));
-        assert!(hypershift);
+        // The removed opt-in flag is rejected.
+        assert!(parse_profile(&["export", "--hypershift"]).is_err());
         assert!(parse_profile(&["export", "--buttons", "0"]).is_err());
         assert!(parse_profile(&["export", "--apply"]).is_err());
 
@@ -1325,31 +1309,20 @@ mod tests {
             file,
             write,
             volatile,
-            experimental_hypershift,
         } = parse_profile(&["apply", "p.toml"]).unwrap()
         else {
             panic!("parsed wrong action")
         };
         assert_eq!(file, PathBuf::from("p.toml"));
-        assert!(!write.apply && !write.force && !volatile && !experimental_hypershift);
+        assert!(!write.apply && !write.force && !volatile);
         let ProfileAction::Apply {
-            write,
-            volatile,
-            experimental_hypershift,
-            ..
-        } = parse_profile(&[
-            "apply",
-            "p.toml",
-            "--apply",
-            "--force",
-            "--volatile",
-            "--experimental-hypershift",
-        ])
-        .unwrap()
+            write, volatile, ..
+        } = parse_profile(&["apply", "p.toml", "--apply", "--force", "--volatile"]).unwrap()
         else {
             panic!("parsed wrong action")
         };
-        assert!(write.apply && write.force && volatile && experimental_hypershift);
+        assert!(write.apply && write.force && volatile);
+        assert!(parse_profile(&["apply", "p.toml", "--experimental-hypershift"]).is_err());
         assert!(parse_profile(&["apply"]).is_err());
         // The printed restore hint parses back.
         let ProfileAction::Apply { file, write, .. } =

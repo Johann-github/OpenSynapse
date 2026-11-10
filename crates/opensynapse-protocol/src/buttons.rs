@@ -73,10 +73,11 @@ pub fn double_click(profile: u8, button: u8, mode: Mode, target: u8) -> ButtonAs
 ///
 /// Evidence: Synapse 4 names this byte "mode" with `NormalMode = 0` and
 /// `HypershiftMode = 1` (observed in code: `index-42d42381.js`, rzDevice25 enum,
-/// `getSingleButtonAssignment` / `setSingleButtonAssignment`). Whether the Viper V3
-/// HyperSpeed keeps a separate HyperShift slot per button is unknown: its 02/8C
-/// reply ignores the requested mode (observed on hardware, see
-/// [`parse_button_assignment`]).
+/// `getSingleButtonAssignment` / `setSingleButtonAssignment`). The Viper V3
+/// HyperSpeed keeps a separate HyperShift slot per button: a mode 1 write changed
+/// only the mode 1 read (02/8C and 02/8E), the mode 0 mapping stayed (observed on
+/// hardware, 2026-11-10, see [`parse_button_assignment`]). Factory defaults are the
+/// same in both modes.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Mode {
     Normal = 0,
@@ -157,30 +158,19 @@ impl std::fmt::Display for ButtonAssignment {
 }
 
 /// A parsed 02/8C reply: the assignment (with the *requested* mode) plus the raw
-/// mode byte the device echoed.
+/// reply byte 2.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ButtonReply {
     pub assignment: ButtonAssignment,
-    /// Reply byte 2 as sent by the device. Not a reliable mode on the Viper V3
-    /// HyperSpeed (see [`parse_button_assignment`]); kept for display only.
-    pub mode_echo: u8,
+    /// Reply byte 2 as sent by the device; meaning unknown. It is not the mode of
+    /// the slot that was read (see [`parse_button_assignment`]).
+    pub reply_byte2: u8,
 }
 
-impl ButtonReply {
-    /// Whether the echoed byte differs from the requested mode.
-    pub fn echo_differs(&self) -> bool {
-        self.mode_echo != self.assignment.mode as u8
-    }
-}
-
-/// The assignment, plus `(device echoed mode N)` when the echo differs.
+/// Same as the assignment; [`ButtonReply::reply_byte2`] is not shown.
 impl std::fmt::Display for ButtonReply {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.assignment)?;
-        if self.echo_differs() {
-            write!(f, " (device echoed mode {})", self.mode_echo)?;
-        }
-        Ok(())
+        std::fmt::Display::fmt(&self.assignment, f)
     }
 }
 
@@ -210,16 +200,20 @@ pub fn set_button_assignment(a: &ButtonAssignment) -> Result<Request, ProtocolEr
     Request::with_size(SET_BUTTON_ASSIGNMENT, size, &args)
 }
 
-/// Parse a 02/8C reply `[profile, button, modeEcho, function, dataLen, data…]` for
-/// a request made with `requested`.
+/// Parse a 02/8C reply `[profile, button, byte2, function, dataLen, data…]` for a
+/// request made with `requested`.
 ///
-/// The result's `mode` is `requested`, not reply byte 2. Synapse 4 reads byte 2 as
-/// the mode (observed in code: reply parser in `index-42d42381.js`), but the Viper V3
-/// HyperSpeed ignores the requested mode (observed on hardware, 2026-11-10):
-/// requests `01 01 00` and `01 01 01` both reply `01 01 01 01 01 01`, and
-/// `01 04 00` / `01 04 01` both reply `01 04 00 01 01 04`. Never-written buttons echo
-/// 1; button 4, written with mode 0, echoes 0. So the echo is kept raw in
-/// [`ButtonReply::mode_echo`] (any value accepted) and never used as the mode.
+/// The device answers from the requested mode's slot (observed on hardware,
+/// 2026-11-10, Viper V3 HyperSpeed): after button 5 was set to mouse button 4 in
+/// mode 1, request `01 05 01` replied `01 05 01 01 01 04` while `01 05 00` still
+/// replied `01 05 01 01 01 05`. So the result's `mode` is `requested`.
+///
+/// Reply byte 2 is not that mode: for button 5 it was 1 for both requests, and for
+/// button 4 (last written with mode 0) it was 0 for both (observed). Synapse 4 reads
+/// it as the mode (observed in code: reply parser in `index-42d42381.js`). Its
+/// meaning is unknown (inferred guess: the mode of the most recent write to that
+/// button; factory value 1). It is kept raw in [`ButtonReply::reply_byte2`] (any
+/// value accepted).
 pub fn parse_button_assignment(args: &[u8], requested: Mode) -> Result<ButtonReply, ProtocolError> {
     need(args, HEADER)?;
     let len = usize::from(args[4]);
@@ -232,7 +226,7 @@ pub fn parse_button_assignment(args: &[u8], requested: Mode) -> Result<ButtonRep
             function: args[3],
             data: args[HEADER..HEADER + len].to_vec(),
         },
-        mode_echo: args[2],
+        reply_byte2: args[2],
     })
 }
 
@@ -240,7 +234,8 @@ pub fn parse_button_assignment(args: &[u8], requested: Mode) -> Result<ButtonRep
 const LIST_HEADER: usize = 3;
 
 /// 02/8E "Get Button Assignment List": `[profile, mode, idOffset]`, data_size 80
-/// (observed in code: Synapse 4 rzDevice25; reply layout unknown).
+/// (observed in code: Synapse 4 rzDevice25). The reply honours the mode (observed
+/// on hardware, 2026-11-10).
 pub fn get_button_assignment_list(profile: u8, mode: Mode, id_offset: u8) -> Request {
     fixed(
         GET_BUTTON_ASSIGNMENT_LIST,
@@ -248,8 +243,10 @@ pub fn get_button_assignment_list(profile: u8, mode: Mode, id_offset: u8) -> Req
     )
 }
 
-/// A raw 02/8E reply `[profile, mode, idOffset, data…]`. The data layout is unknown,
-/// so nothing is interpreted; `mode` is the raw byte.
+/// Size of one 02/8E record: `[buttonId, function, dataLen, data×5]` (inferred).
+const LIST_RECORD: usize = 8;
+
+/// A 02/8E reply `[profile, mode, idOffset, data…]`; `mode` is the raw byte.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ButtonAssignmentList {
     pub profile: u8,
@@ -257,6 +254,27 @@ pub struct ButtonAssignmentList {
     pub id_offset: u8,
     /// Everything after the header (the rest of the 80-byte argument area).
     pub data: Vec<u8>,
+}
+
+impl ButtonAssignmentList {
+    /// The records in [`Self::data`] as `(button_id, function, data)`.
+    ///
+    /// Layout inferred from Viper V3 HyperSpeed replies (2026-11-10): 8-byte records
+    /// `[buttonId, function, dataLen, data×5]`, where only `dataLen` data bytes count;
+    /// the list ends at a zero button ID or when no full record is left. A `dataLen`
+    /// above 5 is cut to 5.
+    pub fn records(&self) -> Vec<(u8, u8, Vec<u8>)> {
+        self.data
+            .as_chunks::<LIST_RECORD>()
+            .0
+            .iter()
+            .take_while(|r| r[0] != 0)
+            .map(|r| {
+                let len = usize::from(r[2]).min(LIST_RECORD - 3);
+                (r[0], r[1], r[3..3 + len].to_vec())
+            })
+            .collect()
+    }
 }
 
 pub fn parse_button_assignment_list(args: &[u8]) -> Result<ButtonAssignmentList, ProtocolError> {
@@ -287,7 +305,7 @@ mod tests {
         assert_eq!(&r.args()[..7], &[1, 4, 1, 1, 2, 1, 0]);
         let back = parse_button_assignment(r.args(), Mode::HyperShift).unwrap();
         assert_eq!(back.assignment, a);
-        assert!(!back.echo_differs());
+        assert_eq!(back.reply_byte2, 1);
     }
 
     /// Byte-exact against the Synapse capture (2026-11-09, Viper V3 HyperSpeed).
@@ -364,46 +382,62 @@ mod tests {
         v
     }
 
-    /// Viper V3 HyperSpeed replies (hardware, 2026-11-10): the echoed mode byte does
-    /// not follow the request, so the requested mode wins.
+    /// Viper V3 HyperSpeed replies (hardware, 2026-11-10) for buttons whose two slots
+    /// hold the same mapping: the result carries the requested mode, and reply byte 2
+    /// is kept raw whatever the request was.
     #[test]
-    fn observed_replies_ignore_requested_mode() {
-        // Never-written button 1 echoes 1 for both requests.
+    fn requested_mode_wins_and_byte2_is_raw() {
+        // Button 1, factory default: byte 2 is 1 for both requests.
         let r = reply(&[0x01, 0x01, 0x01, 0x01, 0x01, 0x01]);
         let n = parse_button_assignment(&r, Mode::Normal).unwrap();
         assert_eq!(n.assignment, mouse_button(1, 1, Mode::Normal, 1));
-        assert_eq!(n.mode_echo, 1);
-        assert!(n.echo_differs());
+        assert_eq!(n.reply_byte2, 1);
         assert_eq!(
             n.to_string(),
-            "profile 1, button 1, normal mode: mouse button 1 (function 1, data [1]) \
-             (device echoed mode 1)"
+            "profile 1, button 1, normal mode: mouse button 1 (function 1, data [1])"
         );
         let h = parse_button_assignment(&r, Mode::HyperShift).unwrap();
         assert_eq!(h.assignment, mouse_button(1, 1, Mode::HyperShift, 1));
-        assert!(!h.echo_differs());
-        assert!(!h.to_string().contains("echoed"));
 
-        // Button 4, written with mode 0, echoes 0 for both requests.
+        // Button 4, last written with mode 0: byte 2 is 0 for both requests.
         let r = reply(&[0x01, 0x04, 0x00, 0x01, 0x01, 0x04]);
         let n = parse_button_assignment(&r, Mode::Normal).unwrap();
         assert_eq!(n.assignment, mouse_button(1, 4, Mode::Normal, 4));
-        assert!(!n.echo_differs());
         let h = parse_button_assignment(&r, Mode::HyperShift).unwrap();
         assert_eq!(h.assignment, mouse_button(1, 4, Mode::HyperShift, 4));
-        assert!(h.to_string().ends_with(
-            "HyperShift mode: mouse button 4 (function 1, data [4]) (device echoed mode 0)"
-        ));
-        // Re-encoding a read uses the requested mode, not the echo.
+        assert_eq!(h.reply_byte2, 0);
+        assert!(
+            h.to_string()
+                .ends_with("HyperShift mode: mouse button 4 (function 1, data [4])")
+        );
+        // Re-encoding a read uses the requested mode, not byte 2.
         let req = set_button_assignment(&h.assignment).unwrap().encode(0);
         assert_eq!(&req.args()[..3], &[1, 4, 1]);
     }
 
+    /// Hardware, 2026-11-10: after `buttons set 5 mouse-button 4 --hypershift`, the
+    /// two slots of button 5 differ; byte 2 is 1 in both replies.
     #[test]
-    fn any_echo_value_is_accepted() {
+    fn hypershift_slot_is_separate() {
+        let h = parse_button_assignment(
+            &reply(&[0x01, 0x05, 0x01, 0x01, 0x01, 0x04]),
+            Mode::HyperShift,
+        )
+        .unwrap();
+        assert_eq!(h.assignment, mouse_button(1, 5, Mode::HyperShift, 4));
+        assert_eq!(h.reply_byte2, 1);
+        let n =
+            parse_button_assignment(&reply(&[0x01, 0x05, 0x01, 0x01, 0x01, 0x05]), Mode::Normal)
+                .unwrap();
+        assert_eq!(n.assignment, mouse_button(1, 5, Mode::Normal, 5));
+        assert_eq!(n.reply_byte2, 1);
+    }
+
+    #[test]
+    fn any_byte2_value_is_accepted() {
         let r = parse_button_assignment(&[1, 1, 7, 0, 0], Mode::Normal).unwrap();
-        assert_eq!((r.assignment.mode, r.mode_echo), (Mode::Normal, 7));
-        assert!(r.to_string().ends_with("(device echoed mode 7)"));
+        assert_eq!((r.assignment.mode, r.reply_byte2), (Mode::Normal, 7));
+        assert!(!r.to_string().contains('7'));
     }
 
     #[test]
@@ -467,5 +501,51 @@ mod tests {
         assert_eq!(l.data.len(), crate::ARGS_LEN - 3);
         assert_eq!(&l.data[..2], &[0xAA, 0xBB]);
         assert!(parse_button_assignment_list(&[1, 0]).is_err());
+    }
+
+    /// Viper V3 HyperSpeed 02/8E reply data, profile 1, mode 0 (hardware, 2026-11-10).
+    #[test]
+    fn list_records_from_observed_reply() {
+        #[rustfmt::skip]
+        let data = [
+            0x01, 0x01, 0x01, 0x01, 0, 0, 0, 0,
+            0x02, 0x01, 0x01, 0x02, 0, 0, 0, 0,
+            0x03, 0x01, 0x01, 0x03, 0, 0, 0, 0,
+            0x04, 0x01, 0x01, 0x04, 0, 0, 0, 0,
+            0x05, 0x01, 0x01, 0x05, 0, 0, 0, 0,
+            0x60, 0x06, 0x01, 0x06, 0, 0, 0, 0,
+            0x09, 0x01, 0x01, 0x09, 0, 0, 0, 0,
+            0x0a, 0x01, 0x01, 0x0a,
+        ];
+        let mut args = vec![1, 0, 0];
+        args.extend_from_slice(&data);
+        let l = parse_button_assignment_list(&reply(&args)).unwrap();
+        let recs = l.records();
+        assert_eq!(
+            recs,
+            [
+                (0x01, 1, vec![1]),
+                (0x02, 1, vec![2]),
+                (0x03, 1, vec![3]),
+                (0x04, 1, vec![4]),
+                (0x05, 1, vec![5]),
+                (0x60, 6, vec![6]),
+                (0x09, 1, vec![9]),
+                (0x0a, 1, vec![10]),
+            ]
+        );
+        // Mode 1 after the HyperShift write: button 5 -> mouse button 4.
+        let mut args = vec![1, 1, 0, 0x05, 0x01, 0x01, 0x04];
+        args.resize(crate::ARGS_LEN, 0);
+        let l = parse_button_assignment_list(&args).unwrap();
+        assert_eq!(l.records(), [(5, 1, vec![4])]);
+        // Over-long dataLen is cut to the record; a partial record is ignored.
+        let l = ButtonAssignmentList {
+            profile: 1,
+            mode: 0,
+            id_offset: 0,
+            data: vec![7, 2, 9, 1, 2, 3, 4, 5, 8, 1, 1],
+        };
+        assert_eq!(l.records(), [(7, 2, vec![1, 2, 3, 4, 5])]);
     }
 }
