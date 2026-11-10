@@ -9,7 +9,7 @@ use std::sync::mpsc::{Receiver, Sender, channel};
 use opensynapse_device_registry::{Device, Protocol, RAZER_VID, Registry};
 use opensynapse_hid::{DEFAULT_INTERFACE, DeviceSession, HidEntry, Timing, Transport};
 
-use crate::ops::{self, Setting, Snapshot, WriteFailure, WriteOutcome};
+use crate::ops::{self, Setting, Snapshot, WriteFailure, WriteOpts, WriteOutcome};
 
 pub enum Job {
     /// Enumerate devices and check for conflicting Razer software.
@@ -20,7 +20,7 @@ pub enum Job {
     Write {
         entry: HidEntry,
         setting: Setting,
-        confirmed: bool,
+        opts: WriteOpts,
     },
 }
 
@@ -133,13 +133,13 @@ impl Worker {
             Job::Write {
                 entry,
                 setting,
-                confirmed,
+                opts,
             } => {
                 let conflict = opensynapse_hid::conflicting_process();
                 let result = match self.session(&entry) {
                     Ok((row, s)) => {
                         if row.supported() {
-                            ops::guarded_write(s, setting, row.device, conflict, confirmed)
+                            ops::guarded_write(s, setting, row.device, conflict, opts)
                         } else {
                             Err(WriteFailure {
                                 old: None,
