@@ -25,10 +25,13 @@ use opensynapse_ipc::msg::{ClientFrame, PROTOCOL_VERSION, Role, ServerFrame};
 use opensynapse_ipc::transport::{self, Listener};
 
 use crate::core::{Core, CoreMsg, SETTLE};
-use crate::events::NoEvents;
+use crate::events::{EventSource, HidInputEvents, HidOpener, NoEvents, default_candidate};
 use crate::hardware::RealHardware;
 
-const USAGE: &str = "usage: opensynapse-agent [--pipe <name>] [-v | -vv]";
+const USAGE: &str = "usage: opensynapse-agent [--pipe <name>] [--events] [-v | -vv]\n  \
+     --events  listen for device hardware events (also OPENSYNAPSE_AGENT_EVENTS=1)";
+/// Environment switch equivalent to `--events`.
+const EVENTS_ENV: &str = "OPENSYNAPSE_AGENT_EVENTS";
 /// Exit code when another agent already serves the pipe.
 const EXIT_RUNNING: u8 = 2;
 /// How long shutdown waits for the `ShuttingDown` reply to be written.
@@ -38,6 +41,9 @@ const FLUSH_WAIT: Duration = Duration::from_secs(1);
 struct Args {
     pipe: Option<String>,
     verbose: u8,
+    /// Use `HidInputEvents` instead of `NoEvents` (until hardware confirms the
+    /// event collection, see `vault/Protocol/Hardware Events.md`).
+    events: bool,
 }
 
 fn parse_args(mut it: impl Iterator<Item = String>) -> Result<Args, String> {
@@ -45,6 +51,7 @@ fn parse_args(mut it: impl Iterator<Item = String>) -> Result<Args, String> {
     while let Some(arg) = it.next() {
         match arg.as_str() {
             "--pipe" => a.pipe = Some(it.next().ok_or("--pipe needs a name")?),
+            "--events" => a.events = true,
             "-v" | "--verbose" => a.verbose += 1,
             "-vv" => a.verbose += 2,
             "-h" | "--help" => return Err(USAGE.into()),
@@ -52,6 +59,15 @@ fn parse_args(mut it: impl Iterator<Item = String>) -> Result<Args, String> {
         }
     }
     Ok(a)
+}
+
+/// `1`, `true`, `yes`, `on` (any case) switch an environment flag on.
+fn env_flag(v: Option<&str>) -> bool {
+    v.is_some_and(|v| {
+        ["1", "true", "yes", "on"]
+            .iter()
+            .any(|t| v.trim().eq_ignore_ascii_case(t))
+    })
 }
 
 fn init_tracing(verbose: u8) {
@@ -143,13 +159,14 @@ fn main() -> ExitCode {
         }
     };
 
-    let mut core = Core::new(
-        RealHardware::default(),
-        Box::new(NoEvents),
-        tx.clone(),
-        pending,
-        SETTLE,
-    );
+    let events_on = args.events || env_flag(std::env::var(EVENTS_ENV).ok().as_deref());
+    let events: Box<dyn EventSource> = if events_on {
+        tracing::info!("hardware events on (experimental)");
+        Box::new(HidInputEvents::new(HidOpener, default_candidate))
+    } else {
+        Box::new(NoEvents)
+    };
+    let mut core = Core::new(RealHardware::default(), events, tx.clone(), pending, SETTLE);
     core.set_rescan_on_list(hotplug.is_none());
     core.rescan();
 
@@ -192,12 +209,23 @@ mod tests {
             parse(&["--pipe", "x", "-v"]).unwrap(),
             Args {
                 pipe: Some("x".into()),
-                verbose: 1
+                verbose: 1,
+                events: false
             }
         );
         assert_eq!(parse(&["-vv"]).unwrap().verbose, 2);
         assert!(parse(&["--pipe"]).is_err());
         assert!(parse(&["--bogus"]).is_err());
         assert!(parse(&["--help"]).is_err());
+        assert!(parse(&["--events"]).unwrap().events);
+    }
+
+    #[test]
+    fn env_flag_values() {
+        assert!(env_flag(Some("1")));
+        assert!(env_flag(Some(" TRUE ")));
+        assert!(!env_flag(Some("0")));
+        assert!(!env_flag(Some("")));
+        assert!(!env_flag(None));
     }
 }

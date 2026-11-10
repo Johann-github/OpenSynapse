@@ -23,7 +23,7 @@ use windows_sys::Win32::Devices::HumanInterfaceDevice::{
     HIDD_ATTRIBUTES, HIDP_CAPS, HIDP_STATUS_SUCCESS, HidD_FreePreparsedData, HidD_GetAttributes,
     HidD_GetFeature, HidD_GetHidGuid, HidD_GetPreparsedData, HidD_SetFeature, HidP_GetCaps,
 };
-use windows_sys::Win32::Foundation::{CloseHandle, HANDLE, INVALID_HANDLE_VALUE};
+use windows_sys::Win32::Foundation::{CloseHandle, GENERIC_READ, HANDLE, INVALID_HANDLE_VALUE};
 use windows_sys::Win32::Storage::FileSystem::{
     CreateFileW, FILE_SHARE_READ, FILE_SHARE_WRITE, OPEN_EXISTING,
 };
@@ -51,23 +51,7 @@ impl Drop for Device {
 
 impl Device {
     pub fn open(path: &str) -> io::Result<Self> {
-        let wide: Vec<u16> = path.encode_utf16().chain(Some(0)).collect();
-        // SAFETY: `wide` is NUL-terminated and outlives the call.
-        let handle = unsafe {
-            CreateFileW(
-                wide.as_ptr(),
-                0,
-                FILE_SHARE_READ | FILE_SHARE_WRITE,
-                null(),
-                OPEN_EXISTING,
-                0,
-                null_mut(),
-            )
-        };
-        if handle == INVALID_HANDLE_VALUE {
-            return Err(io::Error::last_os_error());
-        }
-        Ok(Self { handle })
+        open_raw(path, 0, 0).map(|handle| Self { handle })
     }
 
     fn attributes(&self) -> Option<HIDD_ATTRIBUTES> {
@@ -82,18 +66,57 @@ impl Device {
     }
 
     fn caps(&self) -> Option<HIDP_CAPS> {
-        let mut pp = 0;
-        // SAFETY: valid handle; on success `pp` must be freed with HidD_FreePreparsedData.
-        if !unsafe { HidD_GetPreparsedData(self.handle, &mut pp) } {
-            return None;
+        caps_of(self.handle)
+    }
+}
+
+/// `CreateFileW` on `path`, shared read/write, with these access rights and flags.
+/// The caller owns (and must close) the returned handle.
+pub(crate) fn open_raw(path: &str, access: u32, flags: u32) -> io::Result<HANDLE> {
+    let wide: Vec<u16> = path.encode_utf16().chain(Some(0)).collect();
+    // SAFETY: `wide` is NUL-terminated and outlives the call.
+    let handle = unsafe {
+        CreateFileW(
+            wide.as_ptr(),
+            access,
+            FILE_SHARE_READ | FILE_SHARE_WRITE,
+            null(),
+            OPEN_EXISTING,
+            flags,
+            null_mut(),
+        )
+    };
+    if handle == INVALID_HANDLE_VALUE {
+        return Err(io::Error::last_os_error());
+    }
+    Ok(handle)
+}
+
+/// HidP_GetCaps of an open HID handle (any access rights).
+pub(crate) fn caps_of(handle: HANDLE) -> Option<HIDP_CAPS> {
+    let mut pp = 0;
+    // SAFETY: valid handle; on success `pp` must be freed with HidD_FreePreparsedData.
+    if !unsafe { HidD_GetPreparsedData(handle, &mut pp) } {
+        return None;
+    }
+    // SAFETY: HIDP_CAPS is plain data; all-zero is a valid value.
+    let mut caps: HIDP_CAPS = unsafe { std::mem::zeroed() };
+    // SAFETY: `pp` is valid until freed below.
+    let status = unsafe { HidP_GetCaps(pp, &mut caps) };
+    // SAFETY: `pp` came from HidD_GetPreparsedData and is freed once.
+    unsafe { HidD_FreePreparsedData(pp) };
+    (status == HIDP_STATUS_SUCCESS).then_some(caps)
+}
+
+/// True if a shared `GENERIC_READ` open of `path` succeeds (closed right away).
+pub fn can_read(path: &str) -> bool {
+    match open_raw(path, GENERIC_READ, 0) {
+        Ok(h) => {
+            // SAFETY: `h` came from a successful CreateFileW and is closed once.
+            unsafe { CloseHandle(h) };
+            true
         }
-        // SAFETY: HIDP_CAPS is plain data; all-zero is a valid value.
-        let mut caps: HIDP_CAPS = unsafe { std::mem::zeroed() };
-        // SAFETY: `pp` is valid until freed below.
-        let status = unsafe { HidP_GetCaps(pp, &mut caps) };
-        // SAFETY: `pp` came from HidD_GetPreparsedData and is freed once.
-        unsafe { HidD_FreePreparsedData(pp) };
-        (status == HIDP_STATUS_SUCCESS).then_some(caps)
+        Err(_) => false,
     }
 }
 
@@ -200,13 +223,14 @@ fn interface_from_path(lower: &str) -> i32 {
         .unwrap_or(-1)
 }
 
-/// Collections of devices with this vendor ID. Only matching paths are opened.
-pub fn enumerate(vid: u16) -> io::Result<Vec<HidEntry>> {
-    let needle = format!("vid_{vid:04x}");
+/// Collections of devices with this vendor ID (every HID collection with
+/// `None`). Only matching paths are opened (zero access).
+pub fn enumerate_any(vid: Option<u16>) -> io::Result<Vec<HidEntry>> {
+    let needle = vid.map(|v| format!("vid_{v:04x}"));
     let mut out = Vec::new();
     for path in interface_paths()? {
         let lower = path.to_ascii_lowercase();
-        if !lower.contains(&needle) {
+        if needle.as_ref().is_some_and(|n| !lower.contains(n.as_str())) {
             continue;
         }
         let Ok(dev) = Device::open(&path) else {
@@ -223,6 +247,8 @@ pub fn enumerate(vid: u16) -> io::Result<Vec<HidEntry>> {
             usage_page: caps.map_or(0, |c| c.UsagePage),
             usage: caps.map_or(0, |c| c.Usage),
             feature_len: caps.map(|c| c.FeatureReportByteLength),
+            input_len: caps.map(|c| c.InputReportByteLength),
+            output_len: caps.map(|c| c.OutputReportByteLength),
             path,
         });
     }
@@ -288,7 +314,7 @@ mod tests {
     #[test]
     fn enumeration_runs() {
         // Smoke test: must not fail or open non-matching devices.
-        let all = enumerate(0x1532).unwrap();
+        let all = enumerate_any(Some(0x1532)).unwrap();
         assert!(all.iter().all(|e| e.vid == 0x1532));
     }
 }

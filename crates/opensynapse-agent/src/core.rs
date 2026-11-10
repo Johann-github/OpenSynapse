@@ -32,8 +32,6 @@ pub enum CoreMsg {
     /// Hotplug: re-enumerate (coalesced via the shared pending flag).
     Rescan,
     /// A hardware event from an [`EventSource`].
-    // Slice 1 ships only `NoEvents`; the variant is exercised by the tests.
-    #[cfg_attr(not(test), allow(dead_code))]
     DeviceEvent(Event),
 }
 

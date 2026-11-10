@@ -15,8 +15,11 @@ use opensynapse_protocol::{
 };
 
 pub mod hotplug;
+pub mod input;
 #[cfg(windows)]
 mod windows_hotplug;
+#[cfg(windows)]
+mod windows_input;
 
 #[cfg(not(windows))]
 mod hidapi_backend;
@@ -60,7 +63,37 @@ pub struct HidEntry {
     pub usage: u16,
     /// Feature report length incl. report ID, if the backend can tell.
     pub feature_len: Option<u16>,
+    /// Input report length incl. report ID, if the backend can tell (0 = none).
+    pub input_len: Option<u16>,
+    /// Output report length incl. report ID, if the backend can tell (0 = none).
+    pub output_len: Option<u16>,
     pub path: String,
+}
+
+/// One HID collection plus whether it can be opened for reading input reports.
+/// See [`collections`].
+#[derive(Clone, Debug)]
+pub struct Collection {
+    pub entry: HidEntry,
+    /// A shared `GENERIC_READ` open succeeded (Windows). The OS holds mouse and
+    /// keyboard collections exclusively, so those report `false`.
+    pub readable: bool,
+}
+
+/// Every HID collection of vendor `vid` (all vendors with `None`), sorted by
+/// PID and path, each probed for read access. Diagnostic: the probe opens and
+/// closes every matching collection once; nothing is read or written.
+pub fn collections(vid: Option<u16>) -> Result<Vec<Collection>, HidError> {
+    let mut entries = backend::enumerate_any(vid)?;
+    entries.sort_by(|a, b| (a.vid, a.pid, &a.path).cmp(&(b.vid, b.pid, &b.path)));
+    entries.dedup_by(|a, b| a.path == b.path);
+    Ok(entries
+        .into_iter()
+        .map(|entry| Collection {
+            readable: backend::can_read(&entry.path),
+            entry,
+        })
+        .collect())
 }
 
 impl HidEntry {
@@ -83,7 +116,7 @@ pub struct Transport {
 impl Transport {
     /// Enumerate Razer (VID 0x1532) collections.
     pub fn new() -> Result<Self, HidError> {
-        let mut entries = backend::enumerate(RAZER_VID)?;
+        let mut entries = backend::enumerate_any(Some(RAZER_VID))?;
         entries.sort_by(|a, b| (a.pid, &a.path).cmp(&(b.pid, &b.path)));
         entries.dedup_by(|a, b| a.path == b.path);
         Ok(Self { entries })

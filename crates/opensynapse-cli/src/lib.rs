@@ -12,9 +12,11 @@ use opensynapse_protocol::{Request, Status, device, dpi, hid_usage, polling, pow
 use std::path::PathBuf;
 
 mod agent;
+mod hid_probe;
 mod profile;
 
 pub use agent::AgentAction;
+pub use hid_probe::HidAction;
 
 #[derive(Parser)]
 #[command(
@@ -81,6 +83,11 @@ pub enum Command {
     Agent {
         #[command(subcommand)]
         action: AgentAction,
+    },
+    /// HID diagnostics: list collections, listen for input reports (read-only).
+    Hid {
+        #[command(subcommand)]
+        action: HidAction,
     },
 }
 
@@ -292,6 +299,9 @@ pub fn run(cli: Cli) -> Result<()> {
     if let Command::Agent { action } = cli.command {
         return agent::run(action, cli.pid);
     }
+    if let Command::Hid { action } = cli.command {
+        return hid_probe::run(action, cli.pid);
+    }
     let transport = Transport::new().context("cannot enumerate HID devices")?;
     if let Command::List = cli.command {
         return list(&transport);
@@ -299,7 +309,7 @@ pub fn run(cli: Cli) -> Result<()> {
 
     let mut dev = Target::select(&transport, cli.pid)?;
     match cli.command {
-        Command::List | Command::Agent { .. } => unreachable!(),
+        Command::List | Command::Agent { .. } | Command::Hid { .. } => unreachable!(),
         Command::Info => info(&mut dev),
         Command::Battery => battery(&mut dev),
         Command::Dpi { action } => match action {

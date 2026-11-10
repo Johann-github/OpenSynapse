@@ -153,6 +153,8 @@ fn control_entry_filter() {
         usage_page: 1,
         usage: 2,
         feature_len: Some(91),
+        input_len: Some(9),
+        output_len: Some(0),
         path: "x".into(),
     };
     assert!(e.is_control(0));

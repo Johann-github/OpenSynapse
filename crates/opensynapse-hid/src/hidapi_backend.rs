@@ -31,11 +31,11 @@ impl FeatureIo for Device {
     }
 }
 
-pub fn enumerate(vid: u16) -> io::Result<Vec<HidEntry>> {
+pub fn enumerate_any(vid: Option<u16>) -> io::Result<Vec<HidEntry>> {
     let api = hidapi::HidApi::new().map_err(io_err)?;
     Ok(api
         .device_list()
-        .filter(|d| d.vendor_id() == vid)
+        .filter(|d| vid.is_none_or(|v| d.vendor_id() == v))
         .map(|d| HidEntry {
             vid: d.vendor_id(),
             pid: d.product_id(),
@@ -43,9 +43,16 @@ pub fn enumerate(vid: u16) -> io::Result<Vec<HidEntry>> {
             usage_page: d.usage_page(),
             usage: d.usage(),
             feature_len: None,
+            input_len: None,
+            output_len: None,
             path: d.path().to_string_lossy().into_owned(),
         })
         .collect())
+}
+
+/// True if hidapi can open the collection (read access on these platforms).
+pub fn can_read(path: &str) -> bool {
+    Device::open(path).is_ok()
 }
 
 /// Razer software does not run on these platforms.

@@ -102,6 +102,8 @@ pub mod fake {
             usage_page: CONTROL_USAGE_PAGE,
             usage: CONTROL_USAGE,
             feature_len: Some(91),
+            input_len: Some(9),
+            output_len: Some(0),
             path: path.into(),
         }
     }
