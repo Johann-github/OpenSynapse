@@ -1,0 +1,28 @@
+[package]
+name = "opensynapse-desktop"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Optional native desktop GUI for OpenSynapse (egui/eframe)."
+
+[lints]
+workspace = true
+
+[dependencies]
+opensynapse-hid.workspace = true
+opensynapse-protocol.workspace = true
+opensynapse-device-registry.workspace = true
+# Lean (ADR-0002): no wgpu, no accesskit, no persistence/serde, no clipboard/links,
+# no system fonts. `glow` (OpenGL) is the smallest native renderer; `default_fonts`
+# is needed to draw any text.
+eframe = { version = "0.37", default-features = false, features = ["glow", "default_fonts"] }
+
+# winit needs at least one window-system backend on Linux.
+[target.'cfg(target_os = "linux")'.dependencies]
+eframe = { version = "0.37", default-features = false, features = ["glow", "default_fonts", "x11", "wayland"] }
+
+[[bin]]
+name = "opensynapse-desktop"
+path = "src/main.rs"
