@@ -1752,6 +1752,7 @@ dependencies = [
  "opensynapse-core",
  "opensynapse-device-registry",
  "opensynapse-hid",
+ "opensynapse-ipc",
  "opensynapse-protocol",
  "tracing",
  "tracing-subscriber",

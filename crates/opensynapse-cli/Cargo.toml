@@ -19,3 +19,4 @@ opensynapse-hid.workspace = true
 opensynapse-device-registry.workspace = true
 opensynapse-protocol.workspace = true
 opensynapse-core.workspace = true
+opensynapse-ipc.workspace = true

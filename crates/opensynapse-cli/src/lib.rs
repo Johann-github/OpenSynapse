@@ -11,7 +11,10 @@ use opensynapse_protocol::buttons::{self, ButtonAssignment, ButtonReply, Known, 
 use opensynapse_protocol::{Request, Status, device, dpi, hid_usage, polling, power};
 use std::path::PathBuf;
 
+mod agent;
 mod profile;
+
+pub use agent::AgentAction;
 
 #[derive(Parser)]
 #[command(
@@ -73,6 +76,11 @@ pub enum Command {
     Profile {
         #[command(subcommand)]
         action: ProfileAction,
+    },
+    /// Talk to the background agent (opensynapse-agent).
+    Agent {
+        #[command(subcommand)]
+        action: AgentAction,
     },
 }
 
@@ -281,6 +289,9 @@ pub fn run(cli: Cli) -> Result<()> {
             .init();
     }
     let verbose = cli.verbose;
+    if let Command::Agent { action } = cli.command {
+        return agent::run(action, cli.pid);
+    }
     let transport = Transport::new().context("cannot enumerate HID devices")?;
     if let Command::List = cli.command {
         return list(&transport);
@@ -288,7 +299,7 @@ pub fn run(cli: Cli) -> Result<()> {
 
     let mut dev = Target::select(&transport, cli.pid)?;
     match cli.command {
-        Command::List => unreachable!(),
+        Command::List | Command::Agent { .. } => unreachable!(),
         Command::Info => info(&mut dev),
         Command::Battery => battery(&mut dev),
         Command::Dpi { action } => match action {
