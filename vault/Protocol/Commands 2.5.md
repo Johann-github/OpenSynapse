@@ -89,14 +89,24 @@ Which polling command the Viper supports is chosen by the per-product UI (not ca
 | 02/B0 · 02/30 Scroll tactile/free/micro | get/set | 2 | `[profile, 0/1/2]` | observed |
 | 02/82 · 02/02 Debounce Time | get/set | 4 | `[makeDebounce, makeMask, breakDebounce, breakMask]` ms | observed |
 
-- mode: 0 normal, 1 HyperShift (observed).
+- mode: 0 normal, 1 HyperShift (observed in code: Synapse 4 rzDevice25 enum `ni`, reply parser `mi`,
+  `getSingleButtonAssignment` / `setSingleButtonAssignment` in `index-42d42381.js`). Synapse sends mode in the
+  GET request and reads it back from reply byte 2.
+- **Viper V3 HyperSpeed (observed on hardware, 2026-11-10):** GET ignores the requested mode. It returns
+  the same mapping for mode 0 and 1, and reply byte 2 echoes a stored value (1 on never-written buttons,
+  0 after a mode-0 write). Do not use the echo as the layer of the result. Whether a mode-1 SET writes
+  a separate HyperShift slot is unknown (the per-device UI lists `OBMSlots: 1`). → [[RE-Log/2026-11-10 Button capture key and DPI]]
+- 02/8E reply: `[profile, mode, idOffset, data…]` (observed in code); data layout unknown.
+- 02/A5 · 02/25: meaning of "mode" unknown (parser labels `[buttonId, mode]`, no enum).
 - functionId: 0 off, 1 mouse button, 2 key, 3/4/5/15 macro types, 6 DPI, 7 profile, 8 lighting, 9 power keys, 10 media keys, 11 double-click, 12 mode key, 13 turbo key, 14 turbo button, 16 controller, 17 Razer key, 18 scroll mode, 21 Win8 shortcut (observed).
 - buttonId: 1 left, 2 right, 3 wheel click, 4–8 buttons 4–8, 9 wheel up, 10 wheel down, 11 DPI up, 12 DPI down, 13 user select, 14 profile switch, 15 sniper, 16–31 macro 1–16, 52/53 tilt L/R, 57 HyperShift, 104/105 scroll L/R, 106 free/notch switch, 121 rapid fire (observed).
 - Data bytes per functionId are built by the per-product UI. Known from a USB capture
   ([[2026-11-09 Button remap capture]]):
   - functionId 1 (mouse button): data `[buttonId]`, e.g. `[4]` = button 4 (observed).
   - functionId 11 (double-click): data `[01]`, `01` = left button (byte observed, meaning inferred).
-  - All others: unknown.
+  - functionId 2 (key): data `[modifiers, HID usage]`, e.g. `[00, 04]` = A (bytes observed, meaning inferred; works onboard).
+  - functionId 6 (DPI): data `[01]` = DPI up, one stage per press from the active-stage index (observed).
+  - All others: unknown. → [[RE-Log/2026-11-10 Button capture key and DPI]]
 
 ### Profiles (class 0x05)
 

@@ -41,7 +41,13 @@ All frames: class 02, command 0C, data_size 10, args `[profile, button, layer, f
 - (observed) GET `01 04 00` and `01 04 01` both → `01 04 00 01 01 04`.
 - (observed) Buttons 1, 2, 3, 5 (never written) reply third byte 1; button 4 (written with 0) replies 0.
 - (inferred) The device ignores the third byte on GET and echoes a stored value. Our name
-  "layer (0 normal / 1 HyperShift)" for that byte is probably wrong. RE check of Synapse is running.
+  "layer (0 normal / 1 HyperShift)" for that byte is probably wrong.
+- RE check (observed in code, Synapse 4 rzDevice25): Synapse also calls byte 2 `mode` (0 normal, 1 HyperShift),
+  sends it on GET and expects it echoed. So the naming is right; the Viper firmware just does not honour it on GET.
+  The captures contain no mode-1 write and no 02/8C/8E reads by Synapse. Per-device UI: `OBMSlots: 1`,
+  mappings carry `isHyperShift`; turning that into bytes happens in the native mapping engine (not visible).
+- (unknown) Does a mode-1 SET create a separate HyperShift slot, or overwrite the normal mapping?
+  Test plan: on button 5 read mode 0/1 + 02/8E, write mode 1 with a different mapping, read again, restore.
 - Effect: `profile export` puts buttons 1/2/3/5 under `[hypershift.buttons]`. Do not use `profile apply`
   for buttons until this is resolved.
 
