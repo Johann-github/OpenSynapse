@@ -9,6 +9,9 @@ use opensynapse_device_registry::{Device, Match, Protocol, RAZER_VID, Registry};
 use opensynapse_hid::{DEFAULT_INTERFACE, DeviceSession, HidEntry, HidError, Timing, Transport};
 use opensynapse_protocol::buttons::{self, ButtonAssignment, Known, Layer};
 use opensynapse_protocol::{Request, Status, device, dpi, hid_usage, polling, power};
+use std::path::PathBuf;
+
+mod profile;
 
 #[derive(Parser)]
 #[command(
@@ -65,6 +68,36 @@ pub enum Command {
     Buttons {
         #[command(subcommand)]
         action: ButtonsAction,
+    },
+    /// Export the device settings to a TOML profile, or apply one.
+    Profile {
+        #[command(subcommand)]
+        action: ProfileAction,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum ProfileAction {
+    /// Read DPI stages (persistent), polling, sleep and button assignments (onboard
+    /// profile 1, normal + HyperShift layer) and print them as a profile.
+    Export {
+        /// Button IDs to read, e.g. `1-5` or `1,2,4`.
+        #[arg(long, value_parser = profile::parse_button_list, default_value = "1-5")]
+        buttons: profile::ButtonList,
+        /// Write to this file instead of stdout.
+        #[arg(long)]
+        out: Option<PathBuf>,
+    },
+    /// Apply a profile. Without --apply this only shows what would be sent. With
+    /// --apply, the current values are saved to `<name>.restore.toml` first.
+    Apply {
+        /// Profile TOML file.
+        file: PathBuf,
+        #[command(flatten)]
+        write: WriteOpts,
+        /// Write the DPI stages to volatile storage (byte 0) instead of persistent (1).
+        #[arg(long)]
+        volatile: bool,
     },
 }
 
@@ -194,10 +227,28 @@ pub struct WriteOpts {
     force: bool,
 }
 
-#[derive(Clone, Copy, clap::ValueEnum)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, clap::ValueEnum)]
 pub enum PollingVariant {
     Period,
     Hyper,
+}
+
+impl From<PollingVariant> for opensynapse_core::PollingVariant {
+    fn from(v: PollingVariant) -> Self {
+        match v {
+            PollingVariant::Period => Self::Period,
+            PollingVariant::Hyper => Self::Hyper,
+        }
+    }
+}
+
+impl From<opensynapse_core::PollingVariant> for PollingVariant {
+    fn from(v: opensynapse_core::PollingVariant) -> Self {
+        match v {
+            opensynapse_core::PollingVariant::Period => Self::Period,
+            opensynapse_core::PollingVariant::Hyper => Self::Hyper,
+        }
+    }
 }
 
 fn parse_modifier(s: &str) -> Result<u8, String> {
@@ -298,6 +349,16 @@ pub fn run(cli: Cli) -> Result<()> {
                 let new = requested_assignment(button, action, target.as_deref(), &mods, slot)?;
                 button_set(&mut dev, new, slot, write)
             }
+        },
+        Command::Profile { action } => match action {
+            ProfileAction::Export { buttons, out } => {
+                profile::export(&mut dev, &buttons, out.as_deref())
+            }
+            ProfileAction::Apply {
+                file,
+                write,
+                volatile,
+            } => profile::apply(&mut dev, &file, write, volatile),
         },
     }
 }
@@ -668,10 +729,7 @@ fn polling_set(
         );
     }
     let (old, v) = polling_get(dev, variant, profile)?;
-    let req = match v {
-        PollingVariant::Period => polling::set_polling_rate(hz)?,
-        PollingVariant::Hyper => polling::set_hyper_polling(profile, hz)?,
-    };
+    let req = polling_request(v, profile, hz)?;
     dev.write(
         write,
         &format!("polling rate {old} Hz -> {hz} Hz ({})", variant_name(v)),
@@ -687,6 +745,14 @@ fn polling_set(
         )?;
     }
     Ok(())
+}
+
+/// The set request for `hz` in variant `v` (`profile` is the HyperPolling profile byte).
+fn polling_request(v: PollingVariant, profile: u8, hz: u32) -> Result<Request> {
+    Ok(match v {
+        PollingVariant::Period => polling::set_polling_rate(hz)?,
+        PollingVariant::Hyper => polling::set_hyper_polling(profile, hz)?,
+    })
 }
 
 fn variant_name(v: PollingVariant) -> &'static str {
@@ -788,6 +854,16 @@ impl Target {
         Ok(parse(reply.args())?)
     }
 
+    /// Refuses to write while Razer software runs unless `--force`.
+    fn guard(&self, opts: WriteOpts) -> Result<()> {
+        if let Some(name) = self.conflict
+            && !opts.force
+        {
+            bail!("{name} is running; close it or pass --force");
+        }
+        Ok(())
+    }
+
     /// Dry run unless `--apply`; refuses while Razer software runs unless `--force`.
     fn write(&mut self, opts: WriteOpts, change: &str, restore: &str, req: &Request) -> Result<()> {
         if !opts.apply {
@@ -796,11 +872,7 @@ impl Target {
             println!("Run again with --apply to write.");
             return Ok(());
         }
-        if let Some(name) = self.conflict
-            && !opts.force
-        {
-            bail!("{name} is running; close it or pass --force");
-        }
+        self.guard(opts)?;
         self.session.execute(req)?;
         println!("Changed {change}.");
         // Empty: the caller explains why there is no restore command.
@@ -1054,6 +1126,61 @@ mod tests {
         assert_eq!(button_restore(&raw(2, vec![0x10, 0x04])), None);
         assert_eq!(button_restore(&raw(6, vec![2])), None);
         assert_eq!(button_restore(&raw(9, vec![1])), None);
+    }
+
+    fn parse_profile(args: &[&str]) -> Result<ProfileAction> {
+        let argv = ["opensynapse", "profile"]
+            .into_iter()
+            .chain(args.iter().copied());
+        let Command::Profile { action } = Cli::try_parse_from(argv)?.command else {
+            panic!("parsed wrong command")
+        };
+        Ok(action)
+    }
+
+    #[test]
+    fn profile_parsing() {
+        let ProfileAction::Export { buttons, out } = parse_profile(&["export"]).unwrap() else {
+            panic!("parsed wrong action")
+        };
+        assert_eq!(buttons.0, [1, 2, 3, 4, 5]);
+        assert_eq!(out, None);
+        let ProfileAction::Export { buttons, out } =
+            parse_profile(&["export", "--buttons", "4,6-7", "--out", "p.toml"]).unwrap()
+        else {
+            panic!("parsed wrong action")
+        };
+        assert_eq!(buttons.0, [4, 6, 7]);
+        assert_eq!(out, Some(PathBuf::from("p.toml")));
+        assert!(parse_profile(&["export", "--buttons", "0"]).is_err());
+        assert!(parse_profile(&["export", "--apply"]).is_err());
+
+        let ProfileAction::Apply {
+            file,
+            write,
+            volatile,
+        } = parse_profile(&["apply", "p.toml"]).unwrap()
+        else {
+            panic!("parsed wrong action")
+        };
+        assert_eq!(file, PathBuf::from("p.toml"));
+        assert!(!write.apply && !write.force && !volatile);
+        let ProfileAction::Apply {
+            write, volatile, ..
+        } = parse_profile(&["apply", "p.toml", "--apply", "--force", "--volatile"]).unwrap()
+        else {
+            panic!("parsed wrong action")
+        };
+        assert!(write.apply && write.force && volatile);
+        assert!(parse_profile(&["apply"]).is_err());
+        // The printed restore hint parses back.
+        let ProfileAction::Apply { file, write, .. } =
+            parse_profile(&["apply", "dir/p.restore.toml", "--apply"]).unwrap()
+        else {
+            panic!("parsed wrong action")
+        };
+        assert_eq!(file, PathBuf::from("dir/p.restore.toml"));
+        assert!(write.apply);
     }
 
     /// The restore command parses back to the old assignment.

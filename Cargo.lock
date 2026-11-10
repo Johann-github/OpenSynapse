@@ -236,6 +236,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "clap",
+ "opensynapse-core",
  "opensynapse-device-registry",
  "opensynapse-hid",
  "opensynapse-protocol",
