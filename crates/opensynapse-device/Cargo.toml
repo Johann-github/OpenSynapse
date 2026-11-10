@@ -18,3 +18,8 @@ fake = []
 opensynapse-hid.workspace = true
 opensynapse-protocol.workspace = true
 opensynapse-device-registry.workspace = true
+# Profile model and plan for the shared profile apply engine (core depends only on
+# protocol, so no cycle).
+opensynapse-core.workspace = true
+# Already in the tree through hid and core; typed engine errors.
+thiserror.workspace = true

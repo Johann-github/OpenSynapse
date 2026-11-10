@@ -1,18 +1,21 @@
 //! `opensynapse agent …`: talk to a running `opensynapse-agent` over local IPC
-//! (`vault/Decisions/ADR-0005 Agent IPC.md`). Read-only in slice 1, plus `stop`.
+//! (`vault/Decisions/ADR-0005 Agent IPC.md`): read-only commands, `stop`, and
+//! `apply` (profile apply through the agent's shared engine; the restore file is
+//! written here, client-side).
 //!
 //! All output is built by the pure `render_*` functions so it can be tested without
 //! a running agent; [`run`] only connects, calls and prints.
 
 use std::fmt::Write as _;
 use std::io;
+use std::path::{Path, PathBuf};
 
-use anyhow::{Result, anyhow, bail};
+use anyhow::{Context, Result, anyhow, bail};
 use clap::Subcommand;
 use opensynapse_ipc::Client;
 use opensynapse_ipc::msg::{
     DeviceInfo, DeviceRef, ErrorKind, Event, Field, IpcError, PollingVariant, Reply, Request,
-    WireSetting, WireSnapshot,
+    WireSetting, WireSnapshot, WireWriteOpts,
 };
 use opensynapse_ipc::transport::default_pipe_name;
 use opensynapse_protocol::power::{BatteryLevel, ChargingStatus};
@@ -26,6 +29,26 @@ pub enum AgentAction {
     /// Read all settings of one device through the agent. Select it with the global
     /// --pid or with --path; without either, the only connected device is used.
     Snapshot {
+        /// Control collection path, as shown by `agent devices`.
+        #[arg(long, conflicts_with = "pid")]
+        path: Option<String>,
+    },
+    /// Apply a profile through the agent (same engine as `profile apply`). Without
+    /// --apply this only shows what would be sent. With --apply, the values from
+    /// before are saved to `<name>.restore.toml` (by this command, not the agent).
+    Apply {
+        /// Profile TOML file.
+        file: PathBuf,
+        /// Actually write to the device.
+        #[arg(long)]
+        apply: bool,
+        /// Also write settings that already have the profile's value (normally skipped).
+        #[arg(long)]
+        all: bool,
+        /// Write even if Razer software is running, the profile is for another PID,
+        /// or the snapshot could not undo every change.
+        #[arg(long)]
+        force: bool,
         /// Control collection path, as shown by `agent devices`.
         #[arg(long, conflicts_with = "pid")]
         path: Option<String>,
@@ -52,23 +75,128 @@ pub fn run(action: AgentAction, pid: Option<u16>) -> Result<()> {
         }
         AgentAction::Snapshot { path } => {
             let mut c = connect()?;
-            let device = match device_ref(pid, path) {
-                Some(d) => d,
-                None => match call(&mut c, Request::ListDevices)? {
-                    Reply::Devices { list, .. } => pick_device(&list).map_err(|e| anyhow!(e))?,
-                    other => bail!("unexpected reply: {}", render_reply(&other)),
-                },
-            };
+            let device = select(&mut c, pid, path)?;
             let r = call(&mut c, Request::ReadSnapshot { device })?;
             print!("{}", render_reply(&r));
             Ok(())
         }
+        AgentAction::Apply {
+            file,
+            apply,
+            all,
+            force,
+            path,
+        } => apply_profile(&file, apply, all, force, pid, path),
         AgentAction::Stop => {
             let r = call(&mut connect()?, Request::Shutdown)?;
             println!("{}", render_reply(&r));
             Ok(())
         }
     }
+}
+
+/// The device from the flags, or the only one the agent sees.
+fn select(c: &mut Client, pid: Option<u16>, path: Option<String>) -> Result<DeviceRef> {
+    Ok(match device_ref(pid, path) {
+        Some(d) => d,
+        None => match call(c, Request::ListDevices)? {
+            Reply::Devices { list, .. } => pick_device(&list).map_err(|e| anyhow!(e))?,
+            other => bail!("unexpected reply: {}", render_reply(&other)),
+        },
+    })
+}
+
+/// `agent apply`: send the profile text, print the agent's lines, save the restore
+/// profile next to `file` (same naming as `profile apply`).
+fn apply_profile(
+    file: &Path,
+    apply: bool,
+    all: bool,
+    force: bool,
+    pid: Option<u16>,
+    path: Option<String>,
+) -> Result<()> {
+    // Parsed here too, so a broken file is reported with its name before connecting.
+    let (toml, _) = crate::profile::read_profile(file)?;
+    let mut c = connect()?;
+    let device = select(&mut c, pid, path)?;
+    let req = Request::ApplyProfile {
+        device: device.clone(),
+        toml,
+        dry_run: !apply,
+        all,
+        opts: WireWriteOpts {
+            confirmed: force,
+            ..WireWriteOpts::default()
+        },
+    };
+    let Reply::ProfileApplied {
+        lines,
+        restore_toml,
+        error,
+    } = call(&mut c, req)?
+    else {
+        bail!("unexpected reply to ApplyProfile");
+    };
+    let restore = crate::profile::restore_path(file, Path::exists);
+    let saved = match (&restore_toml, apply) {
+        (Some(text), true) => {
+            std::fs::write(&restore, text)
+                .with_context(|| format!("cannot write the restore file {}", restore.display()))?;
+            true
+        }
+        _ => false,
+    };
+    print!(
+        "{}",
+        render_applied(
+            &lines,
+            restore_toml.is_some().then_some(restore.as_path()),
+            saved,
+            &device
+        )
+    );
+    match error {
+        Some(e) => bail!(e),
+        None => Ok(()),
+    }
+}
+
+/// The agent's lines, then where the restore profile went (or would go) and the
+/// command that applies it.
+pub(crate) fn render_applied(
+    lines: &[String],
+    restore: Option<&Path>,
+    saved: bool,
+    device: &DeviceRef,
+) -> String {
+    let mut s = String::new();
+    for l in lines {
+        let _ = writeln!(s, "{l}");
+    }
+    match (restore, saved) {
+        (Some(r), true) => {
+            let sel = match device {
+                DeviceRef::Pid(p) => format!("--pid {p:04X} "),
+                DeviceRef::Path(p) => format!("--path \"{p}\" "),
+            };
+            let _ = writeln!(s, "Saved the values from before to {}.", r.display());
+            let _ = writeln!(
+                s,
+                "To restore: opensynapse agent apply {sel}{} --apply",
+                r.display()
+            );
+        }
+        (Some(r), false) => {
+            let _ = writeln!(
+                s,
+                "With --apply, the current values are saved to {} first.",
+                r.display()
+            );
+        }
+        (None, _) => {}
+    }
+    s
 }
 
 fn connect() -> Result<Client> {
@@ -168,7 +296,7 @@ pub(crate) fn render_reply(r: &Reply) -> String {
             ),
             None => format!("write failed: {}", f.message),
         },
-        Reply::ProfileApplied { lines } => {
+        Reply::ProfileApplied { lines, .. } => {
             let mut s = String::new();
             for l in lines {
                 let _ = writeln!(s, "{l}");
@@ -607,11 +735,80 @@ mod tests {
     fn profile_applied_and_shutdown() {
         let r = Reply::ProfileApplied {
             lines: vec!["a".into(), "b".into()],
+            restore_toml: Some("x".into()),
+            error: None,
         };
         assert_eq!(render_reply(&r), "a\nb\n");
         assert_eq!(
             render_reply(&Reply::ShuttingDown),
             "Agent is shutting down."
+        );
+    }
+
+    #[test]
+    fn parses_apply() {
+        let (a, pid) = parse(&["os", "agent", "apply", "g.toml"]);
+        assert_eq!(
+            (a, pid),
+            (
+                AgentAction::Apply {
+                    file: "g.toml".into(),
+                    apply: false,
+                    all: false,
+                    force: false,
+                    path: None
+                },
+                None
+            )
+        );
+        let (a, pid) = parse(&[
+            "os", "--pid", "00B8", "agent", "apply", "g.toml", "--apply", "--all", "--force",
+        ]);
+        assert_eq!(pid, Some(0x00B8));
+        assert_eq!(
+            a,
+            AgentAction::Apply {
+                file: "g.toml".into(),
+                apply: true,
+                all: true,
+                force: true,
+                path: None
+            }
+        );
+        let r = Cli::try_parse_from(["os", "agent", "apply", "g", "--pid", "1", "--path", "p"]);
+        assert_eq!(
+            r.err().map(|e| e.kind()),
+            Some(clap::error::ErrorKind::ArgumentConflict)
+        );
+    }
+
+    #[test]
+    fn applied_output() {
+        let lines = vec!["1 write(s), 0 unchanged.".to_string()];
+        let r = Path::new("dir/g.restore.toml");
+        assert_eq!(
+            render_applied(&lines, Some(r), true, &DeviceRef::Pid(0xB8)),
+            format!(
+                "1 write(s), 0 unchanged.\n\
+                 Saved the values from before to {0}.\n\
+                 To restore: opensynapse agent apply --pid 00B8 {0} --apply\n",
+                r.display()
+            )
+        );
+        assert_eq!(
+            render_applied(&[], Some(r), false, &DeviceRef::Pid(0xB8)),
+            format!(
+                "With --apply, the current values are saved to {} first.\n",
+                r.display()
+            )
+        );
+        assert!(
+            render_applied(&[], Some(r), true, &DeviceRef::Path("p".into()))
+                .contains("agent apply --path \"p\" ")
+        );
+        assert_eq!(
+            render_applied(&lines, None, false, &DeviceRef::Pid(0xB8)),
+            "1 write(s), 0 unchanged.\n"
         );
     }
 

@@ -20,3 +20,5 @@ opensynapse-device-registry.workspace = true
 opensynapse-protocol.workspace = true
 opensynapse-core.workspace = true
 opensynapse-ipc.workspace = true
+# Shared profile apply engine (same code as the agent).
+opensynapse-device.workspace = true

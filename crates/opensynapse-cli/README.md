@@ -125,6 +125,7 @@ Agent (talks to a running `opensynapse-agent` over the per-user named pipe, see
     opensynapse [--pid HEX] agent snapshot [--pid HEX | --path P]
     opensynapse agent watch
     opensynapse agent stop
+    opensynapse [--pid HEX] agent apply FILE [--path P] [--all] [--apply] [--force]
 
 These commands never open HID themselves (they are dispatched before the HID
 transport is created). `devices` lists what the agent sees, with the control path
@@ -135,5 +136,12 @@ HyperShift mode); a value that could not be read prints as `n/a (reason)`. Witho
 subscription and prints one line per event (no timers) until the agent shuts down.
 `stop` asks the agent to exit. If the agent's pipe does not exist the CLI prints
 "OpenSynapse agent is not running (start opensynapse-agent)".
+
+`agent apply` runs the same engine as `profile apply` (`opensynapse_device::profile_apply`)
+inside the agent: same checks, skip-unchanged, read-back, same lines (DPI stages always
+persistent). `--force` passes the Razer-software gate and the PID / rate / snapshot checks.
+The agent returns the restore profile as text; this command saves it as
+`<name>.restore.toml` (same naming as `profile apply`), after the writes rather than
+before them, and still saves it when a write fails part-way.
 
 Vault: [[Architecture/Crates]], [[Status]]

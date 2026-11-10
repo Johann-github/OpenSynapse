@@ -174,9 +174,17 @@ pub enum Reply {
     },
     Snapshot(WireSnapshot),
     Written(Result<WriteDone, WriteFailed>),
-    /// Slice 2.
+    /// Result of [`Request::ApplyProfile`] (also of a dry run).
     ProfileApplied {
+        /// Human-readable progress, in order.
         lines: Vec<String>,
+        /// Profile TOML that undoes the writes (with a comment header); `None` when
+        /// nothing is (or would be) written. Sent in a dry run too. The agent never
+        /// writes files: the client saves it.
+        restore_toml: Option<String>,
+        /// A write failed part-way; earlier writes were sent and `restore_toml`
+        /// undoes them.
+        error: Option<String>,
     },
     ShuttingDown,
 }

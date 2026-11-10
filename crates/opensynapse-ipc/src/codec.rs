@@ -312,9 +312,15 @@ impl Writer {
                 self.u8(tag::REP_WRITTEN);
                 self.result(res, Self::write_done, Self::write_failed);
             }
-            Reply::ProfileApplied { lines } => {
+            Reply::ProfileApplied {
+                lines,
+                restore_toml,
+                error,
+            } => {
                 self.u8(tag::REP_PROFILE_APPLIED);
                 self.list(lines, |w, s| w.str(s));
+                self.opt(restore_toml, |w, s| w.str(s));
+                self.opt(error, |w, s| w.str(s));
             }
             Reply::ShuttingDown => self.u8(tag::REP_SHUTTING_DOWN),
         }
@@ -715,6 +721,8 @@ impl<'a> Reader<'a> {
             )),
             tag::REP_PROFILE_APPLIED => Ok(Reply::ProfileApplied {
                 lines: self.list(Self::str)?,
+                restore_toml: self.opt(Self::str)?,
+                error: self.opt(Self::str)?,
             }),
             tag::REP_SHUTTING_DOWN => Ok(Reply::ShuttingDown),
             t => unknown("Reply", t),

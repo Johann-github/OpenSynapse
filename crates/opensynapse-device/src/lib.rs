@@ -700,6 +700,8 @@ pub fn guarded_write<D: FeatureIo>(
     Ok(WriteOutcome { old, new, now })
 }
 
+pub mod profile_apply;
+
 #[cfg(any(test, feature = "fake"))]
 pub mod fake;
 
