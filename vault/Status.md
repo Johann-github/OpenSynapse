@@ -25,8 +25,10 @@ State at end of 2026-11-10: phase 3 done except "off"/"DPI down" captures; phase
 → [[RE-Log/2026-11-10 Onboard button test]], [[RE-Log/2026-11-10 Button capture key and DPI]], [[Decisions/ADR-0004 GUI toolkit egui]]
 
 Next tasks, in order:
-1. `profile apply`: skip writes whose value is already set (today it rewrites unchanged values).
-2. GUI: button editor (normal + HyperShift) and DPI stage editor, using the core profile model.
+1. ✅ `profile apply` skips unchanged settings (`--all` forces). ✅ GUI button editor (normal + HyperShift,
+   left/right click locked) and DPI stage editor; user-tested a HyperShift key write + Restore on 2026-11-10.
+2. Open from the GUI agent: the DPI button (96) holds function 6 data `[06]` (unknown, maybe "cycle stages");
+   the registry has no stage count (GUI caps at 5); 02/8E only page 0 read (meaning of idOffset unknown).
 3. Captures for "off" and "DPI down" (USBPcap3; stop right after the clicks, the dongle hangs → replug).
    Decode: `tshark -r <file> -Y "usb.device_address == 9 && usb.data_len == 98" -T fields -e frame.time_relative -e usb.data_fragment`.
 4. Background agent (`opensynapse-agent`, event-driven) + IPC; measure GUI idle CPU/RAM.
