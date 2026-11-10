@@ -32,7 +32,7 @@ Next tasks, in order:
 1. ✅ Events found: MI_01 COL06, report 5 (DPI changed observed); agent listens by default.
    Open: battery/charging events (plug the cable in during `hid listen`). → [[RE-Log/2026-11-10 Hardware events capture]]
 2. ✅ ApplyProfile in the agent (`opensynapse agent apply`), shared engine in `opensynapse-device`; hardware-tested.
-3. ✅ GUI over IPC (agent if running, else direct HID; live events). Hardware check by the user pending.
+3. ✅ GUI over IPC (agent if running, else direct HID; live events). User-checked: "Backend: agent", DPI button press updates the GUI live.
 4. Autostart (HKCU Run, `windows_subsystem`), refuse elevated start; then per-app profiles.
 5. Captures for "off" and "DPI down"; power-cycle test for button assignments.
 6. Mouse asleep → friendlier error ("move the mouse to wake it").
