@@ -5,7 +5,7 @@ use std::fmt;
 
 use opensynapse_protocol::{
     Request,
-    buttons::{self, Layer},
+    buttons::{self, Mode},
     dpi::{self, Dpi, DpiStage, DpiStages, Storage},
     hid_usage, polling, power,
 };
@@ -52,7 +52,7 @@ pub enum Setting {
     DpiStages,
     PollingRate,
     SleepTime,
-    Button { layer: Layer, button: u8 },
+    Button { mode: Mode, button: u8 },
 }
 
 impl fmt::Display for Setting {
@@ -61,7 +61,7 @@ impl fmt::Display for Setting {
             Setting::DpiStages => f.write_str("DPI stages"),
             Setting::PollingRate => f.write_str("polling rate"),
             Setting::SleepTime => f.write_str("sleep time"),
-            Setting::Button { layer, button } => write!(f, "button {button} ({layer} layer)"),
+            Setting::Button { mode, button } => write!(f, "button {button} ({mode} mode)"),
         }
     }
 }
@@ -114,13 +114,10 @@ impl Profile {
             push(Setting::SleepTime, power::set_sleep_time(p.sleep_seconds));
         }
 
-        for (layer, id, action) in self.all_buttons() {
-            let a = assignment(target.onboard_profile, layer, id, action);
+        for (mode, id, action) in self.all_buttons() {
+            let a = assignment(target.onboard_profile, mode, id, action);
             push(
-                Setting::Button {
-                    layer,
-                    button: id.0,
-                },
+                Setting::Button { mode, button: id.0 },
                 buttons::set_button_assignment(&a).map_err(internal)?,
             );
         }
@@ -131,23 +128,23 @@ impl Profile {
 /// The protocol assignment for a validated action.
 fn assignment(
     profile: u8,
-    layer: Layer,
+    mode: Mode,
     id: ButtonId,
     action: &ButtonAction,
 ) -> buttons::ButtonAssignment {
     let b = id.0;
     match action {
-        ButtonAction::MouseButton { target } => buttons::mouse_button(profile, b, layer, *target),
-        ButtonAction::DoubleClick { target } => buttons::double_click(profile, b, layer, *target),
+        ButtonAction::MouseButton { target } => buttons::mouse_button(profile, b, mode, *target),
+        ButtonAction::DoubleClick { target } => buttons::double_click(profile, b, mode, *target),
         ButtonAction::Key { key, mods } => {
             let usage = hid_usage::usage(key).expect("validated key name");
             let mask = mods
                 .iter()
                 .map(|m| hid_usage::modifier(m).expect("validated modifier"))
                 .fold(0, |acc, bit| acc | bit);
-            buttons::keyboard(profile, b, layer, mask, usage)
+            buttons::keyboard(profile, b, mode, mask, usage)
         }
-        ButtonAction::DpiUp {} => buttons::dpi_up(profile, b, layer),
+        ButtonAction::DpiUp {} => buttons::dpi_up(profile, b, mode),
     }
 }
 

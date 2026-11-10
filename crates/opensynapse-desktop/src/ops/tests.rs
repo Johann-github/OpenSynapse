@@ -134,7 +134,7 @@ impl FeatureIo for &FakeMouse {
         } else if is(command::GET_BUTTON_ASSIGNMENT) {
             let b = req.args()[1];
             ok(args_of(
-                buttons::set_button_assignment(&buttons::mouse_button(1, b, Layer::Normal, b))
+                buttons::set_button_assignment(&buttons::mouse_button(1, b, Mode::Normal, b))
                     .unwrap(),
             ))
         } else {
@@ -187,7 +187,7 @@ fn snapshot_reads_every_field() {
     let shown: Vec<String> = snap
         .buttons
         .iter()
-        .map(|(_, a)| a.as_ref().unwrap().known().unwrap().to_string())
+        .map(|(_, a)| a.as_ref().unwrap().assignment.known().unwrap().to_string())
         .collect();
     assert_eq!(shown, ["mouse button 4", "mouse button 5"]);
     assert_eq!(m.writes(), 0, "reading must never write");

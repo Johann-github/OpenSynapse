@@ -15,10 +15,13 @@ use opensynapse_core::{
     PlannedWrite, PollingSection, PowerSection, Profile, Setting,
 };
 use opensynapse_device_registry::Device;
-use opensynapse_protocol::buttons::{self, ButtonAssignment, Known, Layer};
+use opensynapse_protocol::buttons::{self, ButtonAssignment, Known, Mode};
 use opensynapse_protocol::{Request, dpi, hid_usage, power};
 
-use crate::{PollingVariant, Target, WriteOpts, active_label, polling_get, polling_request};
+use crate::{
+    HYPERSHIFT_WARNING, PollingVariant, Target, WriteOpts, active_label, polling_get,
+    polling_request, read_button,
+};
 
 /// Onboard profile slot that `profile export` reads and `profile apply` writes
 /// (button assignments; also the HyperPolling profile byte).
@@ -106,16 +109,16 @@ pub(crate) fn export_profile(state: &DeviceState) -> Export {
     for a in &state.buttons {
         let Some(action) = button_action(a) else {
             notes.push(format!(
-                "button {} ({} layer) left out: function {}, data {:?} cannot be expressed",
-                a.button, a.layer, a.function, a.data
+                "button {} ({} mode) left out: function {}, data {:?} cannot be expressed",
+                a.button, a.mode, a.function, a.data
             ));
             continue;
         };
-        let layer = match a.layer {
-            Layer::Normal => &mut p.buttons,
-            Layer::HyperShift => &mut hs.buttons,
+        let mode = match a.mode {
+            Mode::Normal => &mut p.buttons,
+            Mode::HyperShift => &mut hs.buttons,
         };
-        layer.insert(ButtonId(a.button), action);
+        mode.insert(ButtonId(a.button), action);
     }
     if !hs.buttons.is_empty() {
         p.hypershift = Some(hs);
@@ -246,10 +249,10 @@ pub(crate) fn setting_value(p: &Profile, setting: Setting) -> Option<String> {
         }),
         Setting::PollingRate => p.polling.as_ref().map(|x| format!("{} Hz", x.hz)),
         Setting::SleepTime => p.power.as_ref().map(|x| format!("{} s", x.sleep_seconds)),
-        Setting::Button { layer, button } => {
-            let map = match layer {
-                Layer::Normal => Some(&p.buttons),
-                Layer::HyperShift => p.hypershift.as_ref().map(|h| &h.buttons),
+        Setting::Button { mode, button } => {
+            let map = match mode {
+                Mode::Normal => Some(&p.buttons),
+                Mode::HyperShift => p.hypershift.as_ref().map(|h| &h.buttons),
             };
             map.and_then(|m| m.get(&ButtonId(button))).map(action_label)
         }
@@ -272,20 +275,25 @@ pub(crate) struct ReadSpec {
     pub dpi: Option<dpi::Storage>,
     pub polling: bool,
     pub sleep: bool,
-    pub buttons: Vec<(Layer, u8)>,
+    pub buttons: Vec<(Mode, u8)>,
 }
 
 impl ReadSpec {
-    /// Everything export covers: persistent DPI stages, polling, sleep, and `ids` on
-    /// both layers.
-    pub fn export(ids: &[u8]) -> Self {
+    /// Everything export covers: persistent DPI stages, polling, sleep, and `ids` in
+    /// normal mode (plus HyperShift mode if `hypershift`).
+    pub fn export(ids: &[u8], hypershift: bool) -> Self {
+        let modes: &[Mode] = if hypershift {
+            &[Mode::Normal, Mode::HyperShift]
+        } else {
+            &[Mode::Normal]
+        };
         Self {
             dpi: Some(dpi::Storage::Persistent),
             polling: true,
             sleep: true,
-            buttons: [Layer::Normal, Layer::HyperShift]
-                .into_iter()
-                .flat_map(|l| ids.iter().map(move |&b| (l, b)))
+            buttons: modes
+                .iter()
+                .flat_map(|&m| ids.iter().map(move |&b| (m, b)))
                 .collect(),
         }
     }
@@ -330,18 +338,10 @@ fn read_state(
         let r = dev.query(&power::get_sleep_time(), power::parse_sleep_time);
         state.sleep = soft(&mut notes, lenient, "sleep time".into(), r)?;
     }
-    for &(layer, b) in &spec.buttons {
-        let r = dev.query(
-            &buttons::get_button_assignment(ONBOARD_PROFILE, b, layer),
-            buttons::parse_button_assignment,
-        );
-        if let Some(a) = soft(
-            &mut notes,
-            lenient,
-            format!("button {b} ({layer} layer)"),
-            r,
-        )? {
-            state.buttons.push(a);
+    for &(mode, b) in &spec.buttons {
+        let r = read_button(dev, ONBOARD_PROFILE, b, mode);
+        if let Some(r) = soft(&mut notes, lenient, format!("button {b} ({mode} mode)"), r)? {
+            state.buttons.push(r.assignment);
         }
     }
     Ok((state, variant, notes))
@@ -373,8 +373,25 @@ fn header(dev: &Target, what: &str) -> String {
 }
 
 /// `profile export`.
-pub(crate) fn export(dev: &mut Target, ids: &ButtonList, out: Option<&Path>) -> Result<()> {
-    let (state, _, mut notes) = read_state(dev, &ReadSpec::export(&ids.0), true)?;
+pub(crate) fn export(
+    dev: &mut Target,
+    ids: &ButtonList,
+    out: Option<&Path>,
+    hypershift: bool,
+) -> Result<()> {
+    if hypershift {
+        eprintln!(
+            "warning: exporting HyperShift buttons. This device answers button reads the \
+             same for normal and HyperShift mode, so the [hypershift] entries may just \
+             repeat the normal mapping."
+        );
+    } else {
+        eprintln!(
+            "note: only normal-mode buttons are exported; the device does not return \
+             separate HyperShift data. Use --hypershift to export them anyway."
+        );
+    }
+    let (state, _, mut notes) = read_state(dev, &ReadSpec::export(&ids.0, hypershift), true)?;
     let ex = export_profile(&state);
     notes.extend(ex.notes);
     for n in &notes {
@@ -396,10 +413,19 @@ pub(crate) fn export(dev: &mut Target, ids: &ButtonList, out: Option<&Path>) -> 
 }
 
 /// `profile apply`.
-pub(crate) fn apply(dev: &mut Target, file: &Path, write: WriteOpts, volatile: bool) -> Result<()> {
+pub(crate) fn apply(
+    dev: &mut Target,
+    file: &Path,
+    write: WriteOpts,
+    volatile: bool,
+    experimental_hypershift: bool,
+) -> Result<()> {
     let text =
         std::fs::read_to_string(file).with_context(|| format!("cannot read {}", file.display()))?;
     let profile = Profile::from_toml(&text).with_context(|| file.display().to_string())?;
+    if let Some(why) = hypershift_refusal(&profile, experimental_hypershift) {
+        bail!("{}: {why}", file.display());
+    }
     let limits = limits_for(dev.device);
     if let Err(e) = profile.validate(&limits) {
         bail!("{}: {e}", file.display());
@@ -452,10 +478,15 @@ pub(crate) fn apply(dev: &mut Target, file: &Path, write: WriteOpts, volatile: b
     let problems = snapshot_problems(&plan, &snap.profile, &limits);
     let restore = restore_path(file, Path::exists);
     let hint = format!(
-        "To restore: opensynapse --pid {:04X} profile apply {} --apply{}",
+        "To restore: opensynapse --pid {:04X} profile apply {} --apply{}{}",
         dev.entry.pid,
         restore.display(),
-        if volatile { " --volatile" } else { "" }
+        if volatile { " --volatile" } else { "" },
+        if snap.profile.hypershift.is_some() {
+            " --experimental-hypershift"
+        } else {
+            ""
+        }
     );
     let change = |w: &PlannedWrite| {
         let old = setting_value(&snap.profile, w.setting).unwrap_or_else(|| "?".into());
@@ -508,6 +539,23 @@ pub(crate) fn apply(dev: &mut Target, file: &Path, write: WriteOpts, volatile: b
     Ok(())
 }
 
+/// Why `p` may not be applied: it has HyperShift button entries and
+/// `--experimental-hypershift` was not given.
+pub(crate) fn hypershift_refusal(p: &Profile, experimental: bool) -> Option<String> {
+    let ids: Vec<String> = p
+        .all_buttons()
+        .filter(|(m, _, _)| *m == Mode::HyperShift)
+        .map(|(_, id, _)| id.0.to_string())
+        .collect();
+    (!ids.is_empty() && !experimental).then(|| {
+        format!(
+            "HyperShift button(s) {} refused. {HYPERSHIFT_WARNING} Add \
+             --experimental-hypershift to apply them anyway.",
+            ids.join(", ")
+        )
+    })
+}
+
 /// Send one planned write, read the setting back and check that re-encoding the
 /// read-back value gives the same request.
 fn write_one(dev: &mut Target, w: &PlannedWrite, target: &opensynapse_core::Target) -> Result<()> {
@@ -546,12 +594,13 @@ fn read_back(
             let v = dev.query(&power::get_sleep_time(), power::parse_sleep_time)?;
             (format!("{v} s"), power::set_sleep_time(v))
         }
-        Setting::Button { layer, button } => {
-            let a = dev.query(
-                &buttons::get_button_assignment(p, button, layer),
-                buttons::parse_button_assignment,
-            )?;
-            (a.to_string(), buttons::set_button_assignment(&a)?)
+        Setting::Button { mode, button } => {
+            // Rebuilt with the requested mode; the device's mode echo is not trusted.
+            let r = read_button(dev, p, button, mode)?;
+            (
+                r.to_string(),
+                buttons::set_button_assignment(&r.assignment)?,
+            )
         }
     })
 }
@@ -576,11 +625,11 @@ mod tests {
         }
     }
 
-    fn raw(button: u8, layer: Layer, function: u8, data: Vec<u8>) -> ButtonAssignment {
+    fn raw(button: u8, mode: Mode, function: u8, data: Vec<u8>) -> ButtonAssignment {
         ButtonAssignment {
             profile: 1,
             button,
-            layer,
+            mode,
             function,
             data,
         }
@@ -602,11 +651,11 @@ mod tests {
             polling_hz: Some(1000),
             sleep: Some(300),
             buttons: vec![
-                buttons::mouse_button(1, 1, Layer::Normal, 1),
-                buttons::keyboard(1, 4, Layer::Normal, 0x05, 0x04),
-                raw(5, Layer::Normal, 9, vec![1, 2]),
-                buttons::dpi_up(1, 4, Layer::HyperShift),
-                buttons::double_click(1, 5, Layer::HyperShift, 1),
+                buttons::mouse_button(1, 1, Mode::Normal, 1),
+                buttons::keyboard(1, 4, Mode::Normal, 0x05, 0x04),
+                raw(5, Mode::Normal, 9, vec![1, 2]),
+                buttons::dpi_up(1, 4, Mode::HyperShift),
+                buttons::double_click(1, 5, Mode::HyperShift, 1),
             ],
         }
     }
@@ -650,7 +699,7 @@ target = 1
         );
         assert_eq!(
             ex.notes,
-            ["button 5 (normal layer) left out: function 9, data [1, 2] cannot be expressed"]
+            ["button 5 (normal mode) left out: function 9, data [1, 2] cannot be expressed"]
         );
         // Parses back and validates.
         let back = Profile::from_toml(&text).unwrap();
@@ -668,10 +717,10 @@ target = 1
             polling_hz: Some(8000),
             sleep: None,
             buttons: vec![
-                buttons::keyboard(1, 4, Layer::Normal, 0x00, 0x50), // unnamed usage
-                buttons::keyboard(1, 5, Layer::Normal, 0x10, 0x04), // right ctrl
-                raw(6, Layer::Normal, 6, vec![2]),                  // DPI, not "up"
-                buttons::mouse_button(1, 7, Layer::Normal, 9),      // target out of range
+                buttons::keyboard(1, 4, Mode::Normal, 0x00, 0x50), // unnamed usage
+                buttons::keyboard(1, 5, Mode::Normal, 0x10, 0x04), // right ctrl
+                raw(6, Mode::Normal, 6, vec![2]),                  // DPI, not "up"
+                buttons::mouse_button(1, 7, Mode::Normal, 9),      // target out of range
             ],
         };
         let ex = export_profile(&state);
@@ -765,8 +814,8 @@ target = 4
             polling_hz: Some(1000),
             sleep: None,
             buttons: vec![
-                buttons::mouse_button(1, 4, Layer::Normal, 4),
-                buttons::mouse_button(1, 5, Layer::HyperShift, 5),
+                buttons::mouse_button(1, 4, Mode::Normal, 4),
+                buttons::mouse_button(1, 5, Mode::HyperShift, 5),
             ],
         };
         let snap = export_profile(&state).profile;
@@ -791,15 +840,15 @@ target = 4
             polling_hz: Some(8000),
             sleep: None,
             buttons: vec![
-                raw(4, Layer::Normal, 9, vec![1]),
-                buttons::mouse_button(1, 5, Layer::HyperShift, 5),
+                raw(4, Mode::Normal, 9, vec![1]),
+                buttons::mouse_button(1, 5, Mode::HyperShift, 5),
             ],
         };
         let snap = export_profile(&state).profile;
         let problems = snapshot_problems(&plan_for(APPLY), &snap, &viper());
         assert_eq!(problems.len(), 2, "{problems:#?}");
         assert!(problems[0].starts_with("polling rate:"));
-        assert!(problems[1].starts_with("button 4 (normal layer):"));
+        assert!(problems[1].starts_with("button 4 (normal mode):"));
 
         // A snapshot that would not validate (DPI off the device's step).
         let state = DeviceState {
@@ -826,17 +875,30 @@ target = 4
         let spec = ReadSpec::for_profile(&p, dpi::Storage::Volatile);
         assert_eq!(spec.dpi, Some(dpi::Storage::Volatile));
         assert!(spec.polling && !spec.sleep);
-        assert_eq!(spec.buttons, [(Layer::Normal, 4), (Layer::HyperShift, 5)]);
-        let e = ReadSpec::export(&[1, 2]);
+        assert_eq!(spec.buttons, [(Mode::Normal, 4), (Mode::HyperShift, 5)]);
+        let e = ReadSpec::export(&[1, 2], false);
+        assert_eq!(e.buttons, [(Mode::Normal, 1), (Mode::Normal, 2)]);
+        let e = ReadSpec::export(&[1, 2], true);
         assert_eq!(
             e.buttons,
             [
-                (Layer::Normal, 1),
-                (Layer::Normal, 2),
-                (Layer::HyperShift, 1),
-                (Layer::HyperShift, 2)
+                (Mode::Normal, 1),
+                (Mode::Normal, 2),
+                (Mode::HyperShift, 1),
+                (Mode::HyperShift, 2)
             ]
         );
+    }
+
+    #[test]
+    fn hypershift_entries_need_opt_in() {
+        let p = Profile::from_toml(APPLY).unwrap();
+        let why = hypershift_refusal(&p, false).unwrap();
+        assert!(why.contains("button(s) 5 refused"), "{why}");
+        assert!(why.contains("--experimental-hypershift"), "{why}");
+        assert_eq!(hypershift_refusal(&p, true), None);
+        let normal_only = Profile::from_toml("[buttons.4]\naction = \"dpi-up\"").unwrap();
+        assert_eq!(hypershift_refusal(&normal_only, false), None);
     }
 
     #[test]

@@ -1,7 +1,7 @@
 # opensynapse-cli
 
 CLI dispatch: `list`, `info`, `battery`, `dpi get|set`, `dpi-stages [get|set]`,
-`polling get|set`, `sleep get|set`, `buttons get|set`, `profile export|apply`. Global
+`polling get|set`, `sleep get|set`, `buttons get|set|list`, `profile export|apply`. Global
 `--pid <hex>` and `-v` (log every report).
 
 Writes are dry runs unless `--apply`; they read the old value first, write, read back,
@@ -23,10 +23,19 @@ DPI (04/85) before and after the write so you can see it. It never writes 04/05.
 Buttons (class 02, see [[Protocol/Commands 2.5]]):
 
     opensynapse buttons get <button> [--profile N] [--hypershift]
-    opensynapse buttons set <button> mouse-button <n> [--profile N] [--hypershift] [--apply]
-    opensynapse buttons set <button> double-click [n] [--profile N] [--hypershift] [--apply]
-    opensynapse buttons set <button> key <name> [--mods ctrl,shift,alt,win] [--profile N] [--hypershift] [--apply]
-    opensynapse buttons set <button> dpi-up [--profile N] [--hypershift] [--apply]
+    opensynapse buttons set <button> mouse-button <n> [--profile N] [--apply]
+    opensynapse buttons set <button> double-click [n] [--profile N] [--apply]
+    opensynapse buttons set <button> key <name> [--mods ctrl,shift,alt,win] [--profile N] [--apply]
+    opensynapse buttons set <button> dpi-up [--profile N] [--apply]
+    opensynapse buttons list [--profile N] [--hypershift] [--offset N]
+
+`--hypershift` selects mode 1 (HyperShift) instead of 0 (normal). `get` shows the
+requested mode; the Viper V3 HyperSpeed answers mode 0 and mode 1 reads identically,
+so the mode byte it echoes is not trusted (it is shown as a note when it differs).
+HyperShift writes (`set ... --hypershift`) are experimental and also need
+`--experimental-hypershift`: the device may have only one slot per button, and it is
+unknown whether a mode 1 write overwrites the normal mapping. `list` is a read-only
+probe of 02/8E ("Get Button Assignment List") and prints the raw reply as hex.
 
 `--profile` defaults to 1. Key names: `a`-`z`, `0`-`9`, `enter`, `esc`, `backspace`,
 `tab`, `space`, `f1`-`f12` (USB-HID usage IDs). Only these actions can be written yet;
@@ -35,18 +44,22 @@ a restore command.
 
 Profiles (TOML, schema in `crates/opensynapse-core/README.md`):
 
-    opensynapse profile export [--buttons 1-5] [--out FILE]
-    opensynapse profile apply FILE [--volatile] [--apply] [--force]
+    opensynapse profile export [--buttons 1-5] [--out FILE] [--hypershift]
+    opensynapse profile apply FILE [--volatile] [--apply] [--force] [--experimental-hypershift]
 
 `export` reads the DPI stages (persistent storage, incl. active stage), the polling
 rate (auto variant, as `polling get`), the sleep time and the assignments of the
-listed buttons (`1-5`, `1,2,4`, `1-3,6`; default `1-5`) on the normal and HyperShift
-layer of onboard profile 1, and prints a profile (or writes it to `--out`). Values the
+listed buttons (`1-5`, `1,2,4`, `1-3,6`; default `1-5`) in normal mode of onboard
+profile 1, and prints a profile (or writes it to `--out`). Values the
 profile format cannot express (unknown button functions, unnamed keys, right-side
 modifiers, X≠Y stage DPI, polling rates other than 125/500/1000) are left out and
-listed raw on stderr. A failed read is also a stderr note.
+listed raw on stderr. A failed read is also a stderr note. HyperShift buttons are
+left out (stderr note) because the device does not return separate HyperShift data;
+`--hypershift` exports them anyway, with a warning that they may repeat the normal
+mapping.
 
-`apply` parses and validates the file against the device's DPI range/step from the
+`apply` refuses `[hypershift.buttons.N]` entries unless `--experimental-hypershift`
+(see `buttons set`; `--force` does not override this). It parses and validates the file against the device's DPI range/step from the
 device registry (all problems are printed; exit code is non-zero), checks
 `[device] pid` and the registry's polling rates (`--force` overrides those two), then
 reads every setting the profile will overwrite. Without `--apply` it prints each
@@ -55,6 +68,8 @@ those values to `<name>.restore.toml` next to the input (`-2`, `-3`, … if that
 exists; earlier snapshots are never overwritten) and prints
 
     To restore: opensynapse --pid 00B8 profile apply <name>.restore.toml --apply
+
+(plus `--experimental-hypershift` when the snapshot has HyperShift buttons)
 
 then writes in plan order (DPI, polling, sleep, normal buttons, HyperShift buttons),
 reading each setting back and checking it re-encodes to the request sent; it stops at

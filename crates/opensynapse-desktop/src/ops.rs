@@ -12,7 +12,7 @@ use std::fmt;
 
 use opensynapse_device_registry::Device;
 use opensynapse_hid::{FeatureIo, HidError, Session};
-use opensynapse_protocol::buttons::{self, ButtonAssignment, Layer};
+use opensynapse_protocol::buttons::{self, ButtonReply, Mode};
 use opensynapse_protocol::device::{self, DeviceMode, FirmwareVersion};
 use opensynapse_protocol::power::{self, BatteryLevel, ChargingStatus};
 use opensynapse_protocol::{ProtocolError, Request, Status, dpi, polling};
@@ -109,7 +109,7 @@ impl Setting {
 fn query<D: FeatureIo, T>(
     s: &mut Session<D>,
     req: &Request,
-    parse: fn(&[u8]) -> Result<T, ProtocolError>,
+    parse: impl FnOnce(&[u8]) -> Result<T, ProtocolError>,
 ) -> Result<T, HidError> {
     let reply = s.execute(req)?;
     Ok(parse(reply.args())?)
@@ -163,7 +163,7 @@ pub struct Snapshot {
     pub stages: Field<dpi::DpiStages>,
     pub polling: Field<(u32, PollingVariant)>,
     pub sleep: Field<u16>,
-    pub buttons: Vec<(u8, Field<ButtonAssignment>)>,
+    pub buttons: Vec<(u8, Field<ButtonReply>)>,
 }
 
 /// Read the whole panel. The firmware read goes first: if the device does not
@@ -209,8 +209,9 @@ pub fn read_snapshot<D: FeatureIo>(s: &mut Session<D>) -> Result<Snapshot, Strin
         buttons: SHOWN_BUTTONS
             .iter()
             .map(|&b| {
-                let req = buttons::get_button_assignment(BUTTON_PROFILE, b, Layer::Normal);
-                (b, f(query(s, &req, buttons::parse_button_assignment)))
+                let req = buttons::get_button_assignment(BUTTON_PROFILE, b, Mode::Normal);
+                let parse = |a: &[u8]| buttons::parse_button_assignment(a, Mode::Normal);
+                (b, f(query(s, &req, parse)))
             })
             .collect(),
     })

@@ -1,5 +1,5 @@
 use opensynapse_protocol::{
-    buttons::{self, Layer},
+    buttons::{self, Mode},
     dpi::{self, Dpi, DpiStage, DpiStages, Storage},
     polling, power,
 };
@@ -16,7 +16,7 @@ active_stage = 2
 hz = 1000
 [power]
 sleep_seconds = 300
-[buttons.4]          # normal layer
+[buttons.4]          # normal mode
 action = "key"
 key = "a"
 mods = ["ctrl"]
@@ -226,13 +226,13 @@ fn plan_matches_protocol_builders() {
         },
         PlannedWrite {
             setting: Setting::Button {
-                layer: Layer::Normal,
+                mode: Mode::Normal,
                 button: 4,
             },
             request: buttons::set_button_assignment(&buttons::keyboard(
                 1,
                 4,
-                Layer::Normal,
+                Mode::Normal,
                 0x01,
                 0x04,
             ))
@@ -240,23 +240,23 @@ fn plan_matches_protocol_builders() {
         },
         PlannedWrite {
             setting: Setting::Button {
-                layer: Layer::Normal,
+                mode: Mode::Normal,
                 button: 5,
             },
-            request: buttons::set_button_assignment(&buttons::mouse_button(1, 5, Layer::Normal, 5))
+            request: buttons::set_button_assignment(&buttons::mouse_button(1, 5, Mode::Normal, 5))
                 .unwrap(),
         },
         PlannedWrite {
             setting: Setting::Button {
-                layer: Layer::HyperShift,
+                mode: Mode::HyperShift,
                 button: 4,
             },
-            request: buttons::set_button_assignment(&buttons::dpi_up(1, 4, Layer::HyperShift))
+            request: buttons::set_button_assignment(&buttons::dpi_up(1, 4, Mode::HyperShift))
                 .unwrap(),
         },
     ];
     assert_eq!(plan, want);
-    assert_eq!(plan[5].setting.to_string(), "button 4 (hypershift layer)");
+    assert_eq!(plan[5].setting.to_string(), "button 4 (HyperShift mode)");
 }
 
 #[test]
@@ -289,7 +289,7 @@ fn plan_honours_target() {
             )
             .unwrap(),
             polling::set_hyper_polling(2, 500).unwrap(),
-            buttons::set_button_assignment(&buttons::double_click(2, 3, Layer::Normal, 1)).unwrap(),
+            buttons::set_button_assignment(&buttons::double_click(2, 3, Mode::Normal, 1)).unwrap(),
         ]
     );
 }
@@ -303,8 +303,7 @@ fn key_with_several_mods() {
     let plan = p.plan(&Target::default()).unwrap();
     assert_eq!(
         plan[0].request,
-        buttons::set_button_assignment(&buttons::keyboard(1, 4, Layer::Normal, 0x06, 0x3E))
-            .unwrap()
+        buttons::set_button_assignment(&buttons::keyboard(1, 4, Mode::Normal, 0x06, 0x3E)).unwrap()
     );
     // No mods: field omitted on output.
     let bare = Profile::from_toml("[buttons.4]\naction = \"key\"\nkey = \"a\"\n").unwrap();

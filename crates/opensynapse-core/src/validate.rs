@@ -3,7 +3,7 @@
 
 use std::fmt;
 
-use opensynapse_protocol::{buttons::Layer, dpi::MAX_DPI_STAGES, hid_usage};
+use opensynapse_protocol::{buttons::Mode, dpi::MAX_DPI_STAGES, hid_usage};
 
 use crate::profile::{ButtonAction, Profile};
 
@@ -116,10 +116,10 @@ impl Profile {
             );
         }
 
-        for (layer, id, action) in self.all_buttons() {
-            let base = match layer {
-                Layer::Normal => format!("buttons.{id}"),
-                Layer::HyperShift => format!("hypershift.buttons.{id}"),
+        for (mode, id, action) in self.all_buttons() {
+            let base = match mode {
+                Mode::Normal => format!("buttons.{id}"),
+                Mode::HyperShift => format!("hypershift.buttons.{id}"),
             };
             if id.0 == 0 {
                 bad(base.clone(), "button ID must be 1 or higher".into());

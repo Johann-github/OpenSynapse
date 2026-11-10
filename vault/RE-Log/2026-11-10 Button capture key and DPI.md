@@ -46,6 +46,11 @@ All frames: class 02, command 0C, data_size 10, args `[profile, button, layer, f
   sends it on GET and expects it echoed. So the naming is right; the Viper firmware just does not honour it on GET.
   The captures contain no mode-1 write and no 02/8C/8E reads by Synapse. Per-device UI: `OBMSlots: 1`,
   mappings carry `isHyperShift`; turning that into bytes happens in the native mapping engine (not visible).
+- (observed, hardware) 02/8E `[1, 0, 0]` and `[1, 1, 0]` give identical data. Records of 8 bytes:
+  `01 01 01 01 …`, `02 01 01 02 …`, `03 01 01 03 …`, `04 01 01 04 …`, `05 01 01 05 …`, `60 06 01 06 …`, `09 01 01 09 …`, `0a 01 01 0a …`.
+- (inferred) Record = `[buttonId, functionId, dataLen, data (5 bytes)]`. Button 0x60 (96, not in Synapse's
+  button enum) = function 6 (DPI) data `[06]`, probably the DPI button on top (cycle stages; data 6 unknown).
+  Wheel up/down (9/10) = mouse buttons 9/10. Mode is ignored here too.
 - (unknown) Does a mode-1 SET create a separate HyperShift slot, or overwrite the normal mapping?
   Test plan: on button 5 read mode 0/1 + 02/8E, write mode 1 with a different mapping, read again, restore.
 - Effect: `profile export` puts buttons 1/2/3/5 under `[hypershift.buttons]`. Do not use `profile apply`

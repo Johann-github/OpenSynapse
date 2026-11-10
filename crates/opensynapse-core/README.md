@@ -28,7 +28,7 @@ hz = 1000                    # 125, 500 or 1000
 [power]
 sleep_seconds = 300          # u16; unit inferred to be seconds
 
-[buttons.4]                  # normal layer, key = button ID
+[buttons.4]                  # normal mode, key = button ID
 action = "key"
 key = "a"                    # a-z, 0-9, f1-f12, enter, esc, backspace, tab, space
 mods = ["ctrl"]              # optional: ctrl, shift, alt, win
@@ -37,7 +37,7 @@ mods = ["ctrl"]              # optional: ctrl, shift, alt, win
 action = "mouse-button"      # also "double-click"; target 1 (left) ..= 8
 target = 5
 
-[hypershift.buttons.4]       # HyperShift layer
+[hypershift.buttons.4]       # HyperShift mode
 action = "dpi-up"
 ```
 

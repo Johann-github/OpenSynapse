@@ -20,7 +20,7 @@ pub struct Profile {
     pub polling: Option<PollingSection>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub power: Option<PowerSection>,
-    /// Normal-layer button assignments, keyed by button ID.
+    /// Normal-mode button assignments, keyed by button ID.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub buttons: Buttons,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -94,7 +94,7 @@ pub struct PowerSection {
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct HyperShiftSection {
-    /// HyperShift-layer button assignments, keyed by button ID.
+    /// HyperShift-mode button assignments, keyed by button ID.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub buttons: Buttons,
 }
@@ -165,21 +165,15 @@ impl Profile {
         Ok(toml::to_string(self)?)
     }
 
-    /// Normal-layer and HyperShift-layer buttons as one iterator.
+    /// Normal-mode and HyperShift-mode buttons as one iterator.
     pub fn all_buttons(
         &self,
-    ) -> impl Iterator<
-        Item = (
-            opensynapse_protocol::buttons::Layer,
-            ButtonId,
-            &ButtonAction,
-        ),
-    > {
-        use opensynapse_protocol::buttons::Layer;
+    ) -> impl Iterator<Item = (opensynapse_protocol::buttons::Mode, ButtonId, &ButtonAction)> {
+        use opensynapse_protocol::buttons::Mode;
         let hs = self.hypershift.iter().flat_map(|h| h.buttons.iter());
         self.buttons
             .iter()
-            .map(|(id, a)| (Layer::Normal, *id, a))
-            .chain(hs.map(|(id, a)| (Layer::HyperShift, *id, a)))
+            .map(|(id, a)| (Mode::Normal, *id, a))
+            .chain(hs.map(|(id, a)| (Mode::HyperShift, *id, a)))
     }
 }
