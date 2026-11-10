@@ -8,6 +8,7 @@
 | `opensynapse-protocol` | [[crates/opensynapse-protocol/README]] | Report encode/decode, see [[Protocol/Overview]] |
 | `opensynapse-device-registry` | [[crates/opensynapse-device-registry/README]] | See [[Devices/Device Registry]] |
 | `opensynapse-hid` | [[crates/opensynapse-hid/README]] | hidapi transport |
+| `opensynapse-desktop` | [[crates/opensynapse-desktop/README]] | egui GUI ([[Decisions/ADR-0004 GUI toolkit egui]]) |
 
 Planned (mirrors OpenLogi): `opensynapse-agent` (background service owning HID),
-`opensynapse-ipc`, `opensynapse-desktop` (GUI).
+`opensynapse-ipc`.

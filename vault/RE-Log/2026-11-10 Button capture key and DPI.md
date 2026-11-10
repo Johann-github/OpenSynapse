@@ -36,6 +36,15 @@ All frames: class 02, command 0C, data_size 10, args `[profile, button, layer, f
 - (observed) The persistent stage list (storage 1) keeps its own active index (it was 3 before the restore).
 - Restored: button 4 = mouse button 4, active stage 2 (volatile + persistent), DPI 800.
 
+## Layer byte puzzle (2026-11-10, `profile export`)
+- (observed) GET 02/8C `01 01 00` → reply `01 01 01 01 01 01`; GET `01 01 01` → same reply.
+- (observed) GET `01 04 00` and `01 04 01` both → `01 04 00 01 01 04`.
+- (observed) Buttons 1, 2, 3, 5 (never written) reply third byte 1; button 4 (written with 0) replies 0.
+- (inferred) The device ignores the third byte on GET and echoes a stored value. Our name
+  "layer (0 normal / 1 HyperShift)" for that byte is probably wrong. RE check of Synapse is running.
+- Effect: `profile export` puts buttons 1/2/3/5 under `[hypershift.buttons]`. Do not use `profile apply`
+  for buttons until this is resolved.
+
 ## Open questions
 - Data for "off" (function 0?) and DPI down.
 

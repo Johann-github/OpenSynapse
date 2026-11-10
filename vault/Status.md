@@ -21,8 +21,11 @@ Hardware-tested without Synapse: double-click and key A work onboard. Button 4 =
 → [[RE-Log/2026-11-10 Onboard button test]], [[RE-Log/2026-11-10 Button capture key and DPI]]
 
 Next tasks, in order:
-1. **Phase 4 branches**: merge the worktree branches for `opensynapse-core` profiles (TOML) and
-   `opensynapse-desktop` (egui GUI, [[Decisions/ADR-0004 GUI toolkit egui]]) once reviewed.
+1. **Resolve the 02/0C|8C third byte** ("layer"?): see the layer puzzle in
+   [[RE-Log/2026-11-10 Button capture key and DPI]]. Fix `buttons`, `profile export|apply` and the GUI after that.
+2. **GUI hardware check**: run `target/release/opensynapse-desktop.exe`, check the read panel and idle CPU/RAM
+   ([[Decisions/ADR-0004 GUI toolkit egui]]). Release exe 4.4 MB.
+3. `profile export|apply` (CLI) and `opensynapse-core` profiles (TOML) are merged; `apply` is untested on hardware.
 2. **Capture "off" and "DPI down"** in Synapse (Wireshark → USBPcap3, save to `~/re-work/`).
    Warning: the dongle hangs on USBPcap3; stop the capture right after the clicks, then replug.
    Decode: `tshark -r <file> -Y "usb.device_address == 9 && usb.data_len == 98" -T fields -e frame.time_relative -e usb.data_fragment`
@@ -68,6 +71,7 @@ Before every commit: `cargo fmt --all --check && cargo clippy --workspace --all-
 |---|---|---|---|
 | CLI binary (release) | < 5 MB | 1.16 MB | ✅ |
 | `opensynapse list` | < 200 ms | 75–84 ms | ✅ |
+| GUI binary (release) | < 10 MB (own target) | 4.4 MB | ✅ |
 | device command (`dpi get`) | — | 133–162 ms | |
 
 The first build missed the `list` budget (245–285 ms) because hidapi scans every HID
