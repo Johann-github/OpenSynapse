@@ -206,6 +206,13 @@ fn replies() -> Vec<Reply> {
         Reply::Snapshot(snapshot_err()),
         Reply::ProfileApplied {
             lines: vec!["dpi 800".into(), String::new()],
+            restore_toml: None,
+            error: None,
+        },
+        Reply::ProfileApplied {
+            lines: vec![],
+            restore_toml: Some("[polling]\nhz = 1000\n".into()),
+            error: Some("sleep time reads back as 300 s".into()),
         },
         Reply::ShuttingDown,
         Reply::Written(Err(WriteFailed {

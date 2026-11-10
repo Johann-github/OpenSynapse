@@ -267,19 +267,128 @@ fn device_events_reach_subscribers() {
     assert_eq!(events.try_recv(), Ok(ev));
 }
 
+fn apply_req(toml: &str, dry_run: bool, confirmed: bool) -> Request {
+    Request::ApplyProfile {
+        device: DeviceRef::Pid(VIPER_PID),
+        toml: toml.into(),
+        dry_run,
+        all: false,
+        opts: WireWriteOpts {
+            confirmed,
+            ..Default::default()
+        },
+    }
+}
+
+/// The fake's 1000 Hz becomes 500 Hz; everything else already matches.
+const POLLING_500: &str =
+    "[device]\npid = \"00B8\"\n[polling]\nhz = 500\n[power]\nsleep_seconds = 300\n";
+
 #[test]
-fn apply_profile_unsupported() {
-    let (mut c, _) = with_viper();
+fn apply_profile_writes_and_returns_restore() {
+    let (mut c, m) = with_viper();
+    let Ok(Reply::ProfileApplied {
+        lines,
+        restore_toml,
+        error,
+    }) = c.handle(apply_req(POLLING_500, false, false))
+    else {
+        panic!("expected ProfileApplied");
+    };
+    assert_eq!(error, None);
+    assert_eq!(m.state().polling_hz, 500);
+    assert_eq!(m.writes(), 1, "unchanged sleep time is skipped");
+    assert_eq!(lines[0], "unchanged: sleep time (300 s)");
+    assert!(lines.contains(&"Changed polling rate: 1000 Hz -> 500 Hz.".to_string()));
+    let restore = restore_toml.unwrap();
+    assert!(
+        restore.starts_with("# OpenSynapse profile: values before applying to "),
+        "{restore}"
+    );
+    assert!(restore.contains("[polling]\nhz = 1000\n"), "{restore}");
+    assert!(!restore.contains("[power]"), "only what was written");
+
+    // Applying the restore profile through the agent undoes it.
+    let Ok(Reply::ProfileApplied { error: None, .. }) = c.handle(apply_req(&restore, false, false))
+    else {
+        panic!("restore failed");
+    };
+    assert_eq!(m.state().polling_hz, 1000);
+}
+
+#[test]
+fn apply_profile_dry_run_reads_only() {
+    let (mut c, m) = with_viper();
+    c.hw().conflict = Some("RazerAppEngine.exe".into());
+    let Ok(Reply::ProfileApplied {
+        lines,
+        restore_toml,
+        error,
+    }) = c.handle(apply_req(POLLING_500, true, false))
+    else {
+        panic!("expected ProfileApplied");
+    };
+    assert_eq!((m.writes(), error), (0, None));
+    assert!(restore_toml.is_some());
+    assert_eq!(lines.last().unwrap(), "Run again with --apply to write.");
+}
+
+#[test]
+fn apply_profile_refused_while_razer_runs_unless_confirmed() {
+    let (mut c, m) = with_viper();
+    c.hw().conflict = Some("RazerAppEngine.exe".into());
+    let e = c.handle(apply_req(POLLING_500, false, false)).unwrap_err();
+    assert_eq!(e.kind, ErrorKind::Conflict);
+    assert!(e.message.contains("RazerAppEngine.exe"), "{}", e.message);
+    assert!(m.sent().is_empty(), "refused before touching the device");
+
+    assert!(matches!(
+        c.handle(apply_req(POLLING_500, false, true)),
+        Ok(Reply::ProfileApplied { error: None, .. })
+    ));
+    assert_eq!(m.state().polling_hz, 500);
+}
+
+#[test]
+fn apply_profile_bad_input() {
+    let (mut c, m) = with_viper();
+    let e = c.handle(apply_req("[dpi", true, false)).unwrap_err();
+    assert_eq!(e.kind, ErrorKind::BadRequest);
     let e = c
-        .handle(Request::ApplyProfile {
-            device: DeviceRef::Pid(VIPER_PID),
-            toml: String::new(),
-            dry_run: true,
-            all: false,
-            opts: WireWriteOpts::default(),
-        })
+        .handle(apply_req(
+            &POLLING_500.replace("00B8", "00B9"),
+            false,
+            false,
+        ))
         .unwrap_err();
-    assert_eq!(e.kind, ErrorKind::Unsupported);
+    assert_eq!(e.kind, ErrorKind::BadRequest);
+    assert!(e.message.contains("is for PID 00B9"), "{}", e.message);
+    assert_eq!(m.writes(), 0);
+}
+
+#[test]
+fn apply_profile_failed_write_keeps_restore() {
+    let (mut c, m) = with_viper();
+    m.state().ignore_writes = true;
+    let Ok(Reply::ProfileApplied {
+        lines,
+        restore_toml,
+        error,
+    }) = c.handle(apply_req(POLLING_500, false, false))
+    else {
+        panic!("expected ProfileApplied");
+    };
+    assert_eq!(
+        error.as_deref(),
+        Some("polling rate reads back as 1000 Hz, not the value written")
+    );
+    assert!(lines.last().unwrap().starts_with("Stopped at write 1 of 1"));
+    assert!(restore_toml.is_some());
+    assert_eq!(
+        c.session_count(),
+        0,
+        "session dropped after a device failure"
+    );
 }
 
 #[test]

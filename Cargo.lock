@@ -1734,6 +1734,7 @@ dependencies = [
 name = "opensynapse-agent"
 version = "0.1.0"
 dependencies = [
+ "opensynapse-core",
  "opensynapse-device",
  "opensynapse-device-registry",
  "opensynapse-hid",
@@ -1750,6 +1751,7 @@ dependencies = [
  "anyhow",
  "clap",
  "opensynapse-core",
+ "opensynapse-device",
  "opensynapse-device-registry",
  "opensynapse-hid",
  "opensynapse-ipc",
@@ -1784,9 +1786,11 @@ dependencies = [
 name = "opensynapse-device"
 version = "0.1.0"
 dependencies = [
+ "opensynapse-core",
  "opensynapse-device-registry",
  "opensynapse-hid",
  "opensynapse-protocol",
+ "thiserror 2.0.21",
 ]
 
 [[package]]

@@ -16,6 +16,8 @@ opensynapse-device.workspace = true
 opensynapse-hid.workspace = true
 opensynapse-device-registry.workspace = true
 opensynapse-protocol.workspace = true
+# Profile parsing for ApplyProfile (pure, no I/O).
+opensynapse-core.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
 

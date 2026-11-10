@@ -8,9 +8,12 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{Receiver, Sender};
 use std::time::Duration;
 
+use opensynapse_core::Profile;
 use opensynapse_device as dev;
+use opensynapse_device::profile_apply::{self as pa, ApplyError, ApplyOptions};
 use opensynapse_hid::{HidEntry, Session};
-use opensynapse_ipc::msg::{DeviceRef, ErrorKind, Event, IpcError, Reply, Request};
+use opensynapse_ipc::msg::{DeviceRef, ErrorKind, Event, IpcError, Reply, Request, WireWriteOpts};
+use opensynapse_protocol::dpi::Storage;
 
 use crate::convert;
 use crate::events::{Detach, EventSink, EventSource};
@@ -33,6 +36,18 @@ pub enum CoreMsg {
     Rescan,
     /// A hardware event from an [`EventSource`].
     DeviceEvent(Event),
+}
+
+/// `outer: cause: cause…`, so a read error keeps its HID reason.
+fn error_chain(e: &dyn std::error::Error) -> String {
+    let mut s = e.to_string();
+    let mut cur = e.source();
+    while let Some(c) = cur {
+        s.push_str(": ");
+        s.push_str(&c.to_string());
+        cur = c.source();
+    }
+    s
 }
 
 fn err(kind: ErrorKind, message: impl Into<String>) -> IpcError {
@@ -258,12 +273,82 @@ impl<H: Hardware> Core<H> {
                         .map_err(convert::failure_to_wire),
                 ))
             }
-            Request::ApplyProfile { .. } => Err(err(
-                ErrorKind::Unsupported,
-                "profiles over the agent come in slice 2",
-            )),
+            Request::ApplyProfile {
+                device,
+                toml,
+                dry_run,
+                all,
+                opts,
+            } => self.apply_profile(&device, &toml, dry_run, all, opts),
             Request::Shutdown => Ok(Reply::ShuttingDown),
         }
+    }
+
+    /// `ApplyProfile` through the shared engine (`opensynapse_device::profile_apply`,
+    /// same as `opensynapse profile apply`). Persistent DPI storage. `confirmed`
+    /// plays the CLI's `--force`: it passes the Razer-software gate and the PID,
+    /// offered-rate and snapshot checks. The restore profile goes back as TOML; the
+    /// agent never writes files.
+    fn apply_profile(
+        &mut self,
+        device: &DeviceRef,
+        toml: &str,
+        dry_run: bool,
+        all: bool,
+        opts: WireWriteOpts,
+    ) -> Result<Reply, IpcError> {
+        let path = self.resolve(device)?;
+        let profile =
+            Profile::from_toml(toml).map_err(|e| err(ErrorKind::BadRequest, e.to_string()))?;
+        // Checked at write time, never on a timer; refused before touching the device.
+        let conflict = self.hw.conflict();
+        let pid = self.devices[&path].pid;
+        let registry = convert::registry_device(pid);
+        let name = registry.map_or("unknown device", |d| d.name.as_str());
+        let s = self.session(&path)?;
+        let options = ApplyOptions {
+            storage: Storage::Persistent,
+            all,
+            force: opts.confirmed,
+        };
+        let report = match pa::apply(
+            s,
+            pid,
+            registry,
+            conflict.as_deref(),
+            profile,
+            options,
+            dry_run,
+        ) {
+            Ok(r) => r,
+            Err(e) => {
+                let kind = match e {
+                    ApplyError::Conflict(_) => ErrorKind::Conflict,
+                    ApplyError::Read { .. } | ApplyError::Write { .. } => {
+                        // Reopen next time; the device may have been replugged.
+                        self.sessions.remove(&path);
+                        ErrorKind::Device
+                    }
+                    _ => ErrorKind::BadRequest,
+                };
+                return Err(err(kind, error_chain(&e)));
+            }
+        };
+        if report.failed.is_some() {
+            self.sessions.remove(&path);
+        }
+        let restore_toml = match &report.restore {
+            Some(p) => Some(
+                pa::render(p, &pa::header(name, pid, "values before applying to"))
+                    .map_err(|e| err(ErrorKind::Device, e.to_string()))?,
+            ),
+            None => None,
+        };
+        Ok(Reply::ProfileApplied {
+            lines: report.lines,
+            restore_toml,
+            error: report.failed,
+        })
     }
 
     /// The control-collection path a request targets.
