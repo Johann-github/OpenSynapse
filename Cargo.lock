@@ -1731,6 +1731,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "opensynapse-agent"
+version = "0.1.0"
+dependencies = [
+ "opensynapse-device",
+ "opensynapse-device-registry",
+ "opensynapse-hid",
+ "opensynapse-ipc",
+ "opensynapse-protocol",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "opensynapse-cli"
 version = "0.1.0"
 dependencies = [
@@ -1759,6 +1772,16 @@ name = "opensynapse-desktop"
 version = "0.1.0"
 dependencies = [
  "eframe",
+ "opensynapse-device",
+ "opensynapse-device-registry",
+ "opensynapse-hid",
+ "opensynapse-protocol",
+]
+
+[[package]]
+name = "opensynapse-device"
+version = "0.1.0"
+dependencies = [
  "opensynapse-device-registry",
  "opensynapse-hid",
  "opensynapse-protocol",
@@ -1783,6 +1806,15 @@ dependencies = [
  "opensynapse-protocol",
  "thiserror 2.0.21",
  "tracing",
+ "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "opensynapse-ipc"
+version = "0.1.0"
+dependencies = [
+ "opensynapse-protocol",
+ "thiserror 2.0.21",
  "windows-sys 0.61.2",
 ]
 

@@ -14,6 +14,8 @@ use opensynapse_protocol::{
     Disposition, FEATURE_REPORT_LEN, ProtocolError, Report, Request, Status, TransactionCounter,
 };
 
+pub mod hotplug;
+
 #[cfg(not(windows))]
 mod hidapi_backend;
 #[cfg(not(windows))]

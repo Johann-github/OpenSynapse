@@ -1,0 +1,20 @@
+[package]
+name = "opensynapse-device"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Device reads and guarded writes over a HID session (shared by GUI and agent)."
+
+[lints]
+workspace = true
+
+[features]
+# In-memory fake mouse for tests in dependent crates (agent).
+fake = []
+
+[dependencies]
+opensynapse-hid.workspace = true
+opensynapse-protocol.workspace = true
+opensynapse-device-registry.workspace = true

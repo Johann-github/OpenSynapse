@@ -1,0 +1,27 @@
+[package]
+name = "opensynapse-agent"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "OpenSynapse background agent: owns the HID devices, serves clients over local IPC."
+
+[lints]
+workspace = true
+
+[dependencies]
+opensynapse-ipc.workspace = true
+opensynapse-device.workspace = true
+opensynapse-hid.workspace = true
+opensynapse-device-registry.workspace = true
+opensynapse-protocol.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+
+[dev-dependencies]
+opensynapse-device = { workspace = true, features = ["fake"] }
+
+[[bin]]
+name = "opensynapse-agent"
+path = "src/main.rs"

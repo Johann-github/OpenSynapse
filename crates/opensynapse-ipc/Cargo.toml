@@ -1,0 +1,18 @@
+[package]
+name = "opensynapse-ipc"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Local IPC between the OpenSynapse agent and its clients: messages, codec, framing, transport."
+
+[lints]
+workspace = true
+
+[dependencies]
+thiserror.workspace = true
+opensynapse-protocol.workspace = true
+
+[target.'cfg(windows)'.dependencies]
+windows-sys.workspace = true
