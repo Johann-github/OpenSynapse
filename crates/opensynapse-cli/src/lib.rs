@@ -99,6 +99,9 @@ pub enum ProfileAction {
         /// Write the DPI stages to volatile storage (byte 0) instead of persistent (1).
         #[arg(long)]
         volatile: bool,
+        /// Also write settings that already have the profile's value (normally skipped).
+        #[arg(long)]
+        all: bool,
     },
 }
 
@@ -373,7 +376,8 @@ pub fn run(cli: Cli) -> Result<()> {
                 file,
                 write,
                 volatile,
-            } => profile::apply(&mut dev, &file, write, volatile),
+                all,
+            } => profile::apply(&mut dev, &file, write, volatile, all),
         },
     }
 }
@@ -1309,19 +1313,31 @@ mod tests {
             file,
             write,
             volatile,
+            all,
         } = parse_profile(&["apply", "p.toml"]).unwrap()
         else {
             panic!("parsed wrong action")
         };
         assert_eq!(file, PathBuf::from("p.toml"));
-        assert!(!write.apply && !write.force && !volatile);
+        assert!(!write.apply && !write.force && !volatile && !all);
         let ProfileAction::Apply {
-            write, volatile, ..
-        } = parse_profile(&["apply", "p.toml", "--apply", "--force", "--volatile"]).unwrap()
+            write,
+            volatile,
+            all,
+            ..
+        } = parse_profile(&[
+            "apply",
+            "p.toml",
+            "--apply",
+            "--force",
+            "--volatile",
+            "--all",
+        ])
+        .unwrap()
         else {
             panic!("parsed wrong action")
         };
-        assert!(write.apply && write.force && volatile);
+        assert!(write.apply && write.force && volatile && all);
         assert!(parse_profile(&["apply", "p.toml", "--experimental-hypershift"]).is_err());
         assert!(parse_profile(&["apply"]).is_err());
         // The printed restore hint parses back.

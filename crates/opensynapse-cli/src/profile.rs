@@ -282,6 +282,84 @@ fn action_label(a: &ButtonAction) -> String {
     }
 }
 
+/// A plan split into the writes to send and the ones whose setting already has the
+/// target value, plus the snapshot that undoes `writes`.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct Prepared {
+    pub writes: Vec<PlannedWrite>,
+    pub unchanged: Vec<PlannedWrite>,
+    /// Old values of exactly the settings in `writes`; `None` when nothing is written
+    /// (then no restore file is needed).
+    pub snapshot: Option<Export>,
+}
+
+/// Split `plan` against the values read in `state`. A write is unchanged when
+/// re-encoding the current value gives the same request (command + arguments; the
+/// transaction ID is not part of a `Request`). A setting that was not read, or whose
+/// current value cannot be encoded, counts as changed. `all` keeps every write.
+pub(crate) fn prepare(
+    plan: Vec<PlannedWrite>,
+    state: &DeviceState,
+    target: &opensynapse_core::Target,
+    all: bool,
+) -> Prepared {
+    let (writes, unchanged): (Vec<_>, Vec<_>) = plan.into_iter().partition(|w| {
+        all || current_request(state, w.setting, target).as_ref() != Some(&w.request)
+    });
+    let snapshot = (!writes.is_empty()).then(|| export_profile(&state_subset(state, &writes)));
+    Prepared {
+        writes,
+        unchanged,
+        snapshot,
+    }
+}
+
+/// The request that would write the value `state` holds for `setting`, if it was
+/// read and can be encoded. Same rebuild as [`read_back`].
+fn current_request(
+    state: &DeviceState,
+    setting: Setting,
+    target: &opensynapse_core::Target,
+) -> Option<Request> {
+    match setting {
+        Setting::DpiStages => dpi::set_dpi_stages(target.dpi_storage, state.stages.as_ref()?).ok(),
+        Setting::PollingRate => polling_request(
+            PollingVariant::from(target.polling),
+            target.onboard_profile,
+            state.polling_hz?,
+        )
+        .ok(),
+        Setting::SleepTime => Some(power::set_sleep_time(state.sleep?)),
+        Setting::Button { mode, button } => state
+            .buttons
+            .iter()
+            .find(|a| a.mode == mode && a.button == button)
+            .and_then(|a| buttons::set_button_assignment(a).ok()),
+    }
+}
+
+/// Only the values of `state` that `writes` overwrite.
+fn state_subset(state: &DeviceState, writes: &[PlannedWrite]) -> DeviceState {
+    let has = |s: Setting| writes.iter().any(|w| w.setting == s);
+    DeviceState {
+        pid: state.pid,
+        stages: state.stages.clone().filter(|_| has(Setting::DpiStages)),
+        polling_hz: state.polling_hz.filter(|_| has(Setting::PollingRate)),
+        sleep: state.sleep.filter(|_| has(Setting::SleepTime)),
+        buttons: state
+            .buttons
+            .iter()
+            .filter(|a| {
+                has(Setting::Button {
+                    mode: a.mode,
+                    button: a.button,
+                })
+            })
+            .cloned()
+            .collect(),
+    }
+}
+
 /// What to read from the device.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub(crate) struct ReadSpec {
@@ -405,7 +483,13 @@ pub(crate) fn export(dev: &mut Target, ids: &ButtonList, out: Option<&Path>) -> 
 }
 
 /// `profile apply`.
-pub(crate) fn apply(dev: &mut Target, file: &Path, write: WriteOpts, volatile: bool) -> Result<()> {
+pub(crate) fn apply(
+    dev: &mut Target,
+    file: &Path,
+    write: WriteOpts,
+    volatile: bool,
+    all: bool,
+) -> Result<()> {
     let text =
         std::fs::read_to_string(file).with_context(|| format!("cannot read {}", file.display()))?;
     let profile = Profile::from_toml(&text).with_context(|| file.display().to_string())?;
@@ -454,7 +538,24 @@ pub(crate) fn apply(dev: &mut Target, file: &Path, write: WriteOpts, volatile: b
         println!("{} sets nothing; no writes.", file.display());
         return Ok(());
     }
-    let snap = export_profile(&state);
+    let Prepared {
+        writes: plan,
+        unchanged,
+        snapshot,
+    } = prepare(plan, &state, &target, all);
+    for w in &unchanged {
+        let v = setting_value(&profile, w.setting).unwrap_or_else(|| "?".into());
+        println!("unchanged: {} ({v})", w.setting);
+    }
+    let Some(snap) = snapshot else {
+        println!(
+            "Nothing to change: the device already has all {} setting(s) of {}; no writes, no restore file.",
+            unchanged.len(),
+            file.display()
+        );
+        return Ok(());
+    };
+    println!("{} write(s), {} unchanged.", plan.len(), unchanged.len());
     for n in &snap.notes {
         eprintln!("note: {n}");
     }
@@ -513,7 +614,12 @@ pub(crate) fn apply(dev: &mut Target, file: &Path, write: WriteOpts, volatile: b
         }
         println!("Changed {}.", change(w));
     }
-    println!("Applied {} write(s) from {}.", plan.len(), file.display());
+    println!(
+        "Applied {} write(s) from {}; {} unchanged.",
+        plan.len(),
+        file.display(),
+        unchanged.len()
+    );
     Ok(())
 }
 
@@ -937,6 +1043,111 @@ target = 4
             Some("mouse button 5")
         );
         assert!(snapshot_problems(&plan_for(APPLY), &snap, &viper()).is_empty());
+    }
+
+    /// Device state equal to everything `APPLY` sets.
+    fn state_matching_apply() -> DeviceState {
+        DeviceState {
+            pid: 0x00B8,
+            stages: Some(stages(1, &[800, 1600])),
+            polling_hz: Some(500),
+            sleep: Some(300),
+            buttons: vec![
+                buttons::dpi_up(1, 4, Mode::Normal),
+                buttons::mouse_button(1, 5, Mode::HyperShift, 4),
+            ],
+        }
+    }
+
+    fn settings(ws: &[PlannedWrite]) -> Vec<Setting> {
+        ws.iter().map(|w| w.setting).collect()
+    }
+
+    #[test]
+    fn all_unchanged_means_no_writes_and_no_restore_file() {
+        let target = PlanTarget {
+            limits: viper(),
+            ..PlanTarget::default()
+        };
+        let p = prepare(plan_for(APPLY), &state_matching_apply(), &target, false);
+        assert!(p.writes.is_empty());
+        assert_eq!(p.unchanged.len(), 4);
+        assert_eq!(p.snapshot, None);
+    }
+
+    #[test]
+    fn one_change_means_one_write_and_a_minimal_snapshot() {
+        let target = PlanTarget {
+            limits: viper(),
+            ..PlanTarget::default()
+        };
+        let mut state = state_matching_apply();
+        state.buttons[1] = buttons::mouse_button(1, 5, Mode::HyperShift, 5);
+        let p = prepare(plan_for(APPLY), &state, &target, false);
+        let hs5 = Setting::Button {
+            mode: Mode::HyperShift,
+            button: 5,
+        };
+        assert_eq!(settings(&p.writes), [hs5]);
+        assert_eq!(
+            settings(&p.unchanged),
+            [
+                Setting::DpiStages,
+                Setting::PollingRate,
+                Setting::Button {
+                    mode: Mode::Normal,
+                    button: 4
+                }
+            ]
+        );
+        // The snapshot holds only the old value of what is written, and undoes it.
+        let snap = p.snapshot.unwrap();
+        let mut want = Profile {
+            device: Some(DeviceSection { pid: Pid(0x00B8) }),
+            ..Profile::default()
+        };
+        want.hypershift = Some(HyperShiftSection::default());
+        want.hypershift
+            .as_mut()
+            .unwrap()
+            .buttons
+            .insert(ButtonId(5), ButtonAction::MouseButton { target: 5 });
+        assert_eq!(snap.profile, want);
+        assert!(snapshot_problems(&p.writes, &snap.profile, &viper()).is_empty());
+        assert_eq!(settings(&plan_for(&snap.profile.to_toml().unwrap())), [hs5]);
+
+        // A different active stage or another polling variant is a change too.
+        let mut state = state_matching_apply();
+        state.stages = Some(stages(2, &[800, 1600]));
+        let p = prepare(plan_for(APPLY), &state, &target, false);
+        assert_eq!(settings(&p.writes), [Setting::DpiStages]);
+        let hyper = PlanTarget {
+            polling: opensynapse_core::PollingVariant::Hyper,
+            ..target
+        };
+        let p = prepare(plan_for(APPLY), &state_matching_apply(), &hyper, false);
+        assert_eq!(settings(&p.writes), [Setting::PollingRate]);
+        // A setting that was not read counts as changed.
+        let mut state = state_matching_apply();
+        state.buttons.clear();
+        let p = prepare(plan_for(APPLY), &state, &target, false);
+        assert_eq!(p.writes.len(), 2);
+    }
+
+    #[test]
+    fn all_flag_writes_unchanged_values() {
+        let target = PlanTarget {
+            limits: viper(),
+            ..PlanTarget::default()
+        };
+        let state = state_matching_apply();
+        let p = prepare(plan_for(APPLY), &state, &target, true);
+        assert_eq!(settings(&p.writes), settings(&plan_for(APPLY)));
+        assert!(p.unchanged.is_empty());
+        let snap = p.snapshot.unwrap().profile;
+        assert!(snapshot_problems(&p.writes, &snap, &viper()).is_empty());
+        // Sleep was read but is not in the profile, so it is not in the snapshot.
+        assert_eq!(snap.power, None);
     }
 
     #[test]

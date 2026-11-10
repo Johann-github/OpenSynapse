@@ -45,7 +45,7 @@ a restore command.
 Profiles (TOML, schema in `crates/opensynapse-core/README.md`):
 
     opensynapse profile export [--buttons 1-5] [--out FILE]
-    opensynapse profile apply FILE [--volatile] [--apply] [--force]
+    opensynapse profile apply FILE [--volatile] [--all] [--apply] [--force]
 
 `export` reads the DPI stages (persistent storage, incl. active stage), the polling
 rate (auto variant, as `polling get`), the sleep time and the assignments of the
@@ -64,10 +64,18 @@ listed raw on stderr. A failed read is also a stderr note.
 device registry (all problems are printed; exit code is non-zero), checks
 `[device] pid` and the registry's polling rates (`--force` overrides those two), then
 reads every setting the profile will overwrite (each button slot in the mode the
-profile writes; the snapshot is never shortened like an export). Without `--apply` it prints each
+profile writes; the snapshot is never shortened like an export). A planned write
+whose setting already has the target value is skipped (less flash wear, fewer
+round trips): the current value is re-encoded into a request and compared with the
+planned request (command and arguments; transaction ID and CRC are not part of it).
+A setting that could not be read or encoded counts as changed. Skipped settings print
+as `unchanged: <setting> (<value>)`, followed by `N write(s), M unchanged.`; `--all`
+writes them anyway (the old behaviour). If nothing differs, apply says so, writes
+nothing and creates no restore file. Without `--apply` it prints each remaining
 planned write (old -> new value and the raw report). With `--apply` it first saves
-those values to `<name>.restore.toml` next to the input (`-2`, `-3`, … if that file
-exists; earlier snapshots are never overwritten) and prints
+the old values of exactly the settings it will write to `<name>.restore.toml` next to
+the input (`-2`, `-3`, … if that file exists; earlier snapshots are never
+overwritten) and prints
 
     To restore: opensynapse --pid 00B8 profile apply <name>.restore.toml --apply
 
