@@ -1,6 +1,6 @@
 ---
 tags: [moc, status]
-updated: 2026-11-09
+updated: 2026-11-10
 ---
 # Project status & handoff
 
@@ -16,24 +16,18 @@ updated: 2026-11-09
 | 4 Agent (background service) + GUI | ⏳ later |
 
 ## ▶ Resume here (next session)
-State at end of 2026-11-09: everything committed and pushed on `main`. The mouse is
-back at its defaults: 800 DPI (storage 0 and 1), 1000 Hz, sleep 300, button 4 = mouse button 4.
+State at end of 2026-11-10: `buttons get|set` done and tested on hardware (commit 5ed0db9).
+The onboard double-click on button 4 worked with Synapse closed; button 4 is restored to mouse button 4.
+→ [[RE-Log/2026-11-10 Onboard button test]]
 
 Next tasks, in order:
-1. **CLI `buttons get`**: read 02/8C for profile 1, button 4, layer normal. Expect
-   function 1, data `[04]`. Builders and parser already exist in
-   `crates/opensynapse-protocol/src/buttons.rs` (`get_button_assignment`,
-   `parse_button_assignment`). Wire them into `crates/opensynapse-cli/src/lib.rs` like `sleep get`.
-2. **CLI `buttons set`** (dry run unless `--apply`; read old → write → read back → print
-   restore): first only `mouse-button <n>` and `double-click`. Test on button 4, then restore.
-3. **Onboard test without Synapse**: close Synapse (`RazerAppEngine.exe`), read the device
-   mode, set button 4 = double-click via the CLI, and check whether the mouse double-clicks
-   on its own. Restore afterwards.
-4. **More captures** (Wireshark → **USBPcap3**, filter `usb.setup.wLength == 90`, save
+1. **More captures** (Wireshark → **USBPcap3**, filter `usb.setup.wLength == 90`, save
    to `~/re-work/`): in Synapse, map one button to a keyboard key, to DPI up and to off.
    Decode the result with
    `tshark -r <file> -Y "usb.device_address == 9 && usb.data_len == 98" -T fields -e frame.time_relative -e usb.data_fragment`.
    The device address can change after replugging: check with `-Y usb.idVendor`.
+2. Add the decoded functions to `opensynapse-protocol/src/buttons.rs` + CLI actions.
+3. Power-cycle test: does a button assignment survive unplugging the dongle?
 
 Before every commit: `cargo fmt --all --check && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace`.
 
@@ -83,13 +77,14 @@ device. Fixed with a native Windows backend → [[Decisions/ADR-0003 Own Windows
 - ✅ Writes with read-back + restore: DPI (volatile/persistent), polling, sleep.
 - ✅ Power-cycle test: DPI storage 0 = volatile, 1 = persistent.
 - ✅ USB capture of a Synapse button remap decoded (functions 1 and 11).
+- ✅ 2026-11-10: CLI `buttons get|set`; onboard double-click works without Synapse (device mode Normal).
 - ⏭️ Continue with "Resume here" above.
 
 ## Open questions (carry over)
 - ~~Storage byte meaning~~ resolved (observed, power-cycle test): 0 = volatile, 1 = persistent; a storage-1 write also sets the active value.
 - Viper: polling 00/05 works on the dongle (observed); 00/40 untested. Sleep unit: seconds (inferred, 300 read).
 - Button-assignment data bytes: functions 1 and 11 known; key, DPI, macro etc. still unknown.
-  Does the onboard mapping act once Synapse is closed (device leaves driver mode)?
+  ~~Does the onboard mapping act with Synapse closed?~~ yes (observed 2026-11-10).
 - Wireshark: the Viper dongle hangs on USBPcap3 (device 3.9). USBPcapCMD.exe had to be copied
   into `%APPDATA%\Wireshark\extcap`.
 - Event collection usage page/report on the Viper.
