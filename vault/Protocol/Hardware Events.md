@@ -168,3 +168,8 @@ is used twice (THX and haptic gain). The parser type decides which meaning appli
 - unknown: Whether the Razer filter driver changes the reports before the mapping engine
   forwards them.
 - unknown: 4.0 mouse event framing (see above).
+
+## Viper V3 HyperSpeed (hardware, 2026-11-10)
+- Events arrive on **MI_01 COL06** (usage page 0x0001, usage 0x0000, input 16 bytes), in device mode Normal (observed).
+- DPI button press → `05 02 XX XX YY YY` (DPI X/Y, u16 big-endian) (observed).
+- The agent listens there by default. → [[RE-Log/2026-11-10 Hardware events capture]]

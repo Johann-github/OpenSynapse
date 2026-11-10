@@ -2,7 +2,7 @@
 //!
 //! - [`NoEvents`]: the default until hardware confirms which collection carries
 //!   the notifications.
-//! - [`HidInputEvents`] (`--events`): opens the device's candidate sibling
+//! - [`HidInputEvents`] (default; off with `--no-events`): opens the device's candidate sibling
 //!   collections for reading and forwards notification records (report ID 5/9).
 //!   One reader thread per collection, blocked in the kernel; no polling.
 

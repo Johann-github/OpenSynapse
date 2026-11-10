@@ -29,10 +29,10 @@ State at end of 2026-11-10: phase 3 done except "off"/"DPI down" captures; phase
   hotplug events work. → [[RE-Log/2026-11-10 Agent slice 1 test]], [[Architecture/Agent]]
 
 Next tasks, in order:
-1. **Event collection discovery**: `opensynapse hid collections` dump (VID 1532, read-only), probe read-openable
-   collections while pressing the DPI button; then `HidInputEvents: EventSource` (battery/DPI events without polling).
-2. **ApplyProfile in the agent**: move the apply engine from `opensynapse-cli/src/profile.rs` into `opensynapse-device`.
-3. **GUI over IPC**: desktop worker uses the agent if running, else in-process HID.
+1. ✅ Events found: MI_01 COL06, report 5 (DPI changed observed); agent listens by default.
+   Open: battery/charging events (plug the cable in during `hid listen`). → [[RE-Log/2026-11-10 Hardware events capture]]
+2. ✅ ApplyProfile in the agent (`opensynapse agent apply`), shared engine in `opensynapse-device`; hardware-tested.
+3. ✅ GUI over IPC (agent if running, else direct HID; live events). Hardware check by the user pending.
 4. Autostart (HKCU Run, `windows_subsystem`), refuse elevated start; then per-app profiles.
 5. Captures for "off" and "DPI down"; power-cycle test for button assignments.
 6. Mouse asleep → friendlier error ("move the mouse to wake it").

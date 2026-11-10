@@ -28,10 +28,10 @@ use crate::core::{Core, CoreMsg, SETTLE};
 use crate::events::{EventSource, HidInputEvents, HidOpener, NoEvents, default_candidate};
 use crate::hardware::RealHardware;
 
-const USAGE: &str = "usage: opensynapse-agent [--pipe <name>] [--events] [-v | -vv]\n  \
-     --events  listen for device hardware events (also OPENSYNAPSE_AGENT_EVENTS=1)";
-/// Environment switch equivalent to `--events`.
-const EVENTS_ENV: &str = "OPENSYNAPSE_AGENT_EVENTS";
+const USAGE: &str = "usage: opensynapse-agent [--pipe <name>] [--no-events] [-v | -vv]\n  \
+     --no-events  do not listen for device hardware events (also OPENSYNAPSE_AGENT_NO_EVENTS=1)";
+/// Environment switch equivalent to `--no-events`.
+const NO_EVENTS_ENV: &str = "OPENSYNAPSE_AGENT_NO_EVENTS";
 /// Exit code when another agent already serves the pipe.
 const EXIT_RUNNING: u8 = 2;
 /// How long shutdown waits for the `ShuttingDown` reply to be written.
@@ -41,9 +41,10 @@ const FLUSH_WAIT: Duration = Duration::from_secs(1);
 struct Args {
     pipe: Option<String>,
     verbose: u8,
-    /// Use `HidInputEvents` instead of `NoEvents` (until hardware confirms the
-    /// event collection, see `vault/Protocol/Hardware Events.md`).
-    events: bool,
+    /// Use `NoEvents` instead of `HidInputEvents`. Events are on by default:
+    /// the Viper V3 HyperSpeed sends report 5 on MI_01 COL06 (observed,
+    /// `vault/RE-Log/2026-11-10 Hardware events capture.md`).
+    no_events: bool,
 }
 
 fn parse_args(mut it: impl Iterator<Item = String>) -> Result<Args, String> {
@@ -51,7 +52,7 @@ fn parse_args(mut it: impl Iterator<Item = String>) -> Result<Args, String> {
     while let Some(arg) = it.next() {
         match arg.as_str() {
             "--pipe" => a.pipe = Some(it.next().ok_or("--pipe needs a name")?),
-            "--events" => a.events = true,
+            "--no-events" => a.no_events = true,
             "-v" | "--verbose" => a.verbose += 1,
             "-vv" => a.verbose += 2,
             "-h" | "--help" => return Err(USAGE.into()),
@@ -159,9 +160,9 @@ fn main() -> ExitCode {
         }
     };
 
-    let events_on = args.events || env_flag(std::env::var(EVENTS_ENV).ok().as_deref());
-    let events: Box<dyn EventSource> = if events_on {
-        tracing::info!("hardware events on (experimental)");
+    let events_off = args.no_events || env_flag(std::env::var(NO_EVENTS_ENV).ok().as_deref());
+    let events: Box<dyn EventSource> = if !events_off {
+        tracing::info!("hardware events on");
         Box::new(HidInputEvents::new(HidOpener, default_candidate))
     } else {
         Box::new(NoEvents)
@@ -210,14 +211,15 @@ mod tests {
             Args {
                 pipe: Some("x".into()),
                 verbose: 1,
-                events: false
+                no_events: false
             }
         );
         assert_eq!(parse(&["-vv"]).unwrap().verbose, 2);
         assert!(parse(&["--pipe"]).is_err());
         assert!(parse(&["--bogus"]).is_err());
         assert!(parse(&["--help"]).is_err());
-        assert!(parse(&["--events"]).unwrap().events);
+        assert!(parse(&["--no-events"]).unwrap().no_events);
+        assert!(parse(&["--events"]).is_err());
     }
 
     #[test]
