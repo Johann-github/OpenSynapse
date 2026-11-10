@@ -40,8 +40,7 @@ All frames: class 02, command 0C, data_size 10, args `[profile, button, layer, f
 - (observed) GET 02/8C `01 01 00` → reply `01 01 01 01 01 01`; GET `01 01 01` → same reply.
 - (observed) GET `01 04 00` and `01 04 01` both → `01 04 00 01 01 04`.
 - (observed) Buttons 1, 2, 3, 5 (never written) reply third byte 1; button 4 (written with 0) replies 0.
-- (inferred) The device ignores the third byte on GET and echoes a stored value. Our name
-  "layer (0 normal / 1 HyperShift)" for that byte is probably wrong.
+- ~~(inferred) The device ignores the third byte on GET~~ wrong, see "Resolved" below.
 - RE check (observed in code, Synapse 4 rzDevice25): Synapse also calls byte 2 `mode` (0 normal, 1 HyperShift),
   sends it on GET and expects it echoed. So the naming is right; the Viper firmware just does not honour it on GET.
   The captures contain no mode-1 write and no 02/8C/8E reads by Synapse. Per-device UI: `OBMSlots: 1`,
@@ -50,9 +49,14 @@ All frames: class 02, command 0C, data_size 10, args `[profile, button, layer, f
   `01 01 01 01 …`, `02 01 01 02 …`, `03 01 01 03 …`, `04 01 01 04 …`, `05 01 01 05 …`, `60 06 01 06 …`, `09 01 01 09 …`, `0a 01 01 0a …`.
 - (inferred) Record = `[buttonId, functionId, dataLen, data (5 bytes)]`. Button 0x60 (96, not in Synapse's
   button enum) = function 6 (DPI) data `[06]`, probably the DPI button on top (cycle stages; data 6 unknown).
-  Wheel up/down (9/10) = mouse buttons 9/10. Mode is ignored here too.
-- (unknown) Does a mode-1 SET create a separate HyperShift slot, or overwrite the normal mapping?
-  Test plan: on button 5 read mode 0/1 + 02/8E, write mode 1 with a different mapping, read again, restore.
+  Wheel up/down (9/10) = mouse buttons 9/10. (At that point both modes held the same defaults.)
+- **Resolved (observed, hardware):** `buttons set 5 mouse-button 4 --hypershift --apply` (mode-1 SET) →
+  GET `01 05 01` → `01 05 01 01 01 04` (button 4), GET `01 05 00` → `01 05 01 01 01 05` (unchanged).
+  02/8E mode 1 showed `05 01 01 04`, mode 0 still `05 01 01 05`. Restored to mouse button 5.
+- So the Viper **has separate HyperShift slots and GET honours the mode**. The earlier "ignores the mode"
+  inference was wrong: both modes just have the same factory defaults. Reply byte 2 is not a mode echo
+  (button 5 replies 1 in both modes; meaning unknown).
+- Code fix in progress: drop the experimental HyperShift gate, export both modes again.
 - Effect: `profile export` puts buttons 1/2/3/5 under `[hypershift.buttons]`. Do not use `profile apply`
   for buttons until this is resolved.
 
