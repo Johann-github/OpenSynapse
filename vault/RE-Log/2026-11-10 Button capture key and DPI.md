@@ -20,9 +20,19 @@ All frames: class 02, command 0C, data_size 10, args `[profile, button, layer, f
 - (observed) Before the writes, Synapse polls 02/8E with arg 01 about 20 times (meaning unknown), then reads 00/84, 07/84, 07/80, 04/93, 04/87, 50/BF, 03/C5, 07/83.
 - (observed) After the key-A write the user reported that the Razer mouse no longer moved the cursor during the capture. Afterwards the control interface still answered (`info`: device mode Driver, `buttons get 4` = default). Cause: USBPcap3 hang of the dongle (replug fixed it). Not the key assignment: the same key-A write via `opensynapse buttons set 4 key a --apply` with Synapse and Wireshark closed typed `a` and the cursor kept moving (observed 2026-11-10). Restored to mouse button 4.
 
+## Hardware test DPI up (2026-11-10, Synapse closed)
+- (observed) `buttons set 4 dpi-up --apply`, verified. Stages 400/800/1600/3200/6400. Start: DPI 1600.
+- (observed) First press: DPI 6400, active stage 5. That is two steps instead of one (user: pressed once).
+- (observed) Second press: DPI stays 6400. The highest stage is a limit; no wrap-around.
+- (inferred) Either press and release each trigger one step, or the first press was registered twice. Not resolved.
+- (observed) `dpi set 800` (storage 0 and 1) changes the DPI but not the active-stage index (still stage 5).
+- Restored: button 4 = mouse button 4, DPI 800 (volatile + persistent).
+
 ## Open questions
+- Does DPI up step twice per press? Retest from stage 1 with single presses.
+- Which stage does DPI up use after `dpi set`: the stored stage index or the current DPI value?
 - Data for "off" (function 0?) and DPI down.
 
 ## Next
-- ✅ CLI `key` (hardware-tested) and `dpi-up` (dry run only).
+- ✅ CLI `key` and `dpi-up` hardware-tested (dpi-up: double step, see above).
 - Capture "off" and DPI down.
