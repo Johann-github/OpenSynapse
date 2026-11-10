@@ -18,11 +18,11 @@ All frames: class 02, command 0C, data_size 10, args `[profile, button, layer, f
 - (inferred, not seen) DPI down = function 6, data `[02]`.
 - (unknown) "Off": no frame in this capture.
 - (observed) Before the writes, Synapse polls 02/8E with arg 01 about 20 times (meaning unknown), then reads 00/84, 07/84, 07/80, 04/93, 04/87, 50/BF, 03/C5, 07/83.
-- (observed) After the key-A write the user reported that the Razer mouse no longer moved the cursor during the capture. Afterwards the control interface still answered (`info`: device mode Driver, `buttons get 4` = default). Probably the known USBPcap3 hang of the dongle; not yet reproduced.
+- (observed) After the key-A write the user reported that the Razer mouse no longer moved the cursor during the capture. Afterwards the control interface still answered (`info`: device mode Driver, `buttons get 4` = default). Cause: USBPcap3 hang of the dongle (replug fixed it). Not the key assignment: the same key-A write via `opensynapse buttons set 4 key a --apply` with Synapse and Wireshark closed typed `a` and the cursor kept moving (observed 2026-11-10). Restored to mouse button 4.
 
 ## Open questions
 - Data for "off" (function 0?) and DPI down.
-- Is the cursor hang caused by USBPcap or by the key assignment?
 
 ## Next
-- CLI actions `key` and `dpi-up`; hardware test with Synapse closed and no capture running.
+- ✅ CLI `key` (hardware-tested) and `dpi-up` (dry run only).
+- Capture "off" and DPI down.

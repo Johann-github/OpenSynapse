@@ -16,18 +16,18 @@ updated: 2026-11-10
 | 4 Agent (background service) + GUI | ⏳ later |
 
 ## ▶ Resume here (next session)
-State at end of 2026-11-10: `buttons get|set` done and tested on hardware (commit 5ed0db9).
-The onboard double-click on button 4 worked with Synapse closed; button 4 is restored to mouse button 4.
-→ [[RE-Log/2026-11-10 Onboard button test]]
+State at end of 2026-11-10: `buttons get|set` with `mouse-button`, `double-click`, `key`, `dpi-up`.
+Hardware-tested without Synapse: double-click and key A work onboard. Button 4 is restored to mouse button 4.
+→ [[RE-Log/2026-11-10 Onboard button test]], [[RE-Log/2026-11-10 Button capture key and DPI]]
 
 Next tasks, in order:
-1. **More captures** (Wireshark → **USBPcap3**, filter `usb.setup.wLength == 90`, save
-   to `~/re-work/`): in Synapse, map one button to a keyboard key, to DPI up and to off.
-   Decode the result with
-   `tshark -r <file> -Y "usb.device_address == 9 && usb.data_len == 98" -T fields -e frame.time_relative -e usb.data_fragment`.
-   The device address can change after replugging: check with `-Y usb.idVendor`.
-2. Add the decoded functions to `opensynapse-protocol/src/buttons.rs` + CLI actions.
+1. **Hardware test `dpi-up`** (Synapse closed): set button 4, press, check with `dpi get`, restore.
+2. **Capture "off" and "DPI down"** in Synapse (Wireshark → USBPcap3, save to `~/re-work/`).
+   Warning: the dongle hangs on USBPcap3; stop the capture right after the clicks, then replug.
+   Decode: `tshark -r <file> -Y "usb.device_address == 9 && usb.data_len == 98" -T fields -e frame.time_relative -e usb.data_fragment`
+   (address can change after replug: check with `-Y usb.idVendor`).
 3. Power-cycle test: does a button assignment survive unplugging the dongle?
+4. Then: phase 4 planning (agent + GUI).
 
 Before every commit: `cargo fmt --all --check && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace`.
 
@@ -78,6 +78,7 @@ device. Fixed with a native Windows backend → [[Decisions/ADR-0003 Own Windows
 - ✅ Power-cycle test: DPI storage 0 = volatile, 1 = persistent.
 - ✅ USB capture of a Synapse button remap decoded (functions 1 and 11).
 - ✅ 2026-11-10: CLI `buttons get|set`; onboard double-click works without Synapse (device mode Normal).
+- ✅ 2026-11-10: key (function 2, `[mods, HID usage]`) and DPI up (function 6, `[01]`) decoded; key A works onboard.
 - ⏭️ Continue with "Resume here" above.
 
 ## Open questions (carry over)
