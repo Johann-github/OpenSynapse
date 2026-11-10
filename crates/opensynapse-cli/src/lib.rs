@@ -154,7 +154,7 @@ pub enum PollingAction {
 pub enum SleepAction {
     Get,
     Set {
-        /// Raw value (unit unconfirmed, likely seconds).
+        /// Idle time in seconds.
         value: u16,
         #[command(flatten)]
         write: WriteOpts,
@@ -314,7 +314,7 @@ pub fn run(cli: Cli) -> Result<()> {
         Command::Sleep { action } => match action {
             SleepAction::Get => {
                 let v = dev.query(&power::get_sleep_time(), power::parse_sleep_time)?;
-                println!("Sleep timer: {v} (raw; unit unconfirmed, likely seconds)");
+                println!("Sleep timer: {v} s");
                 Ok(())
             }
             SleepAction::Set { value, write } => {

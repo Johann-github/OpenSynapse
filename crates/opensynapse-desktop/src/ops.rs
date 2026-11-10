@@ -57,7 +57,7 @@ pub enum Setting {
         hz: u32,
         variant: PollingVariant,
     },
-    /// Raw sleep timer value (unit unconfirmed, likely seconds).
+    /// Sleep timer in seconds.
     Sleep(u16),
 }
 

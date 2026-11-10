@@ -14,6 +14,20 @@ use crate::worker::{self, DeviceRow, Job, Reply};
 const WARN: Color32 = Color32::from_rgb(0xE0, 0x9A, 0x20);
 const BAD: Color32 = Color32::from_rgb(0xE0, 0x50, 0x50);
 const GOOD: Color32 = Color32::from_rgb(0x50, 0xB0, 0x60);
+/// Accent colour (user choice: green).
+const ACCENT: Color32 = Color32::from_rgb(0x2E, 0xA0, 0x43);
+
+/// Use the green accent for selections, focus and links in light and dark mode.
+fn apply_accent(ctx: &egui::Context) {
+    ctx.all_styles_mut(|style| {
+        let v = &mut style.visuals;
+        v.selection.bg_fill = ACCENT;
+        v.selection.stroke.color = Color32::WHITE;
+        v.hyperlink_color = ACCENT;
+        v.widgets.hovered.bg_stroke.color = ACCENT;
+        v.widgets.active.bg_fill = ACCENT;
+    });
+}
 
 pub struct App {
     jobs: Sender<Job>,
@@ -34,6 +48,7 @@ pub struct App {
 
 impl App {
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
+        apply_accent(&cc.egui_ctx);
         let (jobs, replies) = worker::spawn(cc.egui_ctx.clone());
         let mut app = Self {
             jobs,
@@ -367,18 +382,15 @@ impl App {
     fn power_section(&mut self, ui: &mut Ui, snap: &Snapshot) {
         section(ui, "Power", |ui| {
             grid(ui, "power", |ui| {
-                kv(
-                    ui,
-                    "Sleep timer",
-                    field(&snap.sleep, |v| format!("{v} (raw, likely seconds)")),
-                );
+                kv(ui, "Sleep timer", field(&snap.sleep, |v| format!("{v} s")));
             });
             ui.horizontal(|ui| {
                 ui.label("Set sleep timer");
                 ui.add(
                     egui::DragValue::new(&mut self.sleep_input)
                         .range(1..=3600)
-                        .speed(5.0),
+                        .speed(5.0)
+                        .suffix(" s"),
                 );
                 if ui
                     .add_enabled(self.may_write(), egui::Button::new("Apply"))
