@@ -10,6 +10,13 @@ use crate::{ProtocolError, Request, fixed, need};
 pub mod function {
     /// Data `[buttonId]`, e.g. `[4]` = mouse button 4.
     pub const MOUSE_BUTTON: u8 = 1;
+    /// Data `[modifiers, usage]`; `[0x00, 0x04]` = key "A" (observed). Inferred:
+    /// `modifiers` is the HID boot-keyboard modifier byte (0 = none) and `usage` the
+    /// HID keyboard usage ID (see [`crate::hid_usage`]).
+    pub const KEYBOARD: u8 = 2;
+    /// Data `[action]`; `[1]` = DPI up (observed via Synapse, meaning inferred from
+    /// the UI choice). Other values (e.g. DPI down) are not observed.
+    pub const DPI: u8 = 6;
     /// Data `[buttonId]`; `[1]` = double left click (button inferred).
     pub const DOUBLE_CLICK: u8 = 11;
 }
@@ -24,6 +31,38 @@ pub fn mouse_button(profile: u8, button: u8, layer: Layer, target: u8) -> Button
         data: vec![target],
     }
 }
+
+/// Make `button` press keyboard key `usage` (HID usage ID) with `modifiers` held
+/// (HID boot-keyboard modifier bits, 0 = none).
+pub fn keyboard(
+    profile: u8,
+    button: u8,
+    layer: Layer,
+    modifiers: u8,
+    usage: u8,
+) -> ButtonAssignment {
+    ButtonAssignment {
+        profile,
+        button,
+        layer,
+        function: function::KEYBOARD,
+        data: vec![modifiers, usage],
+    }
+}
+
+/// Make `button` step the DPI up.
+pub fn dpi_up(profile: u8, button: u8, layer: Layer) -> ButtonAssignment {
+    ButtonAssignment {
+        profile,
+        button,
+        layer,
+        function: function::DPI,
+        data: vec![DPI_UP],
+    }
+}
+
+/// Data byte of [`function::DPI`] for "DPI up" (observed).
+const DPI_UP: u8 = 1;
 
 /// Make `button` send a double click of `target` (1 = left).
 pub fn double_click(profile: u8, button: u8, layer: Layer, target: u8) -> ButtonAssignment {
@@ -60,6 +99,10 @@ pub enum Known {
     MouseButton(u8),
     /// Double click of the given button (`1` left).
     DoubleClick(u8),
+    /// Keyboard key: HID modifier bits and usage ID.
+    Key { modifiers: u8, usage: u8 },
+    /// Step DPI up.
+    DpiUp,
 }
 
 impl ButtonAssignment {
@@ -68,6 +111,8 @@ impl ButtonAssignment {
         match (self.function, self.data.as_slice()) {
             (function::MOUSE_BUTTON, &[t]) => Some(Known::MouseButton(t)),
             (function::DOUBLE_CLICK, &[t]) => Some(Known::DoubleClick(t)),
+            (function::KEYBOARD, &[modifiers, usage]) => Some(Known::Key { modifiers, usage }),
+            (function::DPI, &[DPI_UP]) => Some(Known::DpiUp),
             _ => None,
         }
     }
@@ -78,6 +123,10 @@ impl std::fmt::Display for Known {
         match self {
             Known::MouseButton(t) => write!(f, "mouse button {t}"),
             Known::DoubleClick(t) => write!(f, "double-click {t}"),
+            Known::Key { modifiers, usage } => {
+                write!(f, "key {usage:#04x} (mods {modifiers:#04x})")
+            }
+            Known::DpiUp => f.write_str("DPI up"),
         }
     }
 }
@@ -193,6 +242,35 @@ mod tests {
         assert_eq!(back.as_bytes()[88], 0x05);
     }
 
+    /// Expected CRC: XOR of bytes 2..=87.
+    fn xor_crc(b: &[u8]) -> u8 {
+        b[2..88].iter().fold(0, |c, x| c ^ x)
+    }
+
+    /// Byte-exact against the Synapse capture (button 4 -> key "A", -> DPI up).
+    #[test]
+    fn matches_capture_key_and_dpi() {
+        let key = set_button_assignment(&keyboard(1, 4, Layer::Normal, 0x00, 0x04))
+            .unwrap()
+            .encode(0x08);
+        let mut want = [0u8; 90];
+        want[..15].copy_from_slice(&[
+            0x00, 0x08, 0, 0, 0, 0x0a, 0x02, 0x0c, 0x01, 0x04, 0x00, 0x02, 0x02, 0x00, 0x04,
+        ]);
+        want[88] = xor_crc(&want);
+        assert_eq!(key.as_bytes(), &want);
+
+        let dpi = set_button_assignment(&dpi_up(1, 4, Layer::Normal))
+            .unwrap()
+            .encode(0x09);
+        let mut want = [0u8; 90];
+        want[..14].copy_from_slice(&[
+            0x00, 0x09, 0, 0, 0, 0x0a, 0x02, 0x0c, 0x01, 0x04, 0x00, 0x06, 0x01, 0x01,
+        ]);
+        want[88] = xor_crc(&want);
+        assert_eq!(dpi.as_bytes(), &want);
+    }
+
     #[test]
     fn long_data_grows_size() {
         let mut a = mouse_button(1, 4, Layer::Normal, 4);
@@ -219,16 +297,31 @@ mod tests {
         let d = double_click(2, 5, Layer::HyperShift, 1);
         assert_eq!(d.known(), Some(Known::DoubleClick(1)));
         assert!(d.to_string().contains("hypershift layer: double-click 1"));
+        let k = keyboard(1, 4, Layer::Normal, 0x00, 0x04);
+        assert_eq!(
+            k.known(),
+            Some(Known::Key {
+                modifiers: 0,
+                usage: 4
+            })
+        );
+        assert!(
+            k.to_string()
+                .ends_with("layer: key 0x04 (mods 0x00) (function 2, data [0, 4])")
+        );
+        let up = dpi_up(1, 4, Layer::Normal);
+        assert_eq!(up.known(), Some(Known::DpiUp));
+        assert!(
+            up.to_string()
+                .contains("layer: DPI up (function 6, data [1])")
+        );
+        // DPI data other than "up" is not observed and stays raw.
         let raw = ButtonAssignment {
-            data: vec![0, 4],
-            function: 2,
-            ..a.clone()
+            data: vec![2],
+            ..up
         };
         assert_eq!(raw.known(), None);
-        assert!(
-            raw.to_string()
-                .ends_with("layer: (function 2, data [0, 4])")
-        );
+        assert!(raw.to_string().ends_with("layer: (function 6, data [2])"));
         // Known function with unexpected data length stays raw.
         let odd = ButtonAssignment {
             data: vec![1, 0],

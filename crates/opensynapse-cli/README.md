@@ -12,9 +12,12 @@ Buttons (class 02, see [[Protocol/Commands 2.5]]):
     opensynapse buttons get <button> [--profile N] [--hypershift]
     opensynapse buttons set <button> mouse-button <n> [--profile N] [--hypershift] [--apply]
     opensynapse buttons set <button> double-click [n] [--profile N] [--hypershift] [--apply]
+    opensynapse buttons set <button> key <name> [--mods ctrl,shift,alt,win] [--profile N] [--hypershift] [--apply]
+    opensynapse buttons set <button> dpi-up [--profile N] [--hypershift] [--apply]
 
-`--profile` defaults to 1. Only mouse-button and double-click can be written yet; if
-the old assignment is anything else, `set` prints its raw function/data instead of a
-restore command.
+`--profile` defaults to 1. Key names: `a`-`z`, `0`-`9`, `enter`, `esc`, `backspace`,
+`tab`, `space`, `f1`-`f12` (USB-HID usage IDs). Only these actions can be written yet;
+if the old assignment is anything else, `set` prints its raw function/data instead of
+a restore command.
 
 Vault: [[Architecture/Crates]], [[Status]]

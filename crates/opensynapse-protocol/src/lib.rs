@@ -8,6 +8,7 @@ pub mod command;
 pub mod device;
 pub mod dpi;
 pub mod event;
+pub mod hid_usage;
 pub mod lighting;
 pub mod polling;
 pub mod power;

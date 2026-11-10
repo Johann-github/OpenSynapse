@@ -8,7 +8,7 @@ use clap::{Args, Parser, Subcommand};
 use opensynapse_device_registry::{Device, Match, Protocol, RAZER_VID, Registry};
 use opensynapse_hid::{DEFAULT_INTERFACE, DeviceSession, HidEntry, HidError, Timing, Transport};
 use opensynapse_protocol::buttons::{self, ButtonAssignment, Known, Layer};
-use opensynapse_protocol::{Request, Status, device, dpi, polling, power};
+use opensynapse_protocol::{Request, Status, device, dpi, hid_usage, polling, power};
 
 #[derive(Parser)]
 #[command(
@@ -119,8 +119,12 @@ pub enum ButtonsAction {
         button: u8,
         /// What the button should do.
         action: ButtonKind,
-        /// Target button (1 = left). Required for mouse-button; double-click defaults to 1.
-        target: Option<u8>,
+        /// mouse-button: target button (1 = left, required). double-click: target
+        /// (default 1). key: key name (a-z, 0-9, enter, esc, backspace, tab, space, f1-f12).
+        target: Option<String>,
+        /// key only: modifiers held with the key, comma-separated (ctrl, shift, alt, win).
+        #[arg(long, value_delimiter = ',', value_parser = parse_modifier)]
+        mods: Vec<u8>,
         #[command(flatten)]
         slot: ButtonSlot,
         #[command(flatten)]
@@ -152,6 +156,8 @@ impl ButtonSlot {
 pub enum ButtonKind {
     MouseButton,
     DoubleClick,
+    Key,
+    DpiUp,
 }
 
 #[derive(Args, Clone, Copy)]
@@ -168,6 +174,10 @@ pub struct WriteOpts {
 pub enum PollingVariant {
     Period,
     Hyper,
+}
+
+fn parse_modifier(s: &str) -> Result<u8, String> {
+    hid_usage::modifier(s).ok_or_else(|| format!("unknown modifier `{s}` (ctrl, shift, alt, win)"))
 }
 
 fn parse_hex_u16(s: &str) -> Result<u16, String> {
@@ -259,9 +269,13 @@ pub fn run(cli: Cli) -> Result<()> {
                 button,
                 action,
                 target,
+                mods,
                 slot,
                 write,
-            } => button_set(&mut dev, button, action, target, slot, write),
+            } => {
+                let new = requested_assignment(button, action, target.as_deref(), &mods, slot)?;
+                button_set(&mut dev, new, slot, write)
+            }
         },
     }
 }
@@ -381,18 +395,44 @@ fn button_get(dev: &mut Target, button: u8, slot: ButtonSlot) -> Result<ButtonAs
 fn requested_assignment(
     button: u8,
     kind: ButtonKind,
-    target: Option<u8>,
+    target: Option<&str>,
+    mods: &[u8],
     slot: ButtonSlot,
 ) -> Result<ButtonAssignment> {
     let (p, l) = (slot.profile, slot.layer());
+    if !mods.is_empty() && kind != ButtonKind::Key {
+        bail!("--mods only applies to `key`");
+    }
+    let number = |t: &str| -> Result<u8> {
+        t.parse()
+            .with_context(|| format!("`{t}` is not a button number"))
+    };
     Ok(match kind {
         ButtonKind::MouseButton => {
             let Some(t) = target else {
                 bail!("mouse-button needs a target button, e.g. `mouse-button 4`")
             };
-            buttons::mouse_button(p, button, l, t)
+            buttons::mouse_button(p, button, l, number(t)?)
         }
-        ButtonKind::DoubleClick => buttons::double_click(p, button, l, target.unwrap_or(1)),
+        ButtonKind::DoubleClick => {
+            buttons::double_click(p, button, l, target.map_or(Ok(1), number)?)
+        }
+        ButtonKind::Key => {
+            let Some(t) = target else {
+                bail!("key needs a key name, e.g. `key a`")
+            };
+            let Some(usage) = hid_usage::usage(t) else {
+                bail!("unknown key `{t}` (a-z, 0-9, enter, esc, backspace, tab, space, f1-f12)")
+            };
+            let modifiers = mods.iter().fold(0, |m, b| m | b);
+            buttons::keyboard(p, button, l, modifiers, usage)
+        }
+        ButtonKind::DpiUp => {
+            if let Some(t) = target {
+                bail!("dpi-up takes no argument (got `{t}`)");
+            }
+            buttons::dpi_up(p, button, l)
+        }
     })
 }
 
@@ -401,6 +441,16 @@ fn button_restore(old: &ButtonAssignment) -> Option<String> {
     let action = match old.known()? {
         Known::MouseButton(t) => format!("mouse-button {t}"),
         Known::DoubleClick(t) => format!("double-click {t}"),
+        Known::Key { modifiers, usage } => {
+            let key = hid_usage::name(usage)?;
+            let mods = hid_usage::modifier_names(modifiers)?;
+            if mods.is_empty() {
+                format!("key {key}")
+            } else {
+                format!("key {key} --mods {}", mods.join(","))
+            }
+        }
+        Known::DpiUp => "dpi-up".to_string(),
     };
     let hs = if old.layer == Layer::HyperShift {
         " --hypershift"
@@ -415,13 +465,11 @@ fn button_restore(old: &ButtonAssignment) -> Option<String> {
 
 fn button_set(
     dev: &mut Target,
-    button: u8,
-    kind: ButtonKind,
-    target: Option<u8>,
+    new: ButtonAssignment,
     slot: ButtonSlot,
     write: WriteOpts,
 ) -> Result<()> {
-    let new = requested_assignment(button, kind, target, slot)?;
+    let button = new.button;
     let req = buttons::set_button_assignment(&new)?;
     let old = button_get(dev, button, slot)?;
     let restore = button_restore(&old);
@@ -688,6 +736,7 @@ mod tests {
                     button,
                     action,
                     target,
+                    mods,
                     slot,
                     write,
                 },
@@ -695,7 +744,10 @@ mod tests {
         else {
             panic!("parsed wrong command")
         };
-        Ok((requested_assignment(button, action, target, slot)?, write))
+        Ok((
+            requested_assignment(button, action, target.as_deref(), &mods, slot)?,
+            write,
+        ))
     }
 
     #[test]
@@ -716,8 +768,21 @@ mod tests {
         assert_eq!(a, buttons::double_click(2, 5, Layer::HyperShift, 1));
         assert!(w.apply);
 
+        let (a, _) = parse_buttons_set(&["4", "key", "a"]).unwrap();
+        assert_eq!(a, buttons::keyboard(1, 4, Layer::Normal, 0x00, 0x04));
+        let (a, _) = parse_buttons_set(&["4", "key", "F5", "--mods", "ctrl,shift"]).unwrap();
+        assert_eq!(a, buttons::keyboard(1, 4, Layer::Normal, 0x03, 0x3E));
+        let (a, _) = parse_buttons_set(&["4", "dpi-up"]).unwrap();
+        assert_eq!(a, buttons::dpi_up(1, 4, Layer::Normal));
+
         assert!(parse_buttons_set(&["4", "mouse-button"]).is_err());
+        assert!(parse_buttons_set(&["4", "mouse-button", "x"]).is_err());
         assert!(parse_buttons_set(&["4", "macro"]).is_err());
+        assert!(parse_buttons_set(&["4", "key"]).is_err());
+        assert!(parse_buttons_set(&["4", "key", "pgup"]).is_err());
+        assert!(parse_buttons_set(&["4", "key", "a", "--mods", "hyper"]).is_err());
+        assert!(parse_buttons_set(&["4", "mouse-button", "4", "--mods", "ctrl"]).is_err());
+        assert!(parse_buttons_set(&["4", "dpi-up", "2"]).is_err());
     }
 
     #[test]
@@ -742,20 +807,44 @@ mod tests {
             button_restore(&buttons::double_click(3, 5, Layer::HyperShift, 1)).as_deref(),
             Some("buttons set 5 double-click 1 --profile 3 --hypershift --apply")
         );
-        let key = ButtonAssignment {
-            function: 2,
-            data: vec![0, 4],
+        assert_eq!(
+            button_restore(&buttons::keyboard(1, 4, Layer::Normal, 0x00, 0x04)).as_deref(),
+            Some("buttons set 4 key a --profile 1 --apply")
+        );
+        assert_eq!(
+            button_restore(&buttons::keyboard(1, 4, Layer::Normal, 0x05, 0x28)).as_deref(),
+            Some("buttons set 4 key enter --mods ctrl,alt --profile 1 --apply")
+        );
+        assert_eq!(
+            button_restore(&buttons::dpi_up(1, 4, Layer::Normal)).as_deref(),
+            Some("buttons set 4 dpi-up --profile 1 --apply")
+        );
+        // Not expressible: unnamed usage, right-side modifier, unobserved DPI data,
+        // unknown function.
+        let raw = |function, data| ButtonAssignment {
+            function,
+            data,
             ..buttons::mouse_button(1, 4, Layer::Normal, 4)
         };
-        assert_eq!(button_restore(&key), None);
+        assert_eq!(button_restore(&raw(2, vec![0, 0x50])), None);
+        assert_eq!(button_restore(&raw(2, vec![0x10, 0x04])), None);
+        assert_eq!(button_restore(&raw(6, vec![2])), None);
+        assert_eq!(button_restore(&raw(9, vec![1])), None);
     }
 
     /// The restore command parses back to the old assignment.
     #[test]
     fn button_restore_roundtrips() {
-        let old = buttons::double_click(2, 6, Layer::HyperShift, 1);
-        let cmd = button_restore(&old).unwrap();
-        let args: Vec<&str> = cmd.split(' ').skip(2).collect();
-        assert_eq!(parse_buttons_set(&args).unwrap().0, old);
+        for old in [
+            buttons::mouse_button(1, 4, Layer::Normal, 5),
+            buttons::double_click(2, 6, Layer::HyperShift, 1),
+            buttons::keyboard(1, 4, Layer::Normal, 0x00, 0x04),
+            buttons::keyboard(3, 5, Layer::HyperShift, 0x0F, 0x45),
+            buttons::dpi_up(1, 4, Layer::HyperShift),
+        ] {
+            let cmd = button_restore(&old).unwrap();
+            let args: Vec<&str> = cmd.split(' ').skip(2).collect();
+            assert_eq!(parse_buttons_set(&args).unwrap().0, old, "{cmd}");
+        }
     }
 }
