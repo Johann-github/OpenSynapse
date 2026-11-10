@@ -28,11 +28,17 @@ All frames: class 02, command 0C, data_size 10, args `[profile, button, layer, f
 - (observed) `dpi set 800` (storage 0 and 1) changes the DPI but not the active-stage index (still stage 5).
 - Restored: button 4 = mouse button 4, DPI 800 (volatile + persistent).
 
+## Retest DPI up (2026-11-10, `dpi-stages set --active`)
+- (observed) `dpi-stages set --active 1` (04/06, storage 0) also applies the stage DPI: 04/85 went 800 → 400.
+- (observed) One press = one step: stage 1/400 → stage 2/800 → stage 3/1600.
+- (inferred) DPI up steps from the stored active-stage index, not from the current DPI. The "double step"
+  before was stage 4 → 5 while 04/85 showed 1600 (DPI set separately by 04/05).
+- (observed) The persistent stage list (storage 1) keeps its own active index (it was 3 before the restore).
+- Restored: button 4 = mouse button 4, active stage 2 (volatile + persistent), DPI 800.
+
 ## Open questions
-- Does DPI up step twice per press? Retest from stage 1 with single presses.
-- Which stage does DPI up use after `dpi set`: the stored stage index or the current DPI value?
 - Data for "off" (function 0?) and DPI down.
 
 ## Next
-- ✅ CLI `key` and `dpi-up` hardware-tested (dpi-up: double step, see above).
+- ✅ CLI `key` and `dpi-up` hardware-tested; dpi-up = one stage per press.
 - Capture "off" and DPI down.

@@ -17,12 +17,12 @@ updated: 2026-11-10
 
 ## ▶ Resume here (next session)
 State at end of 2026-11-10: `buttons get|set` with `mouse-button`, `double-click`, `key`, `dpi-up`.
-Hardware-tested without Synapse: double-click and key A work onboard. Button 4 is restored to mouse button 4, DPI 800.
+Hardware-tested without Synapse: double-click and key A work onboard. Button 4 = mouse button 4, active stage 2, DPI 800. DPI up = one stage per press (from the active-stage index).
 → [[RE-Log/2026-11-10 Onboard button test]], [[RE-Log/2026-11-10 Button capture key and DPI]]
 
 Next tasks, in order:
-1. **Retest `dpi-up`**: one press jumped 2 stages (1600 → 6400). Start from stage 1 and press once each time.
-   State now: DPI 800, but the active stage index is still 5 (`dpi set` does not change it).
+1. **Phase 4 branches**: merge the worktree branches for `opensynapse-core` profiles (TOML) and
+   `opensynapse-desktop` (egui GUI, [[Decisions/ADR-0004 GUI toolkit egui]]) once reviewed.
 2. **Capture "off" and "DPI down"** in Synapse (Wireshark → USBPcap3, save to `~/re-work/`).
    Warning: the dongle hangs on USBPcap3; stop the capture right after the clicks, then replug.
    Decode: `tshark -r <file> -Y "usb.device_address == 9 && usb.data_len == 98" -T fields -e frame.time_relative -e usb.data_fragment`
