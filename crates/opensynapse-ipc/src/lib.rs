@@ -16,3 +16,6 @@ pub mod transport;
 
 pub use client::{Client, Subscription};
 pub use codec::DecodeError;
+
+#[cfg(test)]
+mod tests;
