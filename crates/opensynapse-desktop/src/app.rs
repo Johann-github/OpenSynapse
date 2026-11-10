@@ -10,11 +10,12 @@ use eframe::egui::{self, Color32, RichText, Ui};
 use opensynapse_protocol::buttons::Mode;
 use opensynapse_protocol::dpi::{self, Dpi};
 
+use crate::backend::{self, BackendState, EventEffect};
 use crate::ops::{
     self, ActionEdit, ActionKind, ButtonRow, Field, Setting, Snapshot, WriteFailure, WriteOpts,
     WriteOutcome,
 };
-use crate::worker::{self, DeviceRow, Job, Reply};
+use crate::worker::{self, DeviceRow, Job, Reply, SubMsg};
 
 const WARN: Color32 = Color32::from_rgb(0xE0, 0x9A, 0x20);
 const BAD: Color32 = Color32::from_rgb(0xE0, 0x50, 0x50);
@@ -37,11 +38,17 @@ fn apply_accent(ctx: &egui::Context) {
 pub struct App {
     jobs: Sender<Job>,
     replies: Receiver<Reply>,
+    /// Agent events (only while the agent backend is in use).
+    events: Receiver<SubMsg>,
+    /// `None` until the first connection attempt was answered.
+    backend: Option<BackendState>,
+    /// Last message from the agent's event stream.
+    agent_note: Option<String>,
     /// Jobs sent and not yet answered.
     pending: usize,
     devices: Vec<DeviceRow>,
     scan_error: Option<String>,
-    conflict: Option<&'static str>,
+    conflict: Option<String>,
     confirm_conflict: bool,
     selected: Option<String>,
     snapshot: Option<Result<Snapshot, String>>,
@@ -65,10 +72,13 @@ pub struct App {
 impl App {
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         apply_accent(&cc.egui_ctx);
-        let (jobs, replies) = worker::spawn(cc.egui_ctx.clone());
+        let (jobs, replies, events) = worker::spawn(cc.egui_ctx.clone());
         let mut app = Self {
             jobs,
             replies,
+            events,
+            backend: None,
+            agent_note: None,
             pending: 0,
             devices: Vec::new(),
             scan_error: None,
@@ -88,7 +98,8 @@ impl App {
             stage_active: 0,
             stage_persistent: false,
         };
-        app.send(Job::Scan);
+        app.send(Job::Connect);
+        app.send(Job::Scan { reselect: true });
         app
     }
 
@@ -104,21 +115,21 @@ impl App {
 
     fn selected_row(&self) -> Option<&DeviceRow> {
         let path = self.selected.as_ref()?;
-        self.devices.iter().find(|d| &d.entry.path == path)
+        self.devices.iter().find(|d| &d.path == path)
     }
 
     fn select(&mut self, row: &DeviceRow) {
-        self.selected = Some(row.entry.path.clone());
+        self.selected = Some(row.path.clone());
         self.snapshot = None;
         self.last_write = None;
         if row.supported() {
-            self.send(Job::Read(row.entry.clone()));
+            self.send(Job::Read(row.path.clone()));
         }
     }
 
     fn refresh(&mut self) {
         if let Some(row) = self.selected_row().cloned() {
-            self.send(Job::Read(row.entry));
+            self.send(Job::Read(row.path));
         }
     }
 
@@ -130,7 +141,7 @@ impl App {
     fn send_write(&mut self, setting: Setting, restore: bool) {
         if let Some(row) = self.selected_row().cloned() {
             self.send(Job::Write {
-                entry: row.entry,
+                path: row.path,
                 setting,
                 opts: WriteOpts {
                     confirmed: self.confirm_conflict,
@@ -149,9 +160,16 @@ impl App {
     /// Apply worker replies. Runs only when a repaint was requested.
     fn drain(&mut self) {
         while let Ok(reply) = self.replies.try_recv() {
-            self.pending = self.pending.saturating_sub(1);
+            if reply.is_answer() {
+                self.pending = self.pending.saturating_sub(1);
+            }
             match reply {
-                Reply::Devices { list, conflict } => {
+                Reply::Backend(state) | Reply::Switched(state) => self.set_backend(state),
+                Reply::Devices {
+                    list,
+                    conflict,
+                    reselect,
+                } => {
                     self.conflict = conflict;
                     match list {
                         Ok(rows) => {
@@ -164,6 +182,10 @@ impl App {
                         }
                     }
                     let keep = self.selected_row().cloned();
+                    if keep.is_some() && !reselect {
+                        // Hotplug of another device: the panel stays as it is.
+                        continue;
+                    }
                     let auto = || self.devices.iter().find(|d| d.supported()).cloned();
                     match keep.or_else(auto) {
                         Some(row) => self.select(&row),
@@ -193,6 +215,34 @@ impl App {
                     }
                 }
             }
+        }
+        while let Ok(msg) = self.events.try_recv() {
+            match msg {
+                SubMsg::Event(ev) => {
+                    let selected = self.selected.as_deref();
+                    match backend::apply_event(selected, &mut self.snapshot, ev) {
+                        EventEffect::Rescan => self.send(Job::Scan { reselect: false }),
+                        EventEffect::Note(n) => self.agent_note = Some(n),
+                        EventEffect::Updated | EventEffect::Nothing => {}
+                    }
+                }
+                // A stale end (the worker already left the agent) changes nothing.
+                SubMsg::Ended(reason) => {
+                    if self.backend.as_ref().is_some_and(BackendState::is_agent) {
+                        self.send(Job::UseLocal(reason));
+                    }
+                }
+            }
+        }
+    }
+
+    /// New backend; list devices again when it serves a different set.
+    fn set_backend(&mut self, state: BackendState) {
+        let rescan = backend::needs_rescan(self.backend.as_ref(), &state);
+        self.backend = Some(state);
+        self.agent_note = None;
+        if rescan {
+            self.send(Job::Scan { reselect: true });
         }
     }
 
@@ -228,13 +278,33 @@ impl App {
                 .add_enabled(!self.busy(), egui::Button::new("Rescan devices"))
                 .clicked()
             {
-                self.send(Job::Scan);
+                self.send(Job::Scan { reselect: true });
+            }
+            ui.separator();
+            match &self.backend {
+                None => {
+                    ui.label("Backend: connecting...");
+                }
+                Some(state) => {
+                    ui.label(state.label());
+                    if !state.is_agent()
+                        && ui
+                            .add_enabled(!self.busy(), egui::Button::new("Reconnect to agent"))
+                            .clicked()
+                    {
+                        self.send(Job::Connect);
+                    }
+                }
             }
             if self.busy() {
                 ui.label("Working...");
             }
         });
-        if let Some(name) = self.conflict {
+        let note = self.backend.as_ref().and_then(BackendState::note);
+        for n in note.into_iter().chain(self.agent_note.as_deref()) {
+            ui.label(RichText::new(n).weak());
+        }
+        if let Some(name) = &self.conflict {
             ui.colored_label(
                 WARN,
                 format!(
@@ -259,8 +329,8 @@ impl App {
         }
         let mut clicked = None;
         for row in &self.devices {
-            let selected = self.selected.as_ref() == Some(&row.entry.path);
-            let mut text = format!("{}\n{:04X}", row.name(), row.entry.pid);
+            let selected = self.selected.as_ref() == Some(&row.path);
+            let mut text = format!("{}\n{:04X}", row.name(), row.pid);
             if !row.supported() {
                 text.push_str(&format!(" - protocol {} (not supported)", row.protocol));
             }
@@ -281,7 +351,7 @@ impl App {
         };
         ui.horizontal(|ui| {
             ui.heading(row.name());
-            ui.label(format!("({:04X})", row.entry.pid));
+            ui.label(format!("({:04X})", row.pid));
             if ui
                 .add_enabled(!self.busy(), egui::Button::new("Refresh"))
                 .clicked()
