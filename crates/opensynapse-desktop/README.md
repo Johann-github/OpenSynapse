@@ -1,8 +1,17 @@
 # opensynapse-desktop
 
 Optional native GUI (egui via eframe, OpenGL renderer `glow`). Binary: `opensynapse-desktop`.
-First slice: talks to the device in-process on a worker thread; a background agent with
-IPC comes later ([[Architecture/Crates]]).
+Uses the background agent ([[Architecture/Agent]], [[Decisions/ADR-0005 Agent IPC]]) when
+it runs, else talks to the device in-process on a worker thread ([[Architecture/Crates]]).
+
+- Backend (`src/backend.rs`, `src/worker.rs`): at start `Client::connect()`; no agent
+  (`NotFound`) means direct HID. The top bar shows "Backend: agent (pid N)" or "Backend:
+  direct HID", and on direct HID a "Reconnect to agent" button (no automatic retries).
+  With the agent, list/read/write go over IPC (`src/remote.rs` converts wire types to the
+  GUI model); the agent keeps the same guards. A second thread holds a `Subscribe`
+  connection: device arrival/removal lists devices again, battery and DPI events update
+  the panel in place. When the subscription or a control call breaks, the GUI switches to
+  direct HID and says so.
 
 - Left: control collections from `opensynapse-hid` with names from the device registry.
   Only protocol 2.5 devices can be selected.
@@ -33,4 +42,4 @@ wgpu, no persistence, no clipboard/links, no network, no telemetry. No continuou
 repaint: the window redraws on input, and the HID thread blocks on its job channel and
 requests one repaint per finished job.
 
-Release exe (Windows, 2026-11-10): 4.4 MB.
+Release exe (Windows, 2026-11-10): 4.5 MB (with IPC client).

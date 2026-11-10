@@ -15,6 +15,7 @@ opensynapse-hid.workspace = true
 opensynapse-protocol.workspace = true
 opensynapse-device-registry.workspace = true
 opensynapse-device.workspace = true
+opensynapse-ipc.workspace = true
 # Lean (ADR-0002): no wgpu, no accesskit, no persistence/serde, no clipboard/links,
 # no system fonts. `glow` (OpenGL) is the smallest native renderer; `default_fonts`
 # is needed to draw any text.

@@ -1776,6 +1776,7 @@ dependencies = [
  "opensynapse-device",
  "opensynapse-device-registry",
  "opensynapse-hid",
+ "opensynapse-ipc",
  "opensynapse-protocol",
 ]
 

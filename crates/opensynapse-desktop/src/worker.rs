@@ -1,33 +1,54 @@
-//! HID worker thread: owns the transport and the open session, so device I/O
-//! (25 ms pacing per report) never blocks the UI.
+//! Worker thread: owns the backend, so device I/O (25 ms pacing per report, or an
+//! IPC round trip) never blocks the UI.
 //!
-//! The thread sleeps in `recv()` until the UI sends a job; after each reply it
-//! asks egui for one repaint. No timers, no polling.
+//! Two backends ([`crate::backend`]): the background agent over IPC when it runs,
+//! else in-process HID (the transport and the open session live here). With the
+//! agent, a second thread holds a `Subscribe` connection and forwards its events.
+//!
+//! Both threads sleep in a blocking `recv()`/read until something happens; after
+//! each reply or event they ask egui for one repaint. No timers, no polling.
 
+use std::collections::HashMap;
+use std::io;
 use std::sync::mpsc::{Receiver, Sender, channel};
 
+use eframe::egui::Context;
 use opensynapse_device_registry::{Device, Protocol, RAZER_VID, Registry};
 use opensynapse_hid::{DEFAULT_INTERFACE, DeviceSession, HidEntry, Timing, Transport};
+use opensynapse_ipc::Client;
+use opensynapse_ipc::msg::{DeviceRef, ErrorKind, Event, IpcError, Reply as IpcReply, Request};
 
+use crate::backend::{self, BackendState};
 use crate::ops::{self, Setting, Snapshot, WriteFailure, WriteOpts, WriteOutcome};
+use crate::remote;
 
 pub enum Job {
-    /// Enumerate devices and check for conflicting Razer software.
-    Scan,
-    /// Read the whole panel of one device.
-    Read(HidEntry),
+    /// Try the agent; fall back to direct HID.
+    Connect,
+    /// The event subscription ended: drop the agent, use direct HID.
+    UseLocal(Option<String>),
+    /// List devices and check for conflicting Razer software. `reselect`: read
+    /// the selected device again even if it is still there.
+    Scan { reselect: bool },
+    /// Read the whole panel of one device (by control-collection path).
+    Read(String),
     /// Guarded write (see [`ops::guarded_write`]).
     Write {
-        entry: HidEntry,
+        path: String,
         setting: Setting,
         opts: WriteOpts,
     },
 }
 
 pub enum Reply {
+    /// Answer to `Connect` / `UseLocal`.
+    Backend(BackendState),
+    /// Not an answer: the agent connection broke during a job.
+    Switched(BackendState),
     Devices {
         list: Result<Vec<DeviceRow>, String>,
-        conflict: Option<&'static str>,
+        conflict: Option<String>,
+        reselect: bool,
     },
     Snapshot {
         path: String,
@@ -36,25 +57,41 @@ pub enum Reply {
     Written {
         path: String,
         result: Result<WriteOutcome, WriteFailure>,
-        conflict: Option<&'static str>,
+        conflict: Option<String>,
     },
+}
+
+impl Reply {
+    /// Answers one job (the UI counts pending jobs).
+    pub fn is_answer(&self) -> bool {
+        !matches!(self, Self::Switched(_))
+    }
+}
+
+/// From the event thread.
+pub enum SubMsg {
+    Event(Event),
+    /// The subscription ended; the error, if it was not a clean close.
+    Ended(Option<String>),
 }
 
 /// One control collection plus what the registry knows about it.
 #[derive(Clone)]
 pub struct DeviceRow {
-    pub entry: HidEntry,
+    pub path: String,
+    pub pid: u16,
     pub device: Option<&'static Device>,
     pub protocol: Protocol,
 }
 
 impl DeviceRow {
-    fn new(entry: HidEntry) -> Self {
-        let m = Registry::embedded().lookup(RAZER_VID, entry.pid);
+    pub fn new(path: String, pid: u16) -> Self {
+        let m = Registry::embedded().lookup(RAZER_VID, pid);
         Self {
             device: m.map(|m| m.device()),
             protocol: m.map_or(Protocol::Unknown, |m| m.protocol()),
-            entry,
+            path,
+            pid,
         }
     }
 
@@ -70,90 +107,179 @@ impl DeviceRow {
 }
 
 /// Start the worker. Dropping the returned `Sender` ends the thread.
-pub fn spawn(ctx: eframe::egui::Context) -> (Sender<Job>, Receiver<Reply>) {
+pub fn spawn(ctx: Context) -> (Sender<Job>, Receiver<Reply>, Receiver<SubMsg>) {
     let (job_tx, job_rx) = channel::<Job>();
     let (reply_tx, reply_rx) = channel::<Reply>();
+    let (event_tx, event_rx) = channel::<SubMsg>();
     std::thread::Builder::new()
-        .name("opensynapse-hid".into())
+        .name("opensynapse-worker".into())
         .spawn(move || {
-            let mut w = Worker::default();
+            let mut w = Worker {
+                ctx: ctx.clone(),
+                events: event_tx,
+                backend: Backend::Local(Local::default()),
+            };
             while let Ok(job) = job_rx.recv() {
-                if reply_tx.send(w.handle(job)).is_err() {
+                let (reply, switched) = w.handle(job);
+                let sent = switched
+                    .into_iter()
+                    .map(Reply::Switched)
+                    .chain([reply])
+                    .all(|r| reply_tx.send(r).is_ok());
+                if !sent {
                     break;
                 }
                 ctx.request_repaint();
             }
         })
-        .expect("spawn HID worker thread");
-    (job_tx, reply_rx)
+        .expect("spawn worker thread");
+    (job_tx, reply_rx, event_rx)
 }
 
-#[derive(Default)]
+/// Forward agent events until the agent closes the connection.
+fn spawn_subscription(tx: Sender<SubMsg>, ctx: Context) {
+    let run = move || {
+        let end = match Client::subscribe() {
+            Ok(sub) => {
+                let mut end = None;
+                for ev in sub {
+                    match ev {
+                        Ok(e) => {
+                            if tx.send(SubMsg::Event(e)).is_err() {
+                                return; // the window is gone
+                            }
+                            ctx.request_repaint();
+                        }
+                        Err(e) => end = Some(e.to_string()),
+                    }
+                }
+                end
+            }
+            Err(e) => Some(e.to_string()),
+        };
+        let _ = tx.send(SubMsg::Ended(end));
+        ctx.request_repaint();
+    };
+    if let Err(e) = std::thread::Builder::new()
+        .name("opensynapse-events".into())
+        .spawn(run)
+    {
+        // Without events the agent still works; the user can rescan by hand.
+        eprintln!("cannot start the event thread: {e}");
+    }
+}
+
+enum Backend {
+    Local(Local),
+    Agent(Agent),
+}
+
 struct Worker {
+    ctx: Context,
+    events: Sender<SubMsg>,
+    backend: Backend,
+}
+
+impl Worker {
+    /// The job's answer, plus the new backend if the agent connection broke.
+    fn handle(&mut self, job: Job) -> (Reply, Option<BackendState>) {
+        match job {
+            Job::Connect => {
+                let (client, state) = backend::select(Client::connect(), Client::agent_pid);
+                if let Some(client) = client {
+                    self.backend = Backend::Agent(Agent {
+                        client,
+                        conflict: None,
+                    });
+                    spawn_subscription(self.events.clone(), self.ctx.clone());
+                } else if matches!(self.backend, Backend::Agent(_)) {
+                    self.backend = Backend::Local(Local::default());
+                }
+                (Reply::Backend(state), None)
+            }
+            Job::UseLocal(reason) => {
+                self.backend = Backend::Local(Local::default());
+                (Reply::Backend(backend::lost(reason.as_deref())), None)
+            }
+            job => {
+                let result = match &mut self.backend {
+                    Backend::Local(l) => Ok(l.handle(job)),
+                    Backend::Agent(a) => a.handle(job),
+                };
+                match result {
+                    Ok(reply) => (reply, None),
+                    Err(broken) => {
+                        let (reply, e) = *broken;
+                        self.backend = Backend::Local(Local::default());
+                        (reply, Some(backend::lost(Some(&e.to_string()))))
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// In-process HID.
+#[derive(Default)]
+struct Local {
     transport: Option<Transport>,
+    /// Control collections from the last scan, by path.
+    entries: HashMap<String, HidEntry>,
     /// Path of the open collection and its session.
     session: Option<(String, DeviceSession)>,
 }
 
-impl Worker {
+impl Local {
     fn handle(&mut self, job: Job) -> Reply {
+        let conflict = || opensynapse_hid::conflicting_process().map(str::to_owned);
         match job {
-            Job::Scan => {
+            Job::Connect | Job::UseLocal(_) => unreachable!("handled by the worker"),
+            Job::Scan { reselect } => {
                 self.session = None;
                 self.transport = None;
+                self.entries.clear();
                 let list = Transport::new()
                     .map(|t| {
-                        let rows = t
-                            .control_entries(DEFAULT_INTERFACE)
-                            .into_iter()
-                            .map(DeviceRow::new)
-                            .collect();
+                        let entries = t.control_entries(DEFAULT_INTERFACE);
                         self.transport = Some(t);
-                        rows
+                        entries
+                            .into_iter()
+                            .map(|e| {
+                                let row = DeviceRow::new(e.path.clone(), e.pid);
+                                self.entries.insert(e.path.clone(), e);
+                                row
+                            })
+                            .collect()
                     })
                     .map_err(|e| format!("cannot enumerate HID devices: {e}"));
                 Reply::Devices {
                     list,
-                    conflict: opensynapse_hid::conflicting_process(),
+                    conflict: conflict(),
+                    reselect,
                 }
             }
-            Job::Read(entry) => {
-                let result = self
-                    .session(&entry)
-                    .and_then(|(_, s)| ops::read_snapshot(s));
+            Job::Read(path) => {
+                let result = self.session(&path).and_then(|(_, s)| ops::read_snapshot(s));
                 if result.is_err() {
                     // Reopen next time; the device may have been replugged.
                     self.session = None;
                 }
-                Reply::Snapshot {
-                    path: entry.path,
-                    result,
-                }
+                Reply::Snapshot { path, result }
             }
             Job::Write {
-                entry,
+                path,
                 setting,
                 opts,
             } => {
-                let conflict = opensynapse_hid::conflicting_process();
-                let result = match self.session(&entry) {
+                let conflict = conflict();
+                let result = match self.session(&path) {
                     Ok((row, s)) => {
-                        if row.supported() {
-                            ops::guarded_write(s, setting, row.device, conflict, opts)
-                        } else {
-                            Err(WriteFailure {
-                                old: None,
-                                message: format!(
-                                    "protocol {} is not implemented; writes are disabled",
-                                    row.protocol
-                                ),
-                            })
-                        }
+                        ops::guarded_write(s, setting, row.device, conflict.as_deref(), opts)
                     }
                     Err(message) => Err(WriteFailure { old: None, message }),
                 };
                 Reply::Written {
-                    path: entry.path,
+                    path,
                     result,
                     conflict,
                 }
@@ -161,9 +287,14 @@ impl Worker {
         }
     }
 
-    /// Open (or reuse) the session for `entry`.
-    fn session(&mut self, entry: &HidEntry) -> Result<(DeviceRow, &mut DeviceSession), String> {
-        let row = DeviceRow::new(entry.clone());
+    /// Open (or reuse) the session for the collection at `path`. Refuses devices
+    /// whose protocol is not implemented.
+    fn session(&mut self, path: &str) -> Result<(DeviceRow, &mut DeviceSession), String> {
+        let entry = self
+            .entries
+            .get(path)
+            .ok_or_else(|| "device is gone; rescan".to_owned())?;
+        let row = DeviceRow::new(entry.path.clone(), entry.pid);
         if !row.supported() {
             return Err(format!(
                 "{} speaks protocol {}; only 2.5 is implemented",
@@ -171,7 +302,7 @@ impl Worker {
                 row.protocol
             ));
         }
-        if self.session.as_ref().is_none_or(|(p, _)| *p != entry.path) {
+        if self.session.as_ref().is_none_or(|(p, _)| p != path) {
             self.session = None;
             if self.transport.is_none() {
                 self.transport =
@@ -181,9 +312,118 @@ impl Worker {
             let s = t
                 .open(entry, Timing::default())
                 .map_err(|e| format!("cannot open device: {e}"))?;
-            self.session = Some((entry.path.clone(), s));
+            self.session = Some((path.to_owned(), s));
         }
         let (_, s) = self.session.as_mut().expect("set above");
         Ok((row, s))
+    }
+}
+
+/// The background agent over a `Control` connection. It keeps the same guards
+/// (validate, conflict gate, read old -> write -> read back).
+struct Agent {
+    client: Client,
+    /// Razer software reported by the last `ListDevices`.
+    conflict: Option<String>,
+}
+
+// Boxed: a broken connection is rare, the reply is large.
+type Broken = Box<(Reply, io::Error)>;
+
+impl Agent {
+    /// `Err` when the connection broke; the reply then carries that error.
+    fn handle(&mut self, job: Job) -> Result<Reply, Broken> {
+        let lost = |e: &io::Error| format!("agent connection lost: {e}");
+        match job {
+            Job::Connect | Job::UseLocal(_) => unreachable!("handled by the worker"),
+            Job::Scan { reselect } => match self.client.call(Request::ListDevices) {
+                Ok(r) => {
+                    let list = match r {
+                        Ok(IpcReply::Devices { list, conflict }) => {
+                            self.conflict = conflict;
+                            Ok(list
+                                .into_iter()
+                                .map(|d| DeviceRow::new(d.path, d.pid))
+                                .collect())
+                        }
+                        Ok(other) => Err(format!("agent sent an unexpected reply: {other:?}")),
+                        Err(IpcError { message, .. }) => Err(message),
+                    };
+                    Ok(Reply::Devices {
+                        list,
+                        conflict: self.conflict.clone(),
+                        reselect,
+                    })
+                }
+                Err(e) => Err(Box::new((
+                    Reply::Devices {
+                        list: Err(lost(&e)),
+                        conflict: None,
+                        reselect,
+                    },
+                    e,
+                ))),
+            },
+            Job::Read(path) => {
+                let req = Request::ReadSnapshot {
+                    device: DeviceRef::Path(path.clone()),
+                };
+                match self.client.call(req) {
+                    Ok(r) => Ok(Reply::Snapshot {
+                        path,
+                        result: remote::snapshot_reply(r),
+                    }),
+                    Err(e) => Err(Box::new((
+                        Reply::Snapshot {
+                            path,
+                            result: Err(lost(&e)),
+                        },
+                        e,
+                    ))),
+                }
+            }
+            Job::Write {
+                path,
+                setting,
+                opts,
+            } => {
+                let req = Request::Write {
+                    device: DeviceRef::Path(path.clone()),
+                    setting: remote::setting_to_wire(setting),
+                    opts: remote::opts_to_wire(opts),
+                };
+                match self.client.call(req) {
+                    Ok(r) => {
+                        if matches!(&r, Err(e) if e.kind == ErrorKind::Conflict) {
+                            // Razer software started since the last list: learn
+                            // its name so the UI offers the confirmation box.
+                            if let Ok(Ok(IpcReply::Devices { conflict, .. })) =
+                                self.client.call(Request::ListDevices)
+                            {
+                                self.conflict = conflict;
+                            }
+                        }
+                        Ok(Reply::Written {
+                            path,
+                            result: remote::written_reply(r),
+                            conflict: self.conflict.clone(),
+                        })
+                    }
+                    Err(e) => Err(Box::new((
+                        Reply::Written {
+                            path,
+                            // Unknown whether the agent wrote; the read after
+                            // the switch shows the device's value.
+                            result: Err(WriteFailure {
+                                old: None,
+                                message: lost(&e),
+                            }),
+                            conflict: None,
+                        },
+                        e,
+                    ))),
+                }
+            }
+        }
     }
 }

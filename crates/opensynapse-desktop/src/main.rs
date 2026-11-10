@@ -1,13 +1,16 @@
 //! OpenSynapse desktop GUI. See README.md.
 //!
-//! Talks to the device in-process on a worker thread (a background agent with IPC
-//! comes later). Lean by design: no network, no telemetry, no continuous repaint.
+//! Uses the background agent over IPC when it runs, else talks to the device
+//! in-process on a worker thread. Lean by design: no network, no telemetry, no
+//! continuous repaint.
 
 // No console window behind the GUI in release builds on Windows.
 #![cfg_attr(all(windows, not(debug_assertions)), windows_subsystem = "windows")]
 
 mod app;
+mod backend;
 mod ops;
+mod remote;
 mod worker;
 
 fn main() -> eframe::Result {
