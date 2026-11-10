@@ -3,12 +3,17 @@
 //! egui only repaints on input or when the worker calls `request_repaint`, so the
 //! window costs no CPU while idle.
 
+use std::collections::HashMap;
 use std::sync::mpsc::{Receiver, Sender};
 
 use eframe::egui::{self, Color32, RichText, Ui};
-use opensynapse_protocol::dpi::Dpi;
+use opensynapse_protocol::buttons::Mode;
+use opensynapse_protocol::dpi::{self, Dpi};
 
-use crate::ops::{self, Field, Setting, Snapshot, WriteFailure, WriteOutcome};
+use crate::ops::{
+    self, ActionEdit, ActionKind, ButtonRow, Field, Setting, Snapshot, WriteFailure, WriteOpts,
+    WriteOutcome,
+};
 use crate::worker::{self, DeviceRow, Job, Reply};
 
 const WARN: Color32 = Color32::from_rgb(0xE0, 0x9A, 0x20);
@@ -44,6 +49,17 @@ pub struct App {
     dpi_input: u16,
     polling_input: u32,
     sleep_input: u16,
+    /// "Allow editing left/right click" (off at start, never remembered).
+    allow_primary: bool,
+    /// Action editor state per (button, mode) slot.
+    button_edits: HashMap<(u8, Mode), ActionEdit>,
+    /// Keys offered by the key combo, computed once.
+    key_choices: Vec<(u8, String)>,
+    modifier_choices: Vec<(u8, &'static str)>,
+    /// Stage editor: DPI per stage, 0-based active position, storage choice.
+    stage_values: Vec<u16>,
+    stage_active: usize,
+    stage_persistent: bool,
 }
 
 impl App {
@@ -64,6 +80,13 @@ impl App {
             dpi_input: 800,
             polling_input: 1000,
             sleep_input: 300,
+            allow_primary: false,
+            button_edits: HashMap::new(),
+            key_choices: ops::key_choices(),
+            modifier_choices: ops::modifier_choices(),
+            stage_values: Vec::new(),
+            stage_active: 0,
+            stage_persistent: false,
         };
         app.send(Job::Scan);
         app
@@ -100,11 +123,20 @@ impl App {
     }
 
     fn write(&mut self, setting: Setting) {
+        self.send_write(setting, false);
+    }
+
+    /// `restore`: write back a value read from the device (see [`WriteOpts`]).
+    fn send_write(&mut self, setting: Setting, restore: bool) {
         if let Some(row) = self.selected_row().cloned() {
             self.send(Job::Write {
                 entry: row.entry,
                 setting,
-                confirmed: self.confirm_conflict,
+                opts: WriteOpts {
+                    confirmed: self.confirm_conflict,
+                    allow_primary: self.allow_primary,
+                    restore,
+                },
             });
         }
     }
@@ -174,6 +206,17 @@ impl App {
         }
         if let Ok(v) = s.sleep {
             self.sleep_input = v;
+        }
+        if let Ok(st) = &s.stages {
+            self.stage_values = st.stages.iter().map(|x| x.dpi.x).collect();
+            self.stage_active = st.active_index().unwrap_or(0);
+        }
+        self.button_edits.clear();
+        for list in [&s.buttons_normal, &s.buttons_hypershift] {
+            for a in list.iter().flatten() {
+                self.button_edits
+                    .insert((a.button, a.mode), ActionEdit::from_assignment(a));
+            }
         }
     }
 
@@ -258,7 +301,7 @@ impl App {
             }
             Some(Ok(s)) => s.clone(),
         };
-        egui::ScrollArea::vertical().show(ui, |ui| {
+        egui::ScrollArea::both().show(ui, |ui| {
             section(ui, "Device", |ui| {
                 grid(ui, "device", |ui| {
                     kv(ui, "Firmware", snap.firmware.to_string());
@@ -279,27 +322,7 @@ impl App {
             self.dpi_section(ui, &row, &snap);
             self.polling_section(ui, &row, &snap);
             self.power_section(ui, &snap);
-            section(ui, "Buttons", |ui| {
-                grid(ui, "buttons", |ui| {
-                    for (b, a) in &snap.buttons {
-                        let text = field(a, |r| {
-                            let a = &r.assignment;
-                            match a.known() {
-                                Some(k) => k.to_string(),
-                                None => format!("function {}, data {:?}", a.function, a.data),
-                            }
-                        });
-                        kv(ui, &format!("Button {b}"), text);
-                    }
-                });
-                ui.label(
-                    RichText::new(format!(
-                        "Profile {}, normal mode. Editing comes later.",
-                        ops::BUTTON_PROFILE
-                    ))
-                    .weak(),
-                );
-            });
+            self.buttons_section(ui, &snap);
         });
     }
 
@@ -307,32 +330,24 @@ impl App {
         section(ui, "DPI", |ui| {
             grid(ui, "dpi", |ui| {
                 kv(ui, "Current DPI", field(&snap.dpi, |d| d.to_string()));
-                let stages = field(&snap.stages, |s| {
-                    s.stages
-                        .iter()
-                        .map(|st| {
-                            if st.id == s.active {
-                                format!("[{}]", st.dpi)
-                            } else {
-                                st.dpi.to_string()
-                            }
-                        })
-                        .collect::<Vec<_>>()
-                        .join("  ")
-                });
-                kv(ui, "Stages ([active])", stages);
+                kv(
+                    ui,
+                    "Stages ([active])",
+                    field(&snap.stages, ops::stages_text),
+                );
             });
             let d = row.device;
             let min = d.and_then(|d| d.dpi_min).unwrap_or(100);
             let max = d.and_then(|d| d.dpi_max).unwrap_or(30000);
             let step = d.and_then(|d| d.dpi_step).unwrap_or(50);
+            let g = DpiGrid {
+                min: clamp_u16(min),
+                max: clamp_u16(max),
+                step: clamp_u16(step),
+            };
             ui.horizontal(|ui| {
                 ui.label("Set DPI");
-                ui.add(
-                    egui::DragValue::new(&mut self.dpi_input)
-                        .range(clamp_u16(min)..=clamp_u16(max))
-                        .speed(f64::from(step) / 4.0),
-                );
+                g.drag(ui, &mut self.dpi_input);
                 ui.label(RichText::new(format!("{min}-{max}, step {step}; volatile")).weak());
                 if ui
                     .add_enabled(self.may_write(), egui::Button::new("Apply"))
@@ -341,7 +356,188 @@ impl App {
                     self.write(Setting::Dpi(Dpi::uniform(self.dpi_input)));
                 }
             });
+            if let Ok(st) = &snap.stages {
+                self.stage_editor(ui, g, ops::stage_limit(st.stages.len()));
+            }
         });
+    }
+
+    /// Editable stage list: values, add/remove, active stage, Apply (04/06).
+    fn stage_editor(&mut self, ui: &mut Ui, g: DpiGrid, limit: usize) {
+        ui.separator();
+        ui.label(RichText::new("DPI stages").strong());
+        let len = self.stage_values.len();
+        let mut remove = None;
+        for i in 0..len {
+            ui.horizontal(|ui| {
+                ui.radio_value(&mut self.stage_active, i, format!("Stage {}", i + 1));
+                g.drag(ui, &mut self.stage_values[i]);
+                if ui
+                    .add_enabled(len > 1, egui::Button::new("Remove"))
+                    .clicked()
+                {
+                    remove = Some(i);
+                }
+            });
+        }
+        if let Some(i) = remove {
+            self.stage_values.remove(i);
+            if self.stage_active > i || self.stage_active >= self.stage_values.len() {
+                self.stage_active = self.stage_active.saturating_sub(1);
+            }
+        }
+        let stages = ops::stages_from(&self.stage_values, self.stage_active);
+        ui.horizontal(|ui| {
+            if ui
+                .add_enabled(
+                    self.stage_values.len() < limit,
+                    egui::Button::new("Add stage"),
+                )
+                .clicked()
+            {
+                let last = self.stage_values.last().copied().unwrap_or(g.min);
+                let next = last.saturating_mul(2);
+                self.stage_values
+                    .push(ops::snap_dpi(next, g.min, g.max, g.step));
+            }
+            ui.checkbox(&mut self.stage_persistent, "Persistent");
+            let ok = stages.is_ok();
+            if ui
+                .add_enabled(self.may_write() && ok, egui::Button::new("Apply stages"))
+                .clicked()
+                && let Ok(stages) = stages
+            {
+                let storage = if self.stage_persistent {
+                    dpi::Storage::Persistent
+                } else {
+                    dpi::Storage::Volatile
+                };
+                self.write(Setting::DpiStages { storage, stages });
+            }
+        });
+        let storage = if self.stage_persistent {
+            "persistent: survives power-off"
+        } else {
+            "volatile: lost on power-off"
+        };
+        ui.label(
+            RichText::new(format!(
+                "Up to {limit} stages; {storage}. The active stage's DPI becomes the current DPI."
+            ))
+            .weak(),
+        );
+    }
+
+    fn buttons_section(&mut self, ui: &mut Ui, snap: &Snapshot) {
+        section(ui, "Buttons", |ui| {
+            for (mode, list) in [
+                (Mode::Normal, &snap.buttons_normal),
+                (Mode::HyperShift, &snap.buttons_hypershift),
+            ] {
+                if let Err(e) = list {
+                    ui.colored_label(BAD, format!("{mode} mode list: n/a ({e})"));
+                }
+            }
+            let normal = snap.buttons_normal.as_deref().unwrap_or(&[]);
+            let hyper = snap.buttons_hypershift.as_deref().unwrap_or(&[]);
+            let rows = ops::button_rows(normal, hyper);
+            ui.checkbox(
+                &mut self.allow_primary,
+                "Allow editing left/right click (without left click the mouse is hard to use)",
+            );
+            egui::Grid::new("buttons")
+                .num_columns(3)
+                .spacing([16.0, 8.0])
+                .striped(true)
+                .show(ui, |ui| {
+                    ui.label(RichText::new("Button").strong());
+                    ui.label(RichText::new("Normal").strong());
+                    ui.label(RichText::new("HyperShift").strong());
+                    ui.end_row();
+                    for row in &rows {
+                        ui.label(ops::button_name(row.button));
+                        for mode in [Mode::Normal, Mode::HyperShift] {
+                            self.button_cell(ui, row, mode);
+                        }
+                        ui.end_row();
+                    }
+                });
+            ui.label(
+                RichText::new(format!(
+                    "Profile {}. Apply writes one slot: read old, write, read back.",
+                    ops::BUTTON_PROFILE
+                ))
+                .weak(),
+            );
+        });
+    }
+
+    /// Current action plus editor (action combo, key + modifiers, Apply) for one slot.
+    fn button_cell(&mut self, ui: &mut Ui, row: &ButtonRow, mode: Mode) {
+        let Some(current) = row.slot(mode) else {
+            ui.label("n/a");
+            return;
+        };
+        let slot = (row.button, mode);
+        let from_device = ActionEdit::from_assignment(current);
+        let mut edit = self.button_edits.get(&slot).copied().unwrap_or(from_device);
+        let locked = ops::PRIMARY_BUTTONS.contains(&row.button) && !self.allow_primary;
+        let mut apply = None;
+        let salt = (row.button, mode as u8);
+        ui.vertical(|ui| {
+            ui.label(RichText::new(format!("now: {}", ops::action_text(current))).weak());
+            ui.add_enabled_ui(!locked, |ui| {
+                ui.horizontal(|ui| {
+                    egui::ComboBox::from_id_salt(("action", salt))
+                        .width(130.0)
+                        .selected_text(edit.kind.label())
+                        .show_ui(ui, |ui| {
+                            for k in ActionKind::choices() {
+                                // "Other" only describes what the device holds.
+                                if k == ActionKind::Other && from_device.kind != k {
+                                    continue;
+                                }
+                                ui.selectable_value(&mut edit.kind, k, k.label());
+                            }
+                        });
+                    let new = edit.to_assignment(row.button, mode);
+                    let changed = new.as_ref().is_some_and(|a| a != current);
+                    if ui
+                        .add_enabled(self.may_write() && changed, egui::Button::new("Apply"))
+                        .clicked()
+                    {
+                        apply = new;
+                    }
+                });
+                if edit.kind == ActionKind::Key {
+                    ui.horizontal(|ui| {
+                        let name = self
+                            .key_choices
+                            .iter()
+                            .find(|(u, _)| *u == edit.usage)
+                            .map_or_else(|| format!("{:#04x}", edit.usage), |(_, n)| n.clone());
+                        egui::ComboBox::from_id_salt(("key", salt))
+                            .width(70.0)
+                            .selected_text(name)
+                            .show_ui(ui, |ui| {
+                                for (u, n) in &self.key_choices {
+                                    ui.selectable_value(&mut edit.usage, *u, n);
+                                }
+                            });
+                        for &(bit, label) in &self.modifier_choices {
+                            let mut on = edit.modifiers & bit != 0;
+                            if ui.checkbox(&mut on, label).changed() {
+                                edit.modifiers ^= bit;
+                            }
+                        }
+                    });
+                }
+            });
+        });
+        self.button_edits.insert(slot, edit);
+        if let Some(a) = apply {
+            self.write(Setting::Button(a));
+        }
     }
 
     fn polling_section(&mut self, ui: &mut Ui, row: &DeviceRow, snap: &Snapshot) {
@@ -426,11 +622,11 @@ impl App {
                         ),
                     );
                 }
-                (o.old != o.now).then_some(o.old)
+                (o.old != o.now).then(|| o.old.clone())
             }
             Err(f) => {
                 ui.colored_label(BAD, format!("Write not done: {}", f.message));
-                f.old
+                f.old.clone()
             }
         };
         if let Some(old) = restore {
@@ -439,7 +635,7 @@ impl App {
                 .add_enabled(self.may_write(), egui::Button::new(label))
                 .clicked()
             {
-                self.write(old);
+                self.send_write(old, true);
             }
         }
         ui.separator();
@@ -483,6 +679,28 @@ fn field<T>(f: &Field<T>, show: impl FnOnce(&T) -> String) -> String {
     match f {
         Ok(v) => show(v),
         Err(e) => format!("n/a ({e})"),
+    }
+}
+
+/// DPI range and step from the registry.
+#[derive(Clone, Copy)]
+struct DpiGrid {
+    min: u16,
+    max: u16,
+    step: u16,
+}
+
+impl DpiGrid {
+    /// DragValue that snaps to the registry grid once the user lets go.
+    fn drag(self, ui: &mut Ui, v: &mut u16) {
+        let r = ui.add(
+            egui::DragValue::new(v)
+                .range(self.min..=self.max)
+                .speed(f64::from(self.step) / 4.0),
+        );
+        if !r.dragged() && !r.has_focus() {
+            *v = ops::snap_dpi(*v, self.min, self.max, self.step);
+        }
     }
 }
 
