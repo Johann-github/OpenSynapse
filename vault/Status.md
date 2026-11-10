@@ -24,15 +24,18 @@ State at end of 2026-11-10: phase 3 done except "off"/"DPI down" captures; phase
 - Mouse state: defaults, DPI 800 (stage 2), 1000 Hz, sleep 300 s.
 → [[RE-Log/2026-11-10 Onboard button test]], [[RE-Log/2026-11-10 Button capture key and DPI]], [[Decisions/ADR-0004 GUI toolkit egui]]
 
+- Agent slice 1 done (2026-11-10): `opensynapse-agent` + `opensynapse-ipc` (named pipe, own codec) +
+  `opensynapse-device` + CLI `agent ping|devices|snapshot|watch|stop`. Hardware-tested: 9.2 MB RAM, idle CPU 0,
+  hotplug events work. → [[RE-Log/2026-11-10 Agent slice 1 test]], [[Architecture/Agent]]
+
 Next tasks, in order:
-1. ✅ `profile apply` skips unchanged settings (`--all` forces). ✅ GUI button editor (normal + HyperShift,
-   left/right click locked) and DPI stage editor; user-tested a HyperShift key write + Restore on 2026-11-10.
-2. Open from the GUI agent: the DPI button (96) holds function 6 data `[06]` (unknown, maybe "cycle stages");
-   the registry has no stage count (GUI caps at 5); 02/8E only page 0 read (meaning of idOffset unknown).
-3. Captures for "off" and "DPI down" (USBPcap3; stop right after the clicks, the dongle hangs → replug).
-   Decode: `tshark -r <file> -Y "usb.device_address == 9 && usb.data_len == 98" -T fields -e frame.time_relative -e usb.data_fragment`.
-4. Background agent (`opensynapse-agent`, event-driven) + IPC; measure GUI idle CPU/RAM.
-5. Power-cycle test: does a button assignment survive unplugging the dongle?
+1. **Event collection discovery**: `opensynapse hid collections` dump (VID 1532, read-only), probe read-openable
+   collections while pressing the DPI button; then `HidInputEvents: EventSource` (battery/DPI events without polling).
+2. **ApplyProfile in the agent**: move the apply engine from `opensynapse-cli/src/profile.rs` into `opensynapse-device`.
+3. **GUI over IPC**: desktop worker uses the agent if running, else in-process HID.
+4. Autostart (HKCU Run, `windows_subsystem`), refuse elevated start; then per-app profiles.
+5. Captures for "off" and "DPI down"; power-cycle test for button assignments.
+6. Mouse asleep → friendlier error ("move the mouse to wake it").
 
 Before every commit: `cargo fmt --all --check && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace`.
 
@@ -73,6 +76,8 @@ Before every commit: `cargo fmt --all --check && cargo clippy --workspace --all-
 | CLI binary (release) | < 5 MB | 1.16 MB | ✅ |
 | `opensynapse list` | < 200 ms | 75–84 ms | ✅ |
 | GUI binary (release) | < 10 MB (own target) | 4.4 MB | ✅ |
+| Agent RAM idle | < 15 MB | 9.2 MB WS / 2.0 MB private | ✅ |
+| Agent CPU idle | ~0 % | 0 s over 169 s | ✅ |
 | device command (`dpi get`) | — | 133–162 ms | |
 
 The first build missed the `list` budget (245–285 ms) because hidapi scans every HID

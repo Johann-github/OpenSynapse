@@ -1,0 +1,40 @@
+# Agent
+
+The process `opensynapse-agent` owns all HID sessions. The CLI and GUI talk to it as clients.
+Decisions: [[Decisions/ADR-0005 Agent IPC]], [[Decisions/ADR-0002 Lean by design]].
+
+## Threads
+No async runtime; every thread blocks in the kernel when idle.
+- **Core actor:** owns the device list and all sessions and serves requests from a channel one
+  at a time. HID access is serialised here and nowhere else.
+- **Accept thread:** waits on the pipe and starts a connection thread. A `Waker` unblocks it on shutdown.
+- **One thread per connection:**
+  - Control: forwards each request to the core and writes the response.
+  - Subscribe: writes the core's events to the client.
+- **Hotplug:** the `CM_Register_Notification` callback (OS thread) posts "rescan" to the core.
+  A burst of notifications becomes one rescan.
+
+## Connection roles
+The role is fixed in the `Hello`/`Welcome` handshake, which also checks the protocol version.
+- `Control`: strict request → response. Requests: `Ping`, `ListDevices`, `ReadSnapshot`, `Write`,
+  `ApplyProfile` (slice 2), `Shutdown`.
+- `Subscribe`: events from server to client only. Events: `DeviceArrived`, `DeviceRemoved`,
+  `Battery`, `DpiChanged`, `Hardware`, `Error`, `ShuttingDown`.
+
+One role per connection avoids overlapped I/O. Frames are a u32 LE length plus a versioned
+binary codec, max 1 MiB (`opensynapse-ipc`).
+
+## Security
+- The pipe name contains the user SID. The DACL is protected and allows only the current user.
+- `PIPE_REJECT_REMOTE_CLIENTS`. The client checks that the server process runs as the same user.
+- `FILE_FLAG_FIRST_PIPE_INSTANCE` makes the agent single-instance.
+- No network.
+- Writes keep the GUI's guards (`opensynapse-device`): read old → write → read back, restore,
+  and a confirm flag while Razer software runs.
+
+## Budgets
+Idle CPU ~0 % (no polling, no timers), < 15 MB RAM idle, IPC uses only std + `windows-sys`.
+
+## Clients
+- CLI: `opensynapse agent ping|devices|snapshot|watch|stop` (`crates/opensynapse-cli/src/agent.rs`).
+- GUI: same `opensynapse-ipc::Client` (slice 3).
