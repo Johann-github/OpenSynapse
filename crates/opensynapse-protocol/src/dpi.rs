@@ -71,6 +71,27 @@ pub struct DpiStages {
     pub stages: Vec<DpiStage>,
 }
 
+impl DpiStages {
+    /// Position (0-based) of the active stage in `stages`, or `None` if no stage has
+    /// the active ID.
+    pub fn active_index(&self) -> Option<usize> {
+        self.stages.iter().position(|s| s.id == self.active)
+    }
+
+    /// The same stages with the one at `index` (0-based position) marked active.
+    /// Only the active byte changes; stage IDs and DPI values stay as they are.
+    pub fn with_active(&self, index: usize) -> Result<Self, ProtocolError> {
+        let stage = self
+            .stages
+            .get(index)
+            .ok_or(ProtocolError::Range("DPI stage index"))?;
+        Ok(Self {
+            active: stage.id,
+            stages: self.stages.clone(),
+        })
+    }
+}
+
 const STAGE_LEN: usize = 7;
 const STAGES_HEADER: usize = 3;
 /// Most stages that fit in the 80-byte argument area.
@@ -173,6 +194,24 @@ mod tests {
         assert_eq!(r.data_size(), 7 * 3 + 3);
         assert_eq!(&r.args()[..10], &[1, 2, 3, 1, 0x01, 0x90, 0x01, 0x90, 0, 0]);
         assert_eq!(parse_dpi_stages(r.args()).unwrap(), sample());
+    }
+
+    #[test]
+    fn with_active_changes_only_active_byte() {
+        let s = sample();
+        assert_eq!(s.active_index(), Some(1));
+        let t = s.with_active(0).unwrap();
+        assert_eq!((t.active, t.active_index()), (1, Some(0)));
+        assert_eq!(t.stages, s.stages);
+        let r = set_dpi_stages(Storage::Volatile, &t).unwrap().encode(0);
+        assert_eq!(&r.args()[..3], &[0, 1, 3]);
+        // Active is the stage ID, not the position.
+        let mut odd = s.clone();
+        odd.stages[2].id = 9;
+        assert_eq!(odd.with_active(2).unwrap().active, 9);
+        assert!(s.with_active(3).is_err());
+        odd.active = 7;
+        assert_eq!(odd.active_index(), None);
     }
 
     #[test]

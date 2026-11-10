@@ -40,8 +40,11 @@ pub enum Command {
         #[command(subcommand)]
         action: DpiAction,
     },
-    /// Show the DPI stages stored on the device.
-    DpiStages,
+    /// Show the DPI stages (default) or set the active stage.
+    DpiStages {
+        #[command(subcommand)]
+        action: Option<DpiStagesAction>,
+    },
     /// Read or set the polling rate.
     Polling {
         #[command(subcommand)]
@@ -79,6 +82,27 @@ pub enum DpiAction {
         /// Store on the device (storage byte 1, survives power-off) instead of volatile (0).
         #[arg(long)]
         persistent: bool,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum DpiStagesAction {
+    /// Show the stages; `*` marks the active one.
+    Get {
+        /// Read the persistent copy (storage byte 1) instead of the volatile one (0).
+        #[arg(long)]
+        persistent: bool,
+    },
+    /// Make another stage active. Without --apply this only shows what would be sent.
+    Set {
+        /// Position of the stage in the list, 1 = first.
+        #[arg(long, value_parser = clap::value_parser!(u8).range(1..))]
+        active: u8,
+        /// Store on the device (storage byte 1, survives power-off) instead of volatile (0).
+        #[arg(long)]
+        persistent: bool,
+        #[command(flatten)]
+        write: WriteOpts,
     },
 }
 
@@ -215,17 +239,15 @@ pub fn run(cli: Cli) -> Result<()> {
                 persistent,
             } => dpi_set(&mut dev, x, y.unwrap_or(x), persistent, write),
         },
-        Command::DpiStages => {
-            let s = dev.query(
-                &dpi::get_dpi_stages(dpi::Storage::Volatile),
-                dpi::parse_dpi_stages,
-            )?;
-            for st in &s.stages {
-                let mark = if st.id == s.active { "*" } else { " " };
-                println!("{mark} stage {}: {}", st.id, st.dpi);
-            }
-            Ok(())
-        }
+        Command::DpiStages { action } => match action {
+            None => dpi_stages_get(&mut dev, false),
+            Some(DpiStagesAction::Get { persistent }) => dpi_stages_get(&mut dev, persistent),
+            Some(DpiStagesAction::Set {
+                active,
+                persistent,
+                write,
+            }) => dpi_stages_set(&mut dev, active, persistent, write),
+        },
         Command::Polling {
             action,
             variant,
@@ -355,11 +377,7 @@ fn dpi_set(dev: &mut Target, x: u16, y: u16, persistent: bool, write: WriteOpts)
             }
         }
     }
-    let storage = if persistent {
-        dpi::Storage::Persistent
-    } else {
-        dpi::Storage::Volatile
-    };
+    let storage = storage(persistent);
     let old = dev.query(&dpi::get_dpi(storage), dpi::parse_dpi)?;
     let new = dpi::Dpi { x, y };
     dev.write(
@@ -380,6 +398,116 @@ fn dpi_set(dev: &mut Target, x: u16, y: u16, persistent: bool, write: WriteOpts)
             new,
             "",
         )?;
+    }
+    Ok(())
+}
+
+fn storage(persistent: bool) -> dpi::Storage {
+    if persistent {
+        dpi::Storage::Persistent
+    } else {
+        dpi::Storage::Volatile
+    }
+}
+
+fn dpi_stages_get(dev: &mut Target, persistent: bool) -> Result<()> {
+    let s = dev.query(
+        &dpi::get_dpi_stages(storage(persistent)),
+        dpi::parse_dpi_stages,
+    )?;
+    for (i, st) in s.stages.iter().enumerate() {
+        let mark = if st.id == s.active { "*" } else { " " };
+        // The CLI addresses stages by position; show it when it differs from the ID.
+        let pos = if usize::from(st.id) == i + 1 {
+            String::new()
+        } else {
+            format!(" (position {})", i + 1)
+        };
+        println!("{mark} stage {}: {}{pos}", st.id, st.dpi);
+    }
+    Ok(())
+}
+
+/// The stages with the stage at 1-based position `n` made active.
+fn requested_stages(old: &dpi::DpiStages, n: u8) -> Result<dpi::DpiStages> {
+    let count = old.stages.len();
+    if n == 0 || usize::from(n) > count {
+        bail!("stage {n} does not exist; the device has {count} stages (1-{count})");
+    }
+    Ok(old.with_active(usize::from(n) - 1)?)
+}
+
+/// 1-based position of the active stage, or the raw ID if no stage has it.
+fn active_label(s: &dpi::DpiStages) -> String {
+    match s.active_index() {
+        Some(i) => (i + 1).to_string(),
+        None => format!("? (ID {} matches no stage)", s.active),
+    }
+}
+
+/// CLI arguments that make the active stage of `old` active again, or `None` if its
+/// active ID matches no stage.
+fn stages_restore(old: &dpi::DpiStages, persistent: bool) -> Option<String> {
+    let i = old.active_index()?;
+    Some(format!(
+        "dpi-stages set --active {}{} --apply",
+        i + 1,
+        if persistent { " --persistent" } else { "" }
+    ))
+}
+
+fn dpi_stages_set(dev: &mut Target, n: u8, persistent: bool, write: WriteOpts) -> Result<()> {
+    let storage = storage(persistent);
+    let old = dev.query(&dpi::get_dpi_stages(storage), dpi::parse_dpi_stages)?;
+    let new = requested_stages(&old, n)?;
+    let req = dpi::set_dpi_stages(storage, &new)?;
+    let restore = stages_restore(&old, persistent);
+    if restore.is_none() {
+        println!(
+            "Note: the current active stage ID {} matches no stage; write it down to restore it later.",
+            old.active
+        );
+    }
+    let before = dev.query(&dpi::get_dpi(dpi::Storage::Volatile), dpi::parse_dpi)?;
+    println!("Current DPI (04/85): {before}");
+    dev.write(
+        write,
+        &format!(
+            "active DPI stage {} -> {}",
+            active_label(&old),
+            active_label(&new)
+        ),
+        restore.as_deref().unwrap_or(""),
+        &req,
+    )?;
+    if write.apply {
+        if restore.is_none() {
+            println!(
+                "To restore: not possible with the CLI (old active stage ID {}).",
+                old.active
+            );
+        }
+        let now = dev.query(&dpi::get_dpi_stages(storage), dpi::parse_dpi_stages)?;
+        if now.stages != new.stages {
+            bail!("DPI stage list changed after the write: {now:?}, expected {new:?}");
+        }
+        verify(
+            "active DPI stage",
+            active_label(&now),
+            active_label(&new),
+            "",
+        )?;
+        // Unknown whether setting the active stage also applies its DPI; show it.
+        let after = dev.query(&dpi::get_dpi(dpi::Storage::Volatile), dpi::parse_dpi)?;
+        let stage_dpi = new.stages[usize::from(n) - 1].dpi;
+        let verdict = if after == before {
+            "unchanged"
+        } else if after == stage_dpi {
+            "now equals the stage DPI"
+        } else {
+            "changed, but not to the stage DPI"
+        };
+        println!("Current DPI (04/85): {after} ({verdict}; stage {n} is {stage_dpi}).");
     }
     Ok(())
 }
@@ -723,6 +851,102 @@ mod tests {
             "--apply",
         ]);
         assert!(cli.is_ok());
+    }
+
+    fn parse_stages(args: &[&str]) -> Result<Option<DpiStagesAction>> {
+        let argv = ["opensynapse", "dpi-stages"]
+            .into_iter()
+            .chain(args.iter().copied());
+        let Command::DpiStages { action } = Cli::try_parse_from(argv)?.command else {
+            panic!("parsed wrong command")
+        };
+        Ok(action)
+    }
+
+    fn stages(active: u8, ids: &[u8]) -> dpi::DpiStages {
+        dpi::DpiStages {
+            active,
+            stages: ids
+                .iter()
+                .map(|&id| dpi::DpiStage {
+                    id,
+                    dpi: dpi::Dpi::uniform(400 * u16::from(id)),
+                })
+                .collect(),
+        }
+    }
+
+    #[test]
+    fn dpi_stages_parsing() {
+        // Backward compatible: no subcommand still reads.
+        assert!(parse_stages(&[]).unwrap().is_none());
+        assert!(matches!(
+            parse_stages(&["get"]).unwrap(),
+            Some(DpiStagesAction::Get { persistent: false })
+        ));
+        let Some(DpiStagesAction::Set {
+            active,
+            persistent,
+            write,
+        }) = parse_stages(&["set", "--active", "1"]).unwrap()
+        else {
+            panic!("parsed wrong action")
+        };
+        assert_eq!(active, 1);
+        assert!(!persistent && !write.apply && !write.force);
+        let Some(DpiStagesAction::Set {
+            persistent, write, ..
+        }) = parse_stages(&["set", "--active", "3", "--persistent", "--apply", "--force"]).unwrap()
+        else {
+            panic!("parsed wrong action")
+        };
+        assert!(persistent && write.apply && write.force);
+        assert!(parse_stages(&["set"]).is_err());
+        assert!(parse_stages(&["set", "--active", "0"]).is_err());
+        assert!(parse_stages(&["set", "--active", "x"]).is_err());
+    }
+
+    #[test]
+    fn dpi_stages_request() {
+        let old = stages(5, &[1, 2, 3, 4, 5]);
+        let new = requested_stages(&old, 1).unwrap();
+        assert_eq!(new.active, 1);
+        assert_eq!(new.stages, old.stages);
+        assert_eq!(
+            (active_label(&old), active_label(&new)),
+            ("5".into(), "1".into())
+        );
+        assert!(requested_stages(&old, 0).is_err());
+        assert!(requested_stages(&old, 6).is_err());
+        // Positions, not IDs.
+        let odd = stages(7, &[3, 7]);
+        assert_eq!(requested_stages(&odd, 1).unwrap().active, 3);
+        assert_eq!(active_label(&odd), "2");
+    }
+
+    #[test]
+    fn dpi_stages_restore_command() {
+        assert_eq!(
+            stages_restore(&stages(5, &[1, 2, 3, 4, 5]), false).as_deref(),
+            Some("dpi-stages set --active 5 --apply")
+        );
+        assert_eq!(
+            stages_restore(&stages(7, &[3, 7]), true).as_deref(),
+            Some("dpi-stages set --active 2 --persistent --apply")
+        );
+        assert_eq!(stages_restore(&stages(9, &[1, 2]), false), None);
+        // The restore command parses back and selects the old stage again.
+        let old = stages(4, &[1, 2, 3, 4, 5]);
+        let cmd = stages_restore(&old, true).unwrap();
+        let args: Vec<&str> = cmd.split(' ').skip(1).collect();
+        let Some(DpiStagesAction::Set {
+            active, persistent, ..
+        }) = parse_stages(&args).unwrap()
+        else {
+            panic!("parsed wrong action")
+        };
+        assert!(persistent);
+        assert_eq!(requested_stages(&old, active).unwrap(), old);
     }
 
     fn parse_buttons_set(args: &[&str]) -> Result<(ButtonAssignment, WriteOpts)> {
