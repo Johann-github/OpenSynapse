@@ -15,6 +15,8 @@ use opensynapse_protocol::{
 };
 
 pub mod hotplug;
+#[cfg(windows)]
+mod windows_hotplug;
 
 #[cfg(not(windows))]
 mod hidapi_backend;
