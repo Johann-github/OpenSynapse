@@ -11,7 +11,8 @@ value types only.
   strict `bool` 0/1, `u32`-length strings (validated UTF-8) and lists (count never
   larger than the bytes left), `Option` 0/1, `Result` 0 Ok / 1 Err, an explicit tag
   per enum variant that is never reused. The decoder must consume the whole body.
-  A layout change bumps `PROTOCOL_VERSION`.
+  A layout change bumps `PROTOCOL_VERSION`. Version 3 added `ErrorKind::NoResponse` (tag 7:
+  the device did not answer, e.g. a sleeping mouse; [[Decisions/ADR-0008 User settings and wake hint]]).
 - `frame`: `u32` LE length + body, at most 1 MiB. Clean close → `UnexpectedEof`,
   oversize → `InvalidData`.
 - `transport`: Windows named pipe `\\.\pipe\opensynapse-agent-<user SID>` with a

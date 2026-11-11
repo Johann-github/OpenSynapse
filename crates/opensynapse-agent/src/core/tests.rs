@@ -103,6 +103,21 @@ fn failed_snapshot_drops_session() {
     assert_eq!(c.session_count(), 0);
 }
 
+/// A sleeping mouse (status Timeout to every report) keeps its class over IPC.
+#[test]
+fn asleep_snapshot_is_no_response() {
+    let (mut c, m) = with_viper();
+    m.state().asleep = true;
+    let e = c
+        .handle(Request::ReadSnapshot {
+            device: DeviceRef::Pid(VIPER_PID),
+        })
+        .unwrap_err();
+    assert_eq!(e.kind, ErrorKind::NoResponse, "{}", e.message);
+    assert!(opensynapse_hid::is_no_response_text(&e.message));
+    assert_eq!(c.session_count(), 0);
+}
+
 #[test]
 fn verified_write_returns_old() {
     let (mut c, m) = with_viper();
@@ -424,4 +439,13 @@ fn list_rescans_without_hotplug() {
         panic!("expected Devices");
     };
     assert_eq!(list.len(), 1);
+}
+
+#[test]
+fn asleep_apply_is_no_response() {
+    let (mut c, m) = with_viper();
+    m.state().asleep = true;
+    let e = c.handle(apply_req(POLLING_500, false, false)).unwrap_err();
+    assert_eq!(e.kind, ErrorKind::NoResponse, "{}", e.message);
+    assert_eq!(m.writes(), 0);
 }

@@ -40,8 +40,6 @@ const USAGE: &str = "usage: opensynapse-agent [--pipe <name>] [--no-events] [--a
      --no-events            do not listen for device hardware events (also OPENSYNAPSE_AGENT_NO_EVENTS=1)\n  \
      --app-profiles <file>  per-app rules file (default %APPDATA%\\OpenSynapse\\app-profiles.toml)\n  \
      --allow-elevated       run even as administrator (only for systems without UAC)";
-/// Rules file name inside `%APPDATA%\OpenSynapse` (ADR-0007).
-const APP_PROFILES_FILE: &str = "app-profiles.toml";
 /// Environment switch equivalent to `--no-events`.
 const NO_EVENTS_ENV: &str = "OPENSYNAPSE_AGENT_NO_EVENTS";
 /// Exit codes shared with the CLI and GUI (`opensynapse_sys::agent_exit`).
@@ -85,12 +83,8 @@ fn parse_args(mut it: impl Iterator<Item = String>) -> Result<Args, String> {
 
 /// `%APPDATA%\OpenSynapse\app-profiles.toml`, from the `APPDATA` value.
 fn default_app_profiles(appdata: Option<&str>) -> Option<PathBuf> {
-    let dir = appdata.filter(|d| !d.trim().is_empty())?;
-    Some(
-        PathBuf::from(dir)
-            .join("OpenSynapse")
-            .join(APP_PROFILES_FILE),
-    )
+    opensynapse_sys::config::dir_from(appdata)
+        .map(|d| d.join(opensynapse_sys::config::APP_PROFILES_FILE))
 }
 
 /// `1`, `true`, `yes`, `on` (any case) switch an environment flag on.

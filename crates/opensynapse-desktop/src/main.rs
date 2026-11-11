@@ -12,6 +12,7 @@ mod app;
 mod backend;
 mod ops;
 mod remote;
+mod user_settings;
 mod worker;
 
 fn main() -> eframe::Result {

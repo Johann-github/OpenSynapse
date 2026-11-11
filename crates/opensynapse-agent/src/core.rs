@@ -52,6 +52,16 @@ fn error_chain(e: &dyn std::error::Error) -> String {
     s
 }
 
+/// `Device`, or `NoResponse` when the device did not answer at all (asleep).
+/// `message` is the full text; the class comes from `opensynapse-hid`.
+fn device_kind(message: &str) -> ErrorKind {
+    if opensynapse_hid::is_no_response_text(message) {
+        ErrorKind::NoResponse
+    } else {
+        ErrorKind::Device
+    }
+}
+
 fn err(kind: ErrorKind, message: impl Into<String>) -> IpcError {
     IpcError {
         kind,
@@ -240,7 +250,7 @@ impl<H: Hardware> Core<H> {
                     Err(message) => {
                         // Reopen next time; the device may have been replugged.
                         self.sessions.remove(&path);
-                        Err(err(ErrorKind::Device, message))
+                        Err(err(device_kind(&message), message))
                     }
                 }
             }
@@ -369,7 +379,7 @@ impl<H: Hardware> Core<H> {
                     ApplyError::Read { .. } | ApplyError::Write { .. } => {
                         // Reopen next time; the device may have been replugged.
                         self.sessions.remove(path);
-                        ErrorKind::Device
+                        device_kind(&error_chain(&e))
                     }
                     _ => ErrorKind::BadRequest,
                 };

@@ -50,6 +50,33 @@ pub enum HidError {
     Status(Status),
     #[error("no answer after {attempts} attempts (last problem: {last})")]
     Exhausted { attempts: u32, last: String },
+    /// Every send was used up and the last reply carried status Timeout (0x04).
+    /// A wireless mouse behind its dongle answers like this while it sleeps
+    /// (observed 2026-11-10, `vault/RE-Log/2026-11-10 Agent slice 1 test.md`);
+    /// out of range or switched off look the same. Never retried further here.
+    #[error("{msg} (status Timeout after {attempts} attempts)", msg = NO_RESPONSE)]
+    NoResponse { attempts: u32 },
+}
+
+/// Stable start of the [`HidError::NoResponse`] text. Errors cross string
+/// boundaries (snapshot fields, write failures, IPC messages); this phrase lets
+/// those layers still recognise the class via [`is_no_response_text`]. Owner of
+/// the "device asleep" classification: this crate. See
+/// `vault/Decisions/ADR-0008 User settings and wake hint.md`.
+pub const NO_RESPONSE: &str = "no response from the device";
+
+impl HidError {
+    /// The device did not answer at all (status Timeout until the retries ran
+    /// out): typically a sleeping wireless mouse.
+    pub fn is_no_response(&self) -> bool {
+        matches!(self, Self::NoResponse { .. })
+    }
+}
+
+/// True when an error message (possibly wrapped: `cannot read DPI: …`) carries
+/// the [`HidError::NoResponse`] text.
+pub fn is_no_response_text(message: &str) -> bool {
+    message.contains(NO_RESPONSE)
 }
 
 /// One HID collection of a Razer device, as enumerated.
@@ -206,11 +233,14 @@ impl<D: FeatureIo> Session<D> {
         let report = request.encode(self.counter.next_id());
         let wire = report.to_feature_report();
         let mut last = String::from("none");
+        // The last attempt ended with status Timeout: classify as NoResponse.
+        let mut timed_out = false;
         for attempt in 0..self.timing.max_out {
             if attempt > 0 {
                 std::thread::sleep(self.timing.between_out);
             }
             tracing::debug!(?report, attempt, "send");
+            timed_out = false;
             if let Err(e) = self.io.send_feature(&wire) {
                 last = e.to_string();
                 continue;
@@ -220,7 +250,16 @@ impl<D: FeatureIo> Session<D> {
                 Outcome::Done(reply) => return Ok(reply),
                 Outcome::Fail(status) => return Err(HidError::Status(status)),
                 Outcome::Resend(reason) => last = reason,
+                Outcome::TimedOut => {
+                    last = format!("status {:?}", Status::Timeout);
+                    timed_out = true;
+                }
             }
+        }
+        if timed_out {
+            return Err(HidError::NoResponse {
+                attempts: self.timing.max_out,
+            });
         }
         Err(HidError::Exhausted {
             attempts: self.timing.max_out,
@@ -250,6 +289,9 @@ impl<D: FeatureIo> Session<D> {
             match reply.status().disposition() {
                 Disposition::Done => return Outcome::Done(reply),
                 Disposition::Poll => {}
+                Disposition::Resend if reply.status() == Status::Timeout => {
+                    return Outcome::TimedOut;
+                }
                 Disposition::Resend => {
                     return Outcome::Resend(format!("status {:?}", reply.status()));
                 }
@@ -263,6 +305,8 @@ impl<D: FeatureIo> Session<D> {
 enum Outcome {
     Done(Report),
     Resend(String),
+    /// Resend because the reply said Timeout (kept apart for [`HidError::NoResponse`]).
+    TimedOut,
     Fail(Status),
 }
 

@@ -17,6 +17,9 @@ opensynapse-device-registry.workspace = true
 opensynapse-device.workspace = true
 opensynapse-ipc.workspace = true
 opensynapse-sys.workspace = true
+# `Settings` (settings.toml, wake hint), shared with the CLI; adds serde + toml,
+# already in the workspace. ADR-0008.
+opensynapse-core.workspace = true
 # Lean (ADR-0002): no wgpu, no accesskit, no persistence/serde, no clipboard/links,
 # no system fonts. `glow` (OpenGL) is the smallest native renderer; `default_fonts`
 # is needed to draw any text.

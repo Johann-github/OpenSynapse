@@ -126,6 +126,41 @@ fn gives_up_after_max_out() {
     assert_eq!(m.sent.borrow().len(), 3);
 }
 
+/// A sleeping wireless mouse: the dongle answers status Timeout (0x04) to
+/// every send (observed 2026-11-10, Agent slice 1 test).
+#[test]
+fn timeout_every_time_is_no_response() {
+    let m = Mock::with(&[Reply::Status(0x04); 3]);
+    let mut s = Session::new(&m, fast());
+    let err = s.execute(&get_firmware_version()).unwrap_err();
+    assert!(matches!(err, HidError::NoResponse { attempts: 3 }), "{err}");
+    assert!(err.is_no_response());
+    assert!(is_no_response_text(&format!("cannot read DPI: {err}")));
+    assert_eq!(m.sent.borrow().len(), 3);
+}
+
+#[test]
+fn timeout_then_success_is_ok() {
+    let m = Mock::with(&[Reply::Status(0x04), Reply::Status(0x02)]);
+    let mut s = Session::new(&m, fast());
+    assert!(s.execute(&get_firmware_version()).is_ok());
+}
+
+#[test]
+fn last_attempt_decides_the_class() {
+    // Timeouts first, then a plain failure: not the sleep class.
+    let m = Mock::with(&[
+        Reply::Status(0x04),
+        Reply::Status(0x04),
+        Reply::Status(0x03),
+    ]);
+    let mut s = Session::new(&m, fast());
+    let err = s.execute(&get_firmware_version()).unwrap_err();
+    assert!(matches!(err, HidError::Exhausted { .. }), "{err}");
+    assert!(!err.is_no_response());
+    assert!(!is_no_response_text(&err.to_string()));
+}
+
 #[test]
 fn short_read_resends() {
     let m = Mock::with(&[Reply::Short, Reply::Status(0x02)]);

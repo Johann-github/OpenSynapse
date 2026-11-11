@@ -24,4 +24,7 @@ named pipe. Decisions: [[Decisions/ADR-0005 Agent IPC]], [[Decisions/ADR-0006 Ag
 - Per-app profiles: `%APPDATA%\OpenSynapse\app-profiles.toml`; missing = off, invalid = off
   with an error log. Switches use volatile DPI stages and skip-unchanged, never force, and do
   nothing while Razer software runs. `opensynapse agent app-profiles [reload]`.
+- A device that does not answer (`opensynapse_hid::HidError::NoResponse`, e.g. asleep) is
+  reported as `ErrorKind::NoResponse` for snapshot and apply; the agent never shows the wake
+  hint itself and does not read `settings.toml`. [[Decisions/ADR-0008 User settings and wake hint]]
 - Tests run the core against fake mice only; they never touch real hardware.

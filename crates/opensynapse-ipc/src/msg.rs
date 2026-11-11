@@ -11,7 +11,8 @@ use opensynapse_protocol::power::{BatteryLevel, ChargingStatus};
 
 /// Wire protocol version, exchanged in the handshake.
 /// 2: per-app profiles (`ReloadAppProfiles`, `AppProfiles`, `Event::AppProfile`).
-pub const PROTOCOL_VERSION: u16 = 2;
+/// 3: `ErrorKind::NoResponse` (device did not answer, e.g. asleep).
+pub const PROTOCOL_VERSION: u16 = 3;
 
 /// What a connection is for, fixed in the handshake.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -233,6 +234,9 @@ pub enum ErrorKind {
     Unsupported,
     Conflict,
     Device,
+    /// The device did not answer at all (`opensynapse_hid::HidError::NoResponse`):
+    /// typically a sleeping wireless mouse. Clients may show a wake hint.
+    NoResponse,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

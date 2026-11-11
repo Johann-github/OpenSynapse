@@ -52,7 +52,7 @@ Variable-length commands set byte 5 explicitly: DPI stages `7·n+3`, Chroma effe
 | 0x01 | Command Busy | poll GET again (≤ maxRetryIn), then resend | observed |
 | 0x02 | Command Successful | done | observed |
 | 0x03 | Command Failure | failure, resend SET (≤ maxRetryOut) | observed |
-| 0x04 | No Response / Timeout | failure, resend; ignored for *Set Device Mode* when configured | observed |
+| 0x04 | No Response / Timeout | failure, resend; ignored for *Set Device Mode* when configured. On hardware: the dongle answers this while the wireless mouse sleeps ([[RE-Log/2026-11-10 Agent slice 1 test]], OpenSynapse maps it to `HidError::NoResponse`, [[Decisions/ADR-0008 User settings and wake hint]]) | observed |
 | 0x05 | Command Not Supported | failure, no resend | observed |
 | 0x06 | Profile Not Supported | failure, no resend | observed |
 | 0x07 | Target ID Not Supported | same | observed |
