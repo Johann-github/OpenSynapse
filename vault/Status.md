@@ -17,16 +17,15 @@ updated: 2026-11-11
 
 ## ▶ Resume here (handoff 2026-11-11 → next session)
 Mouse state at end of day: DPI 800 (stages 400/800, active 2), 1000 Hz, sleep 300 s, button 4 = mouse
-button 4, wake hint off, `app-profiles.toml` with 0 rules, agent running from `target\release`
-(autostart on, Run key points at `target\release\opensynapse-agent.exe`). Synapse autostart is off.
-`main` is pushed (c4ef50f). The install WIP branch is local only.
+button 4, wake hint off, `app-profiles.toml` with 0 rules. Agent installed and running from
+`%LOCALAPPDATA%\Programs\OpenSynapse` (autostart points there). Synapse autostart is off.
 
 **Next, in order:**
 1. ✅ **Install (ADR-0009)** done 2026-11-11: `opensynapse install|uninstall`, location
    `%LOCALAPPDATA%\Programs\OpenSynapse`, agent/autostart/GUI prefer the installed agent. Tested
-   end-to-end with `--dir` + `--no-autostart`. **User step pending:** run
-   `target\release\opensynapse.exe install` once (unpiped; writes the Run key), then check
-   `agent autostart` shows the installed path and the GUI "Start agent" works.
+   end-to-end with `--dir` + `--no-autostart`. ✅ User ran the real install (2026-11-11): 3 files
+   copied, Run key moved from `target\release` to the installed agent, installed agent running
+   (ping OK). After a rebuild, run `target\release\opensynapse.exe install` again to update.
    → [[Decisions/ADR-0009 Install location]]
 2. **User check: buttons in the per-app profile editor** (merged, unit-tested): open a rule's
    Settings → Buttons, set Side button 4 = DPI down, Save, check the TOML and the switch. Reset DPI to 800 after.
