@@ -12,6 +12,16 @@ it runs, else talks to the device in-process on a worker thread ([[Architecture/
   connection: device arrival/removal lists devices again, battery and DPI events update
   the panel in place. When the subscription or a control call breaks, the GUI switches to
   direct HID and says so.
+- Agent controls (`src/agent_ctl.rs` pure state/text, [[Decisions/ADR-0006 Agent autostart]]):
+  on direct HID a green "Start agent" button next to "Reconnect to agent". The worker
+  thread spawns the agent next to the GUI (`opensynapse_sys::spawn_agent_detached`, shared
+  with `opensynapse agent start`), waits at most 3 s for its pipe (startup only), then
+  switches to "Backend: agent". Exit code 3 shows "the agent refuses to run as
+  administrator"; other failures show as the backend note. Below the bar a "Start agent
+  at login" checkbox reads the per-user Run key at start and after each toggle (no
+  polling) and calls `autostart::enable`/`disable`. An entry for another binary shows a
+  warning and "Fix" (re-point it at this installation). Without the agent binary next to
+  the GUI the checkbox and button are disabled with a tooltip; errors are status lines.
 
 - Left: control collections from `opensynapse-hid` with names from the device registry.
   Only protocol 2.5 devices can be selected.
@@ -42,4 +52,4 @@ wgpu, no persistence, no clipboard/links, no network, no telemetry. No continuou
 repaint: the window redraws on input, and the HID thread blocks on its job channel and
 requests one repaint per finished job.
 
-Release exe (Windows, 2026-11-10): 4.5 MB (with IPC client).
+Release exe (Windows, 2026-11-11): 4.6 MB (with IPC client and agent controls).

@@ -4,12 +4,17 @@
 //! window costs no CPU while idle.
 
 use std::collections::HashMap;
+use std::io;
+use std::path::{Path, PathBuf};
 use std::sync::mpsc::{Receiver, Sender};
 
 use eframe::egui::{self, Color32, RichText, Ui};
 use opensynapse_protocol::buttons::Mode;
 use opensynapse_protocol::dpi::{self, Dpi};
 
+use opensynapse_sys::autostart;
+
+use crate::agent_ctl::{self, AutostartState};
 use crate::backend::{self, BackendState, EventEffect};
 use crate::ops::{
     self, ActionEdit, ActionKind, ButtonRow, Field, Setting, Snapshot, WriteFailure, WriteOpts,
@@ -44,6 +49,12 @@ pub struct App {
     backend: Option<BackendState>,
     /// Last message from the agent's event stream.
     agent_note: Option<String>,
+    /// The agent binary next to this GUI (what "Start agent" and autostart use).
+    agent_exe: Option<PathBuf>,
+    /// The Run-key entry, read at start and after each toggle (no polling).
+    autostart: AutostartState,
+    /// Result of the last autostart toggle.
+    autostart_msg: Option<Result<String, String>>,
     /// Jobs sent and not yet answered.
     pending: usize,
     devices: Vec<DeviceRow>,
@@ -73,12 +84,17 @@ impl App {
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         apply_accent(&cc.egui_ctx);
         let (jobs, replies, events) = worker::spawn(cc.egui_ctx.clone());
+        let agent_exe = opensynapse_sys::agent_exe().ok();
+        let autostart = read_autostart(agent_exe.as_deref());
         let mut app = Self {
             jobs,
             replies,
             events,
             backend: None,
             agent_note: None,
+            agent_exe,
+            autostart,
+            autostart_msg: None,
             pending: 0,
             devices: Vec::new(),
             scan_error: None,
@@ -287,12 +303,29 @@ impl App {
                 }
                 Some(state) => {
                     ui.label(state.label());
-                    if !state.is_agent()
-                        && ui
+                    if !state.is_agent() {
+                        let start =
+                            egui::Button::new(RichText::new("Start agent").color(Color32::WHITE))
+                                .fill(ACCENT);
+                        let can_start = !self.busy() && self.agent_exe.is_some();
+                        let r = ui.add_enabled(can_start, start);
+                        let r = if self.agent_exe.is_none() {
+                            r.on_disabled_hover_text(format!(
+                                "{} not found next to the GUI",
+                                opensynapse_sys::AGENT_EXE
+                            ))
+                        } else {
+                            r.on_hover_text("Start the background agent and switch to it")
+                        };
+                        if r.clicked() {
+                            self.send(Job::StartAgent);
+                        }
+                        if ui
                             .add_enabled(!self.busy(), egui::Button::new("Reconnect to agent"))
                             .clicked()
-                    {
-                        self.send(Job::Connect);
+                        {
+                            self.send(Job::Connect);
+                        }
                     }
                 }
             }
@@ -300,6 +333,7 @@ impl App {
                 ui.label("Working...");
             }
         });
+        self.autostart_row(ui);
         let note = self.backend.as_ref().and_then(BackendState::note);
         for n in note.into_iter().chain(self.agent_note.as_deref()) {
             ui.label(RichText::new(n).weak());
@@ -317,6 +351,65 @@ impl App {
                 "I understand the risk; allow writes anyway",
             );
         }
+    }
+
+    /// "Start agent at login" (per-user Run key, ADR-0006).
+    fn autostart_row(&mut self, ui: &mut Ui) {
+        let blocked = agent_ctl::autostart_blocked(&self.autostart, self.agent_exe.is_some());
+        let other = match &self.autostart {
+            AutostartState::Other(cmd) => Some(cmd.clone()),
+            _ => None,
+        };
+        ui.horizontal(|ui| {
+            let mut on = self.autostart.is_on();
+            let r = ui.add_enabled(
+                blocked.is_none(),
+                egui::Checkbox::new(&mut on, "Start agent at login"),
+            );
+            let r = match &blocked {
+                Some(why) => r.on_disabled_hover_text(why.as_str()),
+                None => r.on_hover_text("Per-user Run key; no admin rights, no service"),
+            };
+            if r.changed() {
+                self.set_autostart(on);
+            }
+            if let Some(cmd) = &other {
+                ui.colored_label(WARN, agent_ctl::other_binary_note(cmd));
+                if ui
+                    .add_enabled(self.agent_exe.is_some(), egui::Button::new("Fix"))
+                    .on_hover_text("Point autostart at the agent next to this GUI")
+                    .clicked()
+                {
+                    self.set_autostart(true);
+                }
+            }
+        });
+        if let AutostartState::Error(e) = &self.autostart {
+            ui.colored_label(BAD, e);
+        }
+        match &self.autostart_msg {
+            Some(Ok(m)) => {
+                ui.label(RichText::new(m).weak());
+            }
+            Some(Err(e)) => {
+                ui.colored_label(BAD, e);
+            }
+            None => {}
+        }
+    }
+
+    /// Write or remove the Run value, then read it back for the checkbox.
+    fn set_autostart(&mut self, on: bool) {
+        let r = match (on, &self.agent_exe) {
+            (true, Some(exe)) => autostart::enable(exe).map(|()| true),
+            (true, None) => Err(io::Error::new(
+                io::ErrorKind::NotFound,
+                format!("{} not found next to the GUI", opensynapse_sys::AGENT_EXE),
+            )),
+            (false, _) => autostart::disable(),
+        };
+        self.autostart_msg = Some(agent_ctl::toggle_result(on, r));
+        self.autostart = read_autostart(self.agent_exe.as_deref());
     }
 
     fn device_list(&mut self, ui: &mut Ui) {
@@ -776,4 +869,10 @@ impl DpiGrid {
 
 fn clamp_u16(v: u32) -> u16 {
     u16::try_from(v).unwrap_or(u16::MAX)
+}
+
+/// One registry read; cheap enough for the UI thread, done only at start and
+/// after a toggle.
+fn read_autostart(exe: Option<&Path>) -> AutostartState {
+    AutostartState::from_read(autostart::get(), exe)
 }

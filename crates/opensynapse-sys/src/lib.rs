@@ -35,6 +35,36 @@ pub fn agent_exe() -> io::Result<PathBuf> {
     }
 }
 
+/// Exit codes of `opensynapse-agent` that callers react to (owner: the agent's
+/// `main.rs`; mirrored here so CLI and GUI read them from one place).
+pub mod agent_exit {
+    /// Another agent already owns the pipe.
+    pub const ALREADY_RUNNING: i32 = 2;
+    /// The agent refuses to run with an elevated (administrator) token.
+    pub const ELEVATED: i32 = 3;
+}
+
+/// Start [`agent_exe`] detached: no window, no inherited console, null stdio, its
+/// own process group (Ctrl+C in the caller's terminal does not reach it). Does not
+/// wait; the caller decides how long to wait for the pipe.
+pub fn spawn_agent_detached() -> io::Result<std::process::Child> {
+    use std::process::{Command, Stdio};
+    let exe = agent_exe()?;
+    let mut cmd = Command::new(&exe);
+    cmd.stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null());
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        const DETACHED_PROCESS: u32 = 0x0000_0008;
+        const CREATE_NEW_PROCESS_GROUP: u32 = 0x0000_0200;
+        cmd.creation_flags(DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP);
+    }
+    cmd.spawn()
+        .map_err(|e| io::Error::new(e.kind(), format!("cannot start {}: {e}", exe.display())))
+}
+
 /// `true` when this process runs with an elevated (administrator) token.
 pub fn is_elevated() -> io::Result<bool> {
     #[cfg(windows)]

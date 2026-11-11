@@ -11,6 +11,7 @@
 use std::collections::HashMap;
 use std::io;
 use std::sync::mpsc::{Receiver, Sender, channel};
+use std::time::Instant;
 
 use eframe::egui::Context;
 use opensynapse_device_registry::{Device, Protocol, RAZER_VID, Registry};
@@ -18,6 +19,9 @@ use opensynapse_hid::{DEFAULT_INTERFACE, DeviceSession, HidEntry, Timing, Transp
 use opensynapse_ipc::Client;
 use opensynapse_ipc::msg::{DeviceRef, ErrorKind, Event, IpcError, Reply as IpcReply, Request};
 
+use opensynapse_sys::agent_exit;
+
+use crate::agent_ctl::{self, StartFailure};
 use crate::backend::{self, BackendState};
 use crate::ops::{self, Setting, Snapshot, WriteFailure, WriteOpts, WriteOutcome};
 use crate::remote;
@@ -25,6 +29,9 @@ use crate::remote;
 pub enum Job {
     /// Try the agent; fall back to direct HID.
     Connect,
+    /// Start the agent detached, wait briefly until it answers, then use it
+    /// (as `Connect`). Bounded wait on this thread, never on the UI thread.
+    StartAgent,
     /// The event subscription ended: drop the agent, use direct HID.
     UseLocal(Option<String>),
     /// List devices and check for conflicting Razer software. `reselect`: read
@@ -41,7 +48,7 @@ pub enum Job {
 }
 
 pub enum Reply {
-    /// Answer to `Connect` / `UseLocal`.
+    /// Answer to `Connect` / `StartAgent` / `UseLocal`.
     Backend(BackendState),
     /// Not an answer: the agent connection broke during a job.
     Switched(BackendState),
@@ -184,17 +191,11 @@ impl Worker {
     /// The job's answer, plus the new backend if the agent connection broke.
     fn handle(&mut self, job: Job) -> (Reply, Option<BackendState>) {
         match job {
-            Job::Connect => {
-                let (client, state) = backend::select(Client::connect(), Client::agent_pid);
-                if let Some(client) = client {
-                    self.backend = Backend::Agent(Agent {
-                        client,
-                        conflict: None,
-                    });
-                    spawn_subscription(self.events.clone(), self.ctx.clone());
-                } else if matches!(self.backend, Backend::Agent(_)) {
-                    self.backend = Backend::Local(Local::default());
-                }
+            Job::Connect => (Reply::Backend(self.connect()), None),
+            Job::StartAgent => {
+                let state = self.start_agent().unwrap_or_else(|f| BackendState::Local {
+                    note: Some(agent_ctl::start_failure_note(&f)),
+                });
                 (Reply::Backend(state), None)
             }
             Job::UseLocal(reason) => {
@@ -219,6 +220,56 @@ impl Worker {
     }
 }
 
+impl Worker {
+    /// Try the agent; keep or fall back to direct HID.
+    fn connect(&mut self) -> BackendState {
+        let (client, state) = backend::select(Client::connect(), Client::agent_pid);
+        if let Some(client) = client {
+            self.backend = Backend::Agent(Agent {
+                client,
+                conflict: None,
+            });
+            spawn_subscription(self.events.clone(), self.ctx.clone());
+        } else if matches!(self.backend, Backend::Agent(_)) {
+            self.backend = Backend::Local(Local::default());
+        }
+        state
+    }
+
+    /// Spawn the agent next to the GUI and connect once its pipe answers. Waits
+    /// at most [`agent_ctl::START_WAIT`]; a slow agent keeps running and can be
+    /// reached later with "Reconnect to agent".
+    fn start_agent(&mut self) -> Result<BackendState, StartFailure> {
+        let state = self.connect();
+        if state.is_agent() {
+            return Ok(state); // started elsewhere in the meantime
+        }
+        let mut child = opensynapse_sys::spawn_agent_detached()
+            .map_err(|e| StartFailure::Spawn(e.to_string()))?;
+        let deadline = Instant::now() + agent_ctl::START_WAIT;
+        loop {
+            let state = self.connect();
+            if state.is_agent() {
+                return Ok(state);
+            }
+            if let Ok(Some(status)) = child.try_wait() {
+                // Another agent won the race for the pipe: use that one.
+                if status.code() == Some(agent_exit::ALREADY_RUNNING) {
+                    let state = self.connect();
+                    if state.is_agent() {
+                        return Ok(state);
+                    }
+                }
+                return Err(StartFailure::Exited(status.code()));
+            }
+            if Instant::now() >= deadline {
+                return Err(StartFailure::NoAnswer { pid: child.id() });
+            }
+            std::thread::sleep(agent_ctl::START_STEP);
+        }
+    }
+}
+
 /// In-process HID.
 #[derive(Default)]
 struct Local {
@@ -233,7 +284,9 @@ impl Local {
     fn handle(&mut self, job: Job) -> Reply {
         let conflict = || opensynapse_hid::conflicting_process().map(str::to_owned);
         match job {
-            Job::Connect | Job::UseLocal(_) => unreachable!("handled by the worker"),
+            Job::Connect | Job::StartAgent | Job::UseLocal(_) => {
+                unreachable!("handled by the worker")
+            }
             Job::Scan { reselect } => {
                 self.session = None;
                 self.transport = None;
@@ -335,7 +388,9 @@ impl Agent {
     fn handle(&mut self, job: Job) -> Result<Reply, Broken> {
         let lost = |e: &io::Error| format!("agent connection lost: {e}");
         match job {
-            Job::Connect | Job::UseLocal(_) => unreachable!("handled by the worker"),
+            Job::Connect | Job::StartAgent | Job::UseLocal(_) => {
+                unreachable!("handled by the worker")
+            }
             Job::Scan { reselect } => match self.client.call(Request::ListDevices) {
                 Ok(r) => {
                     let list = match r {

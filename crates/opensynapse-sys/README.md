@@ -8,6 +8,11 @@ OS integration, kept out of the pure crates. Decision: [[Decisions/ADR-0006 Agen
 - `attach_parent_console`: for the GUI-subsystem agent; attaches to the parent console
   and opens `CONOUT$` for unset standard handles.
 - `agent_exe`: `opensynapse-agent(.exe)` next to the running executable.
+- `spawn_agent_detached`: starts `agent_exe` with `DETACHED_PROCESS |
+  CREATE_NEW_PROCESS_GROUP` and null stdio, without waiting. Shared by the CLI
+  (`agent start`, which then waits for the pipe) and the GUI ("Start agent").
+- `agent_exit`: the agent's exit codes callers react to (`ALREADY_RUNNING` = 2,
+  `ELEVATED` = 3).
 
 Windows only so far (`windows-sys`); elsewhere autostart returns `Unsupported`.
 Registry tests use a scratch key `HKCU\Software\OpenSynapse-test-<pid>`, never the Run key.

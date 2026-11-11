@@ -1782,6 +1782,7 @@ dependencies = [
  "opensynapse-hid",
  "opensynapse-ipc",
  "opensynapse-protocol",
+ "opensynapse-sys",
 ]
 
 [[package]]

@@ -3,7 +3,7 @@
 //! next to this executable; autostart is the per-user Run key.
 
 use std::path::Path;
-use std::process::{Command, ExitStatus, Stdio};
+use std::process::ExitStatus;
 use std::time::{Duration, Instant};
 
 use anyhow::{Context, Result, bail};
@@ -31,21 +31,7 @@ pub fn start() -> Result<()> {
         println!("OpenSynapse agent is already running.");
         return Ok(());
     }
-    let exe = opensynapse_sys::agent_exe().context("cannot find the agent binary")?;
-    let mut cmd = Command::new(&exe);
-    cmd.stdin(Stdio::null())
-        .stdout(Stdio::null())
-        .stderr(Stdio::null());
-    #[cfg(windows)]
-    {
-        use std::os::windows::process::CommandExt;
-        const DETACHED_PROCESS: u32 = 0x0000_0008;
-        const CREATE_NEW_PROCESS_GROUP: u32 = 0x0000_0200;
-        cmd.creation_flags(DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP);
-    }
-    let mut child = cmd
-        .spawn()
-        .with_context(|| format!("cannot start {}", exe.display()))?;
+    let mut child = opensynapse_sys::spawn_agent_detached().context("cannot start the agent")?;
     let deadline = Instant::now() + START_WAIT;
     loop {
         if let Some(status) = child.try_wait()? {

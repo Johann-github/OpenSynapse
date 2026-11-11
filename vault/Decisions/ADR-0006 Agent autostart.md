@@ -30,6 +30,11 @@ installer framework, no new dependencies.
 **Consequences:** two new `windows-sys` features (`Win32_System_Registry`,
 `Win32_System_Console`), no new crates from crates.io. Linux/macOS autostart (systemd user
 unit / LaunchAgent) is still open; there the functions report `Unsupported`.
+- **GUI** ([[Architecture/Crates]], `opensynapse-desktop`): "Start agent at login"
+  checkbox over the same Run value (read at start and after a toggle, "Fix" for an entry
+  pointing at another binary) and a "Start agent" button on direct HID. The detached
+  spawn is one function, `opensynapse_sys::spawn_agent_detached`, used by CLI and GUI;
+  the GUI waits for the pipe on its worker thread, never the UI thread.
 
 **Evidence:** hardware test 2026-11-11 (see [[Status]]): `agent start` 141 ms, agent idle
 8.4 MB WS / 2.2 MB private, console output visible from Git Bash and PowerShell.
