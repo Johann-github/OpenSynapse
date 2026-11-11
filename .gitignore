@@ -8,3 +8,7 @@
 /re-artifacts/
 *.pcapng
 vault/.obsidian/
+
+# Local tool state (Claude Code worktrees, Serena)
+/.claude/worktrees/
+/.serena/

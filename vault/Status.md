@@ -30,7 +30,7 @@ button 4, wake hint off, `app-profiles.toml` with 0 rules. Agent installed and r
    Later 2026-11-11, installed by the user (update over the running installed agent: stopped,
    3 files "Updated", Start-menu shortcut written, autostart already correct, agent restarted):
    Start-menu shortcut for the GUI (own `.lnk` encoder), piped `install`/`agent start` no longer
-   hang, flash-wear warning in the editor. Open: user looks for "OpenSynapse" in the Start menu.
+   hang, flash-wear warning in the editor. ✅ User: "OpenSynapse" in the Start menu starts the GUI.
 2. **User check: buttons in the per-app profile editor** (merged, unit-tested): open a rule's
    Settings → Buttons, set Side button 4 = DPI down, Save, check the TOML and the switch. Reset DPI to 800 after.
 3. **Flash wear** (open decision for the user): 02/0C button writes are stored onboard, so an app
