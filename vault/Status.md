@@ -35,8 +35,8 @@ button 4, wake hint off, `app-profiles.toml` with 0 rules. Agent installed and r
    Settings → Buttons, set Side button 4 = DPI down, Save, check the TOML and the switch. Reset DPI to 800 after.
 3. **Flash wear** (open decision for the user): 02/0C button writes are stored onboard, so an app
    profile with buttons writes flash on every switch. Done: skip-unchanged + a warning in the editor
-   while a profile sets buttons. Still open: keep buttons in app profiles at all? Look for a volatile
-   button write (unknown).
+   while a profile sets buttons. Next: hardware test whether slot (`obmId`) 0 is volatile, plan in
+   [[RE-Log/2026-11-11 Button write storage]] (~5 min, needs the user for a power cycle).
 4. Then pick from [[Backlog]].
 
 Rules for hardware tests: after any DPI-changing test, reset to DPI 800 / stage 2 (volatile + persistent).
