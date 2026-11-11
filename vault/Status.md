@@ -36,7 +36,8 @@ Next tasks, in order:
 4. ✅ Autostart (2026-11-11): `opensynapse agent start` + `agent autostart [on|off]` (HKCU Run), agent is
    `windows_subsystem` with console attach, refuses elevated start (exit 3). New crate `opensynapse-sys`.
    Tested: start 141 ms, no window, 8.4 MB WS. ✅ Re-login check (2026-11-11): Run key set, agent up
-   ~55 s after Explorer, 9.3 MB WS, `agent ping` + `agent devices` OK. **Open:** elevated-refusal check from an admin terminal.
+   ~55 s after Explorer, 9.3 MB WS, `agent ping` + `agent devices` OK. ✅ Elevated refusal (2026-11-11): admin terminal prints the
+   "refusing to run as administrator" message (user-checked). User disabled Synapse autostart.
    → [[Decisions/ADR-0006 Agent autostart]]
 4b. ✅ GUI agent controls (2026-11-11): "Start agent at login" checkbox (+ Fix when it points elsewhere),
    "Start agent" button in direct-HID mode; shared `opensynapse_sys::spawn_agent_detached`. User: autostart on via CLI.
@@ -44,7 +45,7 @@ Next tasks, in order:
    `agent app-profiles [reload]`, IPC v2. Hardware-tested on the Viper (switch ~112 ms, restore verified).
    → [[Decisions/ADR-0007 Per-app profiles]], [[RE-Log/2026-11-11 Per-app profile hardware test]]
    Open: GUI view/editor for app profiles; apply to a device plugged in while an app profile is active;
-   user checks: GUI "Start agent" click, elevated refusal.
+   user check: GUI "Start agent" click.
 5. Captures for "off" and "DPI down"; power-cycle test for button assignments.
 6. Mouse asleep → friendlier error ("move the mouse to wake it").
 
