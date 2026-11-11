@@ -38,8 +38,8 @@ it runs, else talks to the device in-process on a worker thread ([[Architecture/
 - Buttons: all buttons of profile 1 from 02/8E, read once for normal and once for
   HyperShift mode, as a table (Left/Right/Wheel click, Side 4/5, Wheel up/down, DPI
   button, else "Button N"). Each slot has an editor: mouse button 1-5, double-click,
-  key (`hid_usage` names + Ctrl/Shift/Alt/Win), DPI up; anything else shows as "Other
-  (read-only)" (e.g. the DPI button's factory record, function 6 data `[6]`). Apply
+  key (`hid_usage` names + Ctrl/Shift/Alt/Win), DPI up, DPI down, Off; anything else
+  shows as "Other (read-only)" (e.g. the DPI button's factory record, function 6 data `[6]`). Apply
   writes one slot (02/0C). Left/right click are locked until "allow editing left/right
   click" is ticked.
 - DPI stages: edit values (registry min/max/step), add/remove (up to the reported count,
@@ -68,7 +68,18 @@ requests one repaint per finished job.
   default profile. A new rule's profile path is suggested as `profiles/<exe>.toml`.
   "Settings" opens the profile file of that rule: device PID (prefilled from the device
   selected in the main window), DPI stages + active stage (registry limits of that PID),
-  polling rate, sleep timer; button assignments in the file are kept unchanged. Problems
+  polling rate, sleep timer, and button assignments (`src/app_profiles_view/buttons.rs`):
+  one row per button (the list read from the selected main-window device when the PID
+  matches, else the Viper V3 HyperSpeed layout `opensynapse_device::VIPER_BUTTONS`, plus
+  any other ID the file lists), each "Unchanged (not in profile)" or an action with the
+  main panel's choices and labels (`ActionKind`; mouse button 1-5, double-click, key +
+  modifiers, DPI up/down, Off). HyperShift slots are in a collapsed section. Profile
+  actions map through `ActionEdit::from_action`/`to_action` (core `plan::button_assignment`
+  and the export mapping), so nothing is re-derived; an action the editor does not offer
+  (e.g. mouse button 7) shows as "Other (read-only)" and is kept until replaced.
+  "Unchanged" removes the key from the file. Left/right click stay locked until "Allow
+  editing left/right click" is ticked in this editor; adding, changing or removing them
+  without it is an inline error (`opensynapse_device::primary_guard`). Problems
   show inline in red as you type (core checks: empty fields, rules hidden by an earlier
   rule with the same exe, `Profile::validate` with registry limits); Save stays disabled
   until they are fixed. Save writes the changed profile and the rules file atomically
@@ -79,5 +90,5 @@ requests one repaint per finished job.
   until "Start with an empty list" / "Start a new profile here". The GUI itself never
   writes to the device here; the agent applies profiles when the app in front changes.
 
-Release exe (Windows, 2026-11-11): 5.05 MB (4.82 MiB; with IPC client, agent controls and
-the app-profile editor).
+Release exe (Windows, 2026-11-11): 5.13 MB (4.90 MiB; with IPC client, agent controls and
+the app-profile editor incl. buttons).

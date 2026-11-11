@@ -209,7 +209,8 @@ fn dpi_section(s: &dpi::DpiStages) -> Result<DpiSection, String> {
 }
 
 /// The profile action for an assignment, or `None` if the model cannot express it.
-fn button_action(a: &ButtonAssignment) -> Option<ButtonAction> {
+/// The one protocol -> profile mapping (export, restore, GUI editors).
+pub fn button_action(a: &ButtonAssignment) -> Option<ButtonAction> {
     let mouse = |t: u8| (1..=MAX_MOUSE_BUTTON).contains(&t);
     Some(match a.known()? {
         Known::MouseButton(t) if mouse(t) => ButtonAction::MouseButton { target: t },
@@ -299,7 +300,8 @@ pub fn setting_value(p: &Profile, setting: Setting) -> Option<String> {
     }
 }
 
-fn action_label(a: &ButtonAction) -> String {
+/// Short text of a profile action (`key ctrl+a`, `DPI up`).
+pub fn action_label(a: &ButtonAction) -> String {
     match a {
         ButtonAction::MouseButton { target } => format!("mouse button {target}"),
         ButtonAction::DoubleClick { target } => format!("double-click {target}"),

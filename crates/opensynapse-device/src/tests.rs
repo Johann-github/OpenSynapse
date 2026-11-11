@@ -466,3 +466,60 @@ fn rows_merge_both_modes() {
     assert_eq!(button_name(9), "Wheel up");
     assert_eq!(button_name(42), "Button 42");
 }
+
+#[test]
+fn action_edit_profile_round_trip() {
+    use opensynapse_core::ButtonAction as A;
+    // Every offered kind maps to a profile action and back to the same edit.
+    for kind in ActionKind::choices() {
+        let e = ActionEdit {
+            kind,
+            usage: 0x2C,
+            modifiers: 0x06,
+        };
+        match e.to_action() {
+            Some(a) => {
+                let back = ActionEdit::from_action(&a);
+                assert_eq!(back.kind, kind, "{a:?}");
+                if kind == ActionKind::Key {
+                    assert_eq!(back, e);
+                }
+            }
+            None => assert_eq!(kind, ActionKind::Other),
+        }
+    }
+    assert_eq!(
+        ActionEdit::new(ActionKind::Key).to_action(),
+        Some(A::Key {
+            key: "a".into(),
+            mods: vec![]
+        })
+    );
+    assert_eq!(
+        ActionEdit::new(ActionKind::Mouse(4)).to_action(),
+        Some(A::MouseButton { target: 4 })
+    );
+    // Actions the editor does not offer, and names the core mapping rejects.
+    for a in [
+        A::MouseButton { target: 7 },
+        A::DoubleClick { target: 2 },
+        A::Key {
+            key: "nope".into(),
+            mods: vec![],
+        },
+        A::Key {
+            key: "a".into(),
+            mods: vec!["hyper".into()],
+        },
+    ] {
+        assert_eq!(ActionEdit::from_action(&a).kind, ActionKind::Other, "{a:?}");
+    }
+}
+
+#[test]
+fn primary_guard_names_the_button() {
+    assert!(primary_guard(4, false).is_ok());
+    assert!(primary_guard(1, true).is_ok());
+    let e = primary_guard(2, false).unwrap_err();
+    assert!(e.contains("Right click") && e.contains("allow editing left/right click"));
+}

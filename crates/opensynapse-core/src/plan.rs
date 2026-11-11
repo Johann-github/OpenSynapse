@@ -115,7 +115,8 @@ impl Profile {
         }
 
         for (mode, id, action) in self.all_buttons() {
-            let a = assignment(target.onboard_profile, mode, id, action);
+            let a = button_assignment(target.onboard_profile, mode, id, action)
+                .expect("validated key and modifier names");
             push(
                 Setting::Button { mode, button: id.0 },
                 buttons::set_button_assignment(&a).map_err(internal)?,
@@ -125,29 +126,32 @@ impl Profile {
     }
 }
 
-/// The protocol assignment for a validated action.
-fn assignment(
+/// The protocol assignment for `action` in slot (`profile`, `mode`, `id`), built by
+/// the `opensynapse-protocol` builders. `None` when a key or modifier name is
+/// unknown ([`Profile::validate`] reports those). The one profile -> protocol
+/// mapping; the GUI's button editors use it too.
+pub fn button_assignment(
     profile: u8,
     mode: Mode,
     id: ButtonId,
     action: &ButtonAction,
-) -> buttons::ButtonAssignment {
+) -> Option<buttons::ButtonAssignment> {
     let b = id.0;
-    match action {
+    Some(match action {
         ButtonAction::MouseButton { target } => buttons::mouse_button(profile, b, mode, *target),
         ButtonAction::DoubleClick { target } => buttons::double_click(profile, b, mode, *target),
         ButtonAction::Key { key, mods } => {
-            let usage = hid_usage::usage(key).expect("validated key name");
-            let mask = mods
-                .iter()
-                .map(|m| hid_usage::modifier(m).expect("validated modifier"))
-                .fold(0, |acc, bit| acc | bit);
+            let usage = hid_usage::usage(key)?;
+            let mut mask = 0;
+            for m in mods {
+                mask |= hid_usage::modifier(m)?;
+            }
             buttons::keyboard(profile, b, mode, mask, usage)
         }
         ButtonAction::DpiUp {} => buttons::dpi_up(profile, b, mode),
         ButtonAction::DpiDown {} => buttons::dpi_down(profile, b, mode),
         ButtonAction::Off {} => buttons::off(profile, b, mode),
-    }
+    })
 }
 
 /// A builder rejected a value that validation accepted: a bug, but report it as an
