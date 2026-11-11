@@ -1,6 +1,7 @@
 //! Per-app profile rules (`app-profiles.toml`): which profile file the agent
-//! applies while an application is in the foreground. Pure: text in, rules out;
-//! path handling is string/`Path` arithmetic only, no file system access.
+//! applies while an application is in the foreground. Pure: text in, rules out
+//! (and rules in, text out for the GUI editor); path handling is string/`Path`
+//! arithmetic only, no file system access.
 //! Decision: `vault/Decisions/ADR-0007 Per-app profiles.md`.
 //!
 //! ```toml
@@ -14,6 +15,10 @@
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
+
+/// First lines of a file written by [`AppProfiles::to_toml`].
+const HEADER: &str = "# OpenSynapse per-app profiles. Profile paths are relative to this file's\n\
+                      # folder, or absolute. The first matching [[app]] rule wins.\n";
 
 /// The parsed rules file.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -46,13 +51,30 @@ pub enum AppProfilesError {
     Rule { index: usize, problem: &'static str },
     #[error("app-profiles `default` must not be empty")]
     EmptyDefault,
+    #[error("cannot write app-profiles file: {0}")]
+    Serialize(#[from] toml::ser::Error),
 }
 
 impl AppProfiles {
-    /// Parse and check the rules (non-empty `exe` and `profile`).
+    /// Parse and check the rules (see [`Self::validate`]).
     pub fn from_toml(text: &str) -> Result<Self, AppProfilesError> {
         let p: Self = toml::from_str(text)?;
-        for (i, r) in p.apps.iter().enumerate() {
+        p.validate()?;
+        Ok(p)
+    }
+
+    /// Check the rules, then write them as TOML with a short header comment.
+    /// [`Self::from_toml`] reads the result back unchanged. Comments of a file
+    /// read earlier are not kept.
+    pub fn to_toml(&self) -> Result<String, AppProfilesError> {
+        self.validate()?;
+        Ok(format!("{HEADER}{}", toml::to_string(self)?))
+    }
+
+    /// Non-empty `exe` and `profile` in every rule (`index` is 1-based), and a
+    /// non-empty `default` if one is set.
+    pub fn validate(&self) -> Result<(), AppProfilesError> {
+        for (i, r) in self.apps.iter().enumerate() {
             let problem = if r.exe.trim().is_empty() {
                 "`exe` must not be empty"
             } else if r.profile.trim().is_empty() {
@@ -65,10 +87,24 @@ impl AppProfiles {
                 problem,
             });
         }
-        if p.default.as_deref().is_some_and(|d| d.trim().is_empty()) {
+        if self.default.as_deref().is_some_and(|d| d.trim().is_empty()) {
             return Err(AppProfilesError::EmptyDefault);
         }
-        Ok(p)
+        Ok(())
+    }
+
+    /// Rules that can never match because an earlier rule has the same `exe`
+    /// pattern (same normalisation as [`exe_matches`]): `(rule, earlier rule)`,
+    /// both 0-based.
+    pub fn shadowed(&self) -> Vec<(usize, usize)> {
+        let mut out = Vec::new();
+        for (i, r) in self.apps.iter().enumerate() {
+            let me = norm_exe(&r.exe);
+            if let Some(j) = self.apps[..i].iter().position(|e| norm_exe(&e.exe) == me) {
+                out.push((i, j));
+            }
+        }
+        out
     }
 
     /// The first rule matching `exe` (a full image path as Windows reports it).
@@ -84,12 +120,16 @@ impl AppProfiles {
     }
 }
 
+/// Trimmed, lower case, `/` as `\`.
+fn norm_exe(s: &str) -> String {
+    s.trim().replace('/', "\\").to_lowercase()
+}
+
 /// `pattern` with a path separator is compared against the whole path, otherwise
 /// against the file name; both without case, `/` and `\` alike.
 pub fn exe_matches(pattern: &str, exe: &str) -> bool {
-    let norm = |s: &str| s.trim().replace('/', "\\").to_lowercase();
-    let pattern = norm(pattern);
-    let exe = norm(exe);
+    let pattern = norm_exe(pattern);
+    let exe = norm_exe(exe);
     if pattern.contains('\\') {
         pattern == exe
     } else {

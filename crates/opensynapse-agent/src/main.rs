@@ -83,8 +83,7 @@ fn parse_args(mut it: impl Iterator<Item = String>) -> Result<Args, String> {
 
 /// `%APPDATA%\OpenSynapse\app-profiles.toml`, from the `APPDATA` value.
 fn default_app_profiles(appdata: Option<&str>) -> Option<PathBuf> {
-    opensynapse_sys::config::dir_from(appdata)
-        .map(|d| d.join(opensynapse_sys::config::APP_PROFILES_FILE))
+    opensynapse_sys::config::app_profiles_path_from(appdata)
 }
 
 /// `1`, `true`, `yes`, `on` (any case) switch an environment flag on.

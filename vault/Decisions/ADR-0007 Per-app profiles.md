@@ -70,6 +70,13 @@ the core actor ([[Architecture/Agent]]), no writes while Razer software runs, li
   `Event::AppProfile { exe, profile: Option<String>, lines, error }` (7) on every switch attempt
   (`profile: None` = values from before restored). CLI: `opensynapse agent app-profiles [reload]`;
   `agent watch` prints the event. The GUI ignores the event for now.
+- **GUI editor** (2026-11-11): `opensynapse-desktop` window "Per-app profiles"
+  (`src/app_profiles_view.rs`) edits the rules and the settings of a rule's profile file,
+  writes both atomically (temp + rename) with the core writers (`AppProfiles::to_toml`,
+  `Profile::to_toml`; comments are not kept) and then sends `ReloadAppProfiles` (no new IPC
+  message). It edits the file the agent reports in `AppProfilesInfo.config`, else the default
+  path from `opensynapse_sys::config::app_profiles_path_from` (owned by `opensynapse-sys`, shared with the
+  agent). The GUI never writes to the device for this; switching stays in the agent.
 
 **Flash wear (what a switch writes persistently):**
 | Setting | Storage on switch |

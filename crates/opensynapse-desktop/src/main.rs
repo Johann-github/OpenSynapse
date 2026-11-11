@@ -9,6 +9,7 @@
 
 mod agent_ctl;
 mod app;
+mod app_profiles_view;
 mod backend;
 mod ops;
 mod remote;

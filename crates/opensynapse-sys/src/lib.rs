@@ -112,6 +112,11 @@ pub mod config {
         Some(PathBuf::from(root).join(DIR_NAME))
     }
 
+    /// `<root>\OpenSynapsepp-profiles.toml` for a config root such as `APPDATA`.
+    pub fn app_profiles_path_from(root: Option<&str>) -> Option<PathBuf> {
+        dir_from(root).map(|d| d.join(APP_PROFILES_FILE))
+    }
+
     /// The config folder of the current user, if the environment names one.
     pub fn dir() -> Option<PathBuf> {
         let var = |k: &str| std::env::var(k).ok();
