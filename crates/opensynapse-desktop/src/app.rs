@@ -245,6 +245,7 @@ impl App {
                     let selected = self.selected.as_deref();
                     match backend::apply_event(selected, &mut self.snapshot, ev) {
                         EventEffect::Rescan => self.send(Job::Scan { reselect: false }),
+                        EventEffect::Reread => self.refresh(),
                         EventEffect::Note(n) => self.agent_note = Some(n),
                         EventEffect::Updated | EventEffect::Nothing => {}
                     }

@@ -82,6 +82,9 @@ pub enum EventEffect {
     Rescan,
     /// The shown snapshot was updated in place.
     Updated,
+    /// The agent wrote to devices (per-app profile switch, also for a device
+    /// plugged in mid-session): read the selected device again.
+    Reread,
     /// Show this message.
     Note(String),
 }
@@ -118,6 +121,9 @@ pub fn apply_event(
         },
         Event::Error { message } => EventEffect::Note(format!("agent: {message}")),
         // The subscription ends right after; that switches the backend.
+        // An app profile switch may write any setting without a device event
+        // (e.g. DPI stages on a device that just arrived), so read it again.
+        Event::AppProfile { .. } if selected.is_some() => EventEffect::Reread,
         Event::ShuttingDown | Event::Hardware { .. } | Event::AppProfile { .. } => {
             EventEffect::Nothing
         }
@@ -256,5 +262,22 @@ mod tests {
             ),
             EventEffect::Note("agent: x".into())
         );
+    }
+
+    #[test]
+    fn app_profile_switch_rereads_the_selected_device() {
+        let ev = || Event::AppProfile {
+            exe: r"C:\Windows
+otepad.exe"
+                .into(),
+            profile: Some("profiles/notepad.toml".into()),
+            lines: vec![],
+            error: None,
+        };
+        let mut snap = Some(Ok(snapshot()));
+        assert_eq!(apply_event(Some("p"), &mut snap, ev()), EventEffect::Reread);
+        let mut none = None;
+        assert_eq!(apply_event(Some("p"), &mut none, ev()), EventEffect::Reread);
+        assert_eq!(apply_event(None, &mut none, ev()), EventEffect::Nothing);
     }
 }
