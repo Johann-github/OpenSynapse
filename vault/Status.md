@@ -29,9 +29,10 @@ button 4, wake hint off, `app-profiles.toml` with 0 rules. Agent installed and r
    → [[Decisions/ADR-0009 Install location]]
 2. **User check: buttons in the per-app profile editor** (merged, unit-tested): open a rule's
    Settings → Buttons, set Side button 4 = DPI down, Save, check the TOML and the switch. Reset DPI to 800 after.
-3. **Open question: flash wear.** 02/0C button writes are stored onboard (power-cycle test), so an app
-   profile with buttons writes flash on *every* foreground switch. Unknown endurance. Options: skip
-   unchanged (already done: skip-unchanged), warn in the editor, or keep buttons out of app profiles.
+3. **Flash wear** (open decision for the user): 02/0C button writes are stored onboard, so an app
+   profile with buttons writes flash on every switch. Done: skip-unchanged + a warning in the editor
+   while a profile sets buttons. Still open: keep buttons in app profiles at all? Look for a volatile
+   button write (unknown).
 4. Then pick from [[Backlog]].
 
 Rules for hardware tests: after any DPI-changing test, reset to DPI 800 / stage 2 (volatile + persistent).

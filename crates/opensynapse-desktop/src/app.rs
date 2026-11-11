@@ -23,7 +23,7 @@ use crate::ops::{
 use crate::user_settings::UserSettings;
 use crate::worker::{self, DeviceRow, Job, Reply, SubMsg};
 
-const WARN: Color32 = Color32::from_rgb(0xE0, 0x9A, 0x20);
+pub(crate) const WARN: Color32 = Color32::from_rgb(0xE0, 0x9A, 0x20);
 const BAD: Color32 = Color32::from_rgb(0xE0, 0x50, 0x50);
 const GOOD: Color32 = Color32::from_rgb(0x50, 0xB0, 0x60);
 /// Accent colour (user choice: green).

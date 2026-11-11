@@ -93,6 +93,12 @@ the core actor ([[Architecture/Agent]]), no writes while Razer software runs, li
   `VIPER_BUTTONS` (registry has no button lists). Left/right click need the same opt-in as
   the main panel (`primary_guard`), checked with `Profile::validate` before Save. Unit-tested;
   user check pending.
+- **Flash wear** (2026-11-11): button assignments are stored onboard (02/0C survives a power
+  cycle, [[RE-Log/2026-11-11 Button capture off and DPI down]]), so a profile with buttons writes
+  the mouse's flash on every switch to and away from its app (skip-unchanged avoids writes only
+  when the value is already equal). Endurance unknown. For now the editor shows a warning while a
+  profile sets buttons (`FLASH_NOTE`); DPI stages stay volatile. Open: whether 02/0C has a volatile
+  variant (unknown; Synapse always used the stored one in captures).
 
 **Flash wear (what a switch writes persistently):**
 | Setting | Storage on switch |

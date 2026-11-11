@@ -256,6 +256,11 @@ pub(crate) fn key_editor(
     });
 }
 
+/// Shown while the profile sets buttons: button assignments live in the mouse's
+/// onboard memory (02/0C survives a power cycle, observed 2026-11-11), so every
+/// switch to and away from this app writes it. Flash endurance is unknown.
+pub(super) const FLASH_NOTE: &str = "Button changes are stored in the mouse's onboard memory and      written on every switch to and away from this app. Keep them for apps you switch to rarely.";
+
 /// The button part of the profile editor. `device`: button IDs of the selected
 /// device when it has the profile's PID, else empty.
 pub(super) fn buttons_ui(
@@ -273,6 +278,9 @@ pub(super) fn buttons_ui(
         "Buttons of the device selected in the main window."
     });
     ui.checkbox(allow_primary, ALLOW_PRIMARY_LABEL);
+    if form.count() > 0 {
+        ui.colored_label(crate::app::WARN, FLASH_NOTE);
+    }
     let ids = form.row_ids(device);
     grid(
         ui,
