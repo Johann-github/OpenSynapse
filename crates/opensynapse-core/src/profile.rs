@@ -165,6 +165,32 @@ impl Profile {
         Ok(toml::to_string(self)?)
     }
 
+    /// Take from `other` every setting `self` does not set yet; settings already
+    /// in `self` stay. Used to accumulate the values from before a series of
+    /// applies: the first value read for a setting is the one to restore.
+    pub fn fill_missing_from(&mut self, other: &Profile) {
+        fn take<T: Clone>(mine: &mut Option<T>, theirs: &Option<T>) {
+            if mine.is_none() {
+                mine.clone_from(theirs);
+            }
+        }
+        take(&mut self.device, &other.device);
+        take(&mut self.dpi, &other.dpi);
+        take(&mut self.polling, &other.polling);
+        take(&mut self.power, &other.power);
+        for (id, a) in &other.buttons {
+            self.buttons.entry(*id).or_insert_with(|| a.clone());
+        }
+        if let Some(h) = &other.hypershift {
+            let mine = self
+                .hypershift
+                .get_or_insert_with(HyperShiftSection::default);
+            for (id, a) in &h.buttons {
+                mine.buttons.entry(*id).or_insert_with(|| a.clone());
+            }
+        }
+    }
+
     /// Normal-mode and HyperShift-mode buttons as one iterator.
     pub fn all_buttons(
         &self,

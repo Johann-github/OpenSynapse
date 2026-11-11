@@ -14,10 +14,12 @@
 mod convert;
 mod core;
 mod events;
+mod foreground;
 mod hardware;
 mod server;
 
 use std::io;
+use std::path::PathBuf;
 use std::process::ExitCode;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -34,14 +36,17 @@ use crate::core::{Core, CoreMsg, SETTLE};
 use crate::events::{EventSource, HidInputEvents, HidOpener, NoEvents, default_candidate};
 use crate::hardware::RealHardware;
 
-const USAGE: &str = "usage: opensynapse-agent [--pipe <name>] [--no-events] [-v | -vv]\n  \
-     --no-events  do not listen for device hardware events (also OPENSYNAPSE_AGENT_NO_EVENTS=1)";
+const USAGE: &str = "usage: opensynapse-agent [--pipe <name>] [--no-events] [--app-profiles <file>] [--allow-elevated] [-v | -vv]\n  \
+     --no-events            do not listen for device hardware events (also OPENSYNAPSE_AGENT_NO_EVENTS=1)\n  \
+     --app-profiles <file>  per-app rules file (default %APPDATA%\\OpenSynapse\\app-profiles.toml)\n  \
+     --allow-elevated       run even as administrator (only for systems without UAC)";
+/// Rules file name inside `%APPDATA%\OpenSynapse` (ADR-0007).
+const APP_PROFILES_FILE: &str = "app-profiles.toml";
 /// Environment switch equivalent to `--no-events`.
 const NO_EVENTS_ENV: &str = "OPENSYNAPSE_AGENT_NO_EVENTS";
-/// Exit code when another agent already serves the pipe.
-const EXIT_RUNNING: u8 = 2;
-/// Exit code when started elevated without `--allow-elevated`.
-const EXIT_ELEVATED: u8 = 3;
+/// Exit codes shared with the CLI and GUI (`opensynapse_sys::agent_exit`).
+const EXIT_RUNNING: u8 = opensynapse_sys::agent_exit::ALREADY_RUNNING as u8;
+const EXIT_ELEVATED: u8 = opensynapse_sys::agent_exit::ELEVATED as u8;
 /// How long shutdown waits for the `ShuttingDown` reply to be written.
 const FLUSH_WAIT: Duration = Duration::from_secs(1);
 
@@ -55,6 +60,8 @@ struct Args {
     no_events: bool,
     /// Skip the elevation refusal.
     allow_elevated: bool,
+    /// Per-app rules file instead of the default under `APPDATA`.
+    app_profiles: Option<PathBuf>,
 }
 
 fn parse_args(mut it: impl Iterator<Item = String>) -> Result<Args, String> {
@@ -64,6 +71,9 @@ fn parse_args(mut it: impl Iterator<Item = String>) -> Result<Args, String> {
             "--pipe" => a.pipe = Some(it.next().ok_or("--pipe needs a name")?),
             "--no-events" => a.no_events = true,
             "--allow-elevated" => a.allow_elevated = true,
+            "--app-profiles" => {
+                a.app_profiles = Some(it.next().ok_or("--app-profiles needs a file")?.into())
+            }
             "-v" | "--verbose" => a.verbose += 1,
             "-vv" => a.verbose += 2,
             "-h" | "--help" => return Err(USAGE.into()),
@@ -71,6 +81,16 @@ fn parse_args(mut it: impl Iterator<Item = String>) -> Result<Args, String> {
         }
     }
     Ok(a)
+}
+
+/// `%APPDATA%\OpenSynapse\app-profiles.toml`, from the `APPDATA` value.
+fn default_app_profiles(appdata: Option<&str>) -> Option<PathBuf> {
+    let dir = appdata.filter(|d| !d.trim().is_empty())?;
+    Some(
+        PathBuf::from(dir)
+            .join("OpenSynapse")
+            .join(APP_PROFILES_FILE),
+    )
 }
 
 /// `1`, `true`, `yes`, `on` (any case) switch an environment flag on.
@@ -193,6 +213,26 @@ fn main() -> ExitCode {
     core.set_rescan_on_list(hotplug.is_none());
     core.rescan();
 
+    // Per-app profiles: rules from the file, foreground changes from the OS.
+    let rules = args
+        .app_profiles
+        .or_else(|| default_app_profiles(std::env::var("APPDATA").ok().as_deref()));
+    core.set_app_profiles_file(rules);
+    core.load_app_profiles();
+    let foreground = {
+        let tx = tx.clone();
+        foreground::watch(Box::new(move |exe| {
+            let _ = tx.send(CoreMsg::Foreground { exe });
+        }))
+    };
+    let foreground = match foreground {
+        Ok(w) => Some(w),
+        Err(e) => {
+            tracing::warn!(error = %e, "no foreground notifications; per-app profiles inactive");
+            None
+        }
+    };
+
     let stop = Arc::new(AtomicBool::new(false));
     let waker = listener.waker();
     let (flushed_tx, flushed_rx) = channel();
@@ -212,6 +252,7 @@ fn main() -> ExitCode {
     stop.store(true, Ordering::SeqCst);
     waker.wake();
     let _ = accept.join();
+    drop(foreground);
     drop(hotplug);
     drop(core);
     ExitCode::SUCCESS
@@ -235,6 +276,7 @@ mod tests {
                 verbose: 1,
                 no_events: false,
                 allow_elevated: false,
+                app_profiles: None,
             }
         );
         assert_eq!(parse(&["-vv"]).unwrap().verbose, 2);
@@ -244,6 +286,25 @@ mod tests {
         assert!(parse(&["--no-events"]).unwrap().no_events);
         assert!(parse(&["--events"]).is_err());
         assert!(parse(&["--allow-elevated"]).unwrap().allow_elevated);
+        assert_eq!(
+            parse(&["--app-profiles", "r.toml"]).unwrap().app_profiles,
+            Some(PathBuf::from("r.toml"))
+        );
+        assert!(parse(&["--app-profiles"]).is_err());
+    }
+
+    #[test]
+    fn app_profiles_default_location() {
+        assert_eq!(
+            default_app_profiles(Some(r"C:\Users\u\AppData\Roaming")),
+            Some(
+                PathBuf::from(r"C:\Users\u\AppData\Roaming")
+                    .join("OpenSynapse")
+                    .join("app-profiles.toml")
+            )
+        );
+        assert_eq!(default_app_profiles(Some("  ")), None);
+        assert_eq!(default_app_profiles(None), None);
     }
 
     #[test]

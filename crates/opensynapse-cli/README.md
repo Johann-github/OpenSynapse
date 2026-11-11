@@ -1,7 +1,7 @@
 # opensynapse-cli
 
 CLI dispatch: `list`, `info`, `battery`, `dpi get|set`, `dpi-stages [get|set]`,
-`polling get|set`, `sleep get|set`, `buttons get|set|list`, `profile export|apply`, `agent ping|devices|snapshot|watch|stop|start|autostart`. Global
+`polling get|set`, `sleep get|set`, `buttons get|set|list`, `profile export|apply`, `agent ping|devices|snapshot|apply|watch|stop|start|autostart|app-profiles [reload]`. Global
 `--pid <hex>` and `-v` (log every report).
 
 Writes are dry runs unless `--apply`; they read the old value first, write, read back,
@@ -128,6 +128,7 @@ Agent (talks to a running `opensynapse-agent` over the per-user named pipe, see
     opensynapse agent start
     opensynapse agent autostart [on|off]
     opensynapse [--pid HEX] agent apply FILE [--path P] [--all] [--apply] [--force]
+    opensynapse agent app-profiles [reload]
 
 These commands never open HID themselves (they are dispatched before the HID
 transport is created). `devices` lists what the agent sees, with the control path
@@ -151,5 +152,12 @@ persistent). `--force` passes the Razer-software gate and the PID / rate / snaps
 The agent returns the restore profile as text; this command saves it as
 `<name>.restore.toml` (same naming as `profile apply`), after the writes rather than
 before them, and still saves it when a write fails part-way.
+
+`agent app-profiles` shows the per-app rules file, whether it is loaded (or why not), the
+rules, the foreground executable and the active profile. `agent app-profiles reload` re-reads
+the file and applies what it says for the app in front; it exits non-zero when the file is
+invalid. `agent watch` prints each switch (`app profile <file> for <exe>`, then the engine's
+lines). `OPENSYNAPSE_AGENT_PIPE` selects another agent pipe (tests).
+See [[Decisions/ADR-0007 Per-app profiles]].
 
 Vault: [[Architecture/Crates]], [[Status]]

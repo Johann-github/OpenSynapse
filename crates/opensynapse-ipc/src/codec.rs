@@ -14,8 +14,9 @@ use opensynapse_protocol::dpi::{Dpi, DpiStage, DpiStages, Storage};
 use opensynapse_protocol::power::{BatteryLevel, ChargingStatus};
 
 use crate::msg::{
-    ClientFrame, DeviceInfo, DeviceRef, ErrorKind, Event, IpcError, PollingVariant, Reply, Request,
-    Role, ServerFrame, WireSetting, WireSnapshot, WireWriteOpts, WriteDone, WriteFailed,
+    AppProfilesInfo, AppRuleInfo, ClientFrame, DeviceInfo, DeviceRef, ErrorKind, Event, IpcError,
+    PollingVariant, Reply, Request, Role, ServerFrame, WireSetting, WireSnapshot, WireWriteOpts,
+    WriteDone, WriteFailed,
 };
 
 /// Why a frame body could not be decoded.
@@ -83,6 +84,8 @@ mod tag {
     pub const REQ_WRITE: u8 = 3;
     pub const REQ_APPLY_PROFILE: u8 = 4;
     pub const REQ_SHUTDOWN: u8 = 5;
+    pub const REQ_RELOAD_APP_PROFILES: u8 = 6;
+    pub const REQ_APP_PROFILES: u8 = 7;
     // Reply
     pub const REP_PONG: u8 = 0;
     pub const REP_DEVICES: u8 = 1;
@@ -90,6 +93,7 @@ mod tag {
     pub const REP_WRITTEN: u8 = 3;
     pub const REP_PROFILE_APPLIED: u8 = 4;
     pub const REP_SHUTTING_DOWN: u8 = 5;
+    pub const REP_APP_PROFILES: u8 = 6;
     // ErrorKind
     pub const ERR_BAD_REQUEST: u8 = 0;
     pub const ERR_VERSION: u8 = 1;
@@ -106,6 +110,7 @@ mod tag {
     pub const EV_HARDWARE: u8 = 4;
     pub const EV_ERROR: u8 = 5;
     pub const EV_SHUTTING_DOWN: u8 = 6;
+    pub const EV_APP_PROFILE: u8 = 7;
     // DeviceRef
     pub const DEV_PID: u8 = 0;
     pub const DEV_PATH: u8 = 1;
@@ -290,6 +295,8 @@ impl Writer {
                 self.write_opts(opts);
             }
             Request::Shutdown => self.u8(tag::REQ_SHUTDOWN),
+            Request::ReloadAppProfiles => self.u8(tag::REQ_RELOAD_APP_PROFILES),
+            Request::AppProfiles => self.u8(tag::REQ_APP_PROFILES),
         }
     }
 
@@ -323,7 +330,25 @@ impl Writer {
                 self.opt(error, |w, s| w.str(s));
             }
             Reply::ShuttingDown => self.u8(tag::REP_SHUTTING_DOWN),
+            Reply::AppProfiles(i) => {
+                self.u8(tag::REP_APP_PROFILES);
+                self.app_profiles(i);
+            }
         }
+    }
+
+    fn app_profiles(&mut self, i: &AppProfilesInfo) {
+        self.opt(&i.config, |w, s| w.str(s));
+        self.bool(i.enabled);
+        self.opt(&i.error, |w, s| w.str(s));
+        self.opt(&i.default, |w, s| w.str(s));
+        self.list(&i.rules, |w, r| {
+            w.str(&r.exe);
+            w.str(&r.profile);
+        });
+        self.opt(&i.foreground, |w, s| w.str(s));
+        self.opt(&i.active, |w, s| w.str(s));
+        self.bool(i.restore_pending);
     }
 
     fn ipc_error(&mut self, e: &IpcError) {
@@ -377,6 +402,18 @@ impl Writer {
                 self.str(message);
             }
             Event::ShuttingDown => self.u8(tag::EV_SHUTTING_DOWN),
+            Event::AppProfile {
+                exe,
+                profile,
+                lines,
+                error,
+            } => {
+                self.u8(tag::EV_APP_PROFILE);
+                self.str(exe);
+                self.opt(profile, |w, s| w.str(s));
+                self.list(lines, |w, s| w.str(s));
+                self.opt(error, |w, s| w.str(s));
+            }
         }
     }
 
@@ -702,6 +739,8 @@ impl<'a> Reader<'a> {
                 opts: self.write_opts()?,
             }),
             tag::REQ_SHUTDOWN => Ok(Request::Shutdown),
+            tag::REQ_RELOAD_APP_PROFILES => Ok(Request::ReloadAppProfiles),
+            tag::REQ_APP_PROFILES => Ok(Request::AppProfiles),
             t => unknown("Request", t),
         }
     }
@@ -725,8 +764,27 @@ impl<'a> Reader<'a> {
                 error: self.opt(Self::str)?,
             }),
             tag::REP_SHUTTING_DOWN => Ok(Reply::ShuttingDown),
+            tag::REP_APP_PROFILES => Ok(Reply::AppProfiles(self.app_profiles()?)),
             t => unknown("Reply", t),
         }
+    }
+
+    fn app_profiles(&mut self) -> R<AppProfilesInfo> {
+        Ok(AppProfilesInfo {
+            config: self.opt(Self::str)?,
+            enabled: self.bool()?,
+            error: self.opt(Self::str)?,
+            default: self.opt(Self::str)?,
+            rules: self.list(|r| {
+                Ok(AppRuleInfo {
+                    exe: r.str()?,
+                    profile: r.str()?,
+                })
+            })?,
+            foreground: self.opt(Self::str)?,
+            active: self.opt(Self::str)?,
+            restore_pending: self.bool()?,
+        })
     }
 
     fn ipc_error(&mut self) -> R<IpcError> {
@@ -772,6 +830,12 @@ impl<'a> Reader<'a> {
                 message: self.str()?,
             }),
             tag::EV_SHUTTING_DOWN => Ok(Event::ShuttingDown),
+            tag::EV_APP_PROFILE => Ok(Event::AppProfile {
+                exe: self.str()?,
+                profile: self.opt(Self::str)?,
+                lines: self.list(Self::str)?,
+                error: self.opt(Self::str)?,
+            }),
             t => unknown("Event", t),
         }
     }

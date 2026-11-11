@@ -10,7 +10,8 @@ use opensynapse_protocol::dpi::{self, Dpi, DpiStages};
 use opensynapse_protocol::power::{BatteryLevel, ChargingStatus};
 
 /// Wire protocol version, exchanged in the handshake.
-pub const PROTOCOL_VERSION: u16 = 1;
+/// 2: per-app profiles (`ReloadAppProfiles`, `AppProfiles`, `Event::AppProfile`).
+pub const PROTOCOL_VERSION: u16 = 2;
 
 /// What a connection is for, fixed in the handshake.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -143,6 +144,37 @@ pub enum Request {
         opts: WireWriteOpts,
     },
     Shutdown,
+    /// Re-read `app-profiles.toml` and re-evaluate the foreground application.
+    /// Answered with [`Reply::AppProfiles`] (a parse error is its `error`).
+    ReloadAppProfiles,
+    /// Show the loaded per-app rules and the active profile.
+    AppProfiles,
+}
+
+/// One per-app rule, as loaded.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct AppRuleInfo {
+    pub exe: String,
+    pub profile: String,
+}
+
+/// Per-app profile state of the agent.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct AppProfilesInfo {
+    /// The rules file the agent reads (`None`: no location known).
+    pub config: Option<String>,
+    /// The rules are loaded (the feature is on).
+    pub enabled: bool,
+    /// Why the file was not loaded (invalid); `None` when loaded or missing.
+    pub error: Option<String>,
+    pub default: Option<String>,
+    pub rules: Vec<AppRuleInfo>,
+    /// Last foreground executable the agent saw.
+    pub foreground: Option<String>,
+    /// Profile file currently applied by app switching.
+    pub active: Option<String>,
+    /// Values from before the first app profile are kept for restoring.
+    pub restore_pending: bool,
 }
 
 /// A finished write: the value before, the value asked for, the value read back.
@@ -187,6 +219,8 @@ pub enum Reply {
         error: Option<String>,
     },
     ShuttingDown,
+    /// Answer to [`Request::ReloadAppProfiles`] and [`Request::AppProfiles`].
+    AppProfiles(AppProfilesInfo),
 }
 
 /// Why a request was not served.
@@ -234,4 +268,15 @@ pub enum Event {
         message: String,
     },
     ShuttingDown,
+    /// The foreground application changed and the agent switched profiles.
+    AppProfile {
+        /// Foreground executable (full path).
+        exe: String,
+        /// Profile file applied; `None` = the values from before were restored.
+        profile: Option<String>,
+        /// Human-readable progress, in order.
+        lines: Vec<String>,
+        /// Why the switch did not (fully) happen; `None` = done.
+        error: Option<String>,
+    },
 }

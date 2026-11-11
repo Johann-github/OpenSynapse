@@ -47,6 +47,9 @@ windows-sys = { version = "0.61", features = [
     "Win32_System_Pipes",
     "Win32_System_Registry",
     "Win32_System_Threading",
+    # Agent foreground watch (per-app profiles, ADR-0007).
+    "Win32_UI_Accessibility",
+    "Win32_UI_WindowsAndMessaging",
 ] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
