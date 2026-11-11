@@ -14,8 +14,8 @@ use anyhow::{Context, Result, anyhow, bail};
 use clap::Subcommand;
 use opensynapse_ipc::Client;
 use opensynapse_ipc::msg::{
-    DeviceInfo, DeviceRef, ErrorKind, Event, Field, IpcError, PollingVariant, Reply, Request,
-    WireSetting, WireSnapshot, WireWriteOpts,
+    AppProfilesInfo, DeviceInfo, DeviceRef, ErrorKind, Event, Field, IpcError, PollingVariant,
+    Reply, Request, WireSetting, WireSnapshot, WireWriteOpts,
 };
 use opensynapse_ipc::transport::default_pipe_name;
 use opensynapse_protocol::power::{BatteryLevel, ChargingStatus};
@@ -55,9 +55,24 @@ pub enum AgentAction {
     },
     /// Print agent events (hotplug, battery, …) as they arrive, until the agent stops.
     Watch,
+    /// Per-app profiles: show the loaded rules and the active profile.
+    /// Rules file: %APPDATA%\OpenSynapse\app-profiles.toml.
+    AppProfiles {
+        #[command(subcommand)]
+        action: Option<AppProfilesAction>,
+    },
     /// Ask the agent to shut down.
     Stop,
 }
+
+#[derive(Subcommand, Clone, Copy, Debug, PartialEq, Eq)]
+pub enum AppProfilesAction {
+    /// Re-read app-profiles.toml and apply what it says for the app in front.
+    Reload,
+}
+
+/// Environment override for the pipe name (tests against a second agent).
+const PIPE_ENV: &str = "OPENSYNAPSE_AGENT_PIPE";
 
 /// Run one agent command. `pid` is the global `--pid`.
 pub fn run(action: AgentAction, pid: Option<u16>) -> Result<()> {
@@ -87,6 +102,20 @@ pub fn run(action: AgentAction, pid: Option<u16>) -> Result<()> {
             force,
             path,
         } => apply_profile(&file, apply, all, force, pid, path),
+        AgentAction::AppProfiles { action } => {
+            let req = match action {
+                Some(AppProfilesAction::Reload) => Request::ReloadAppProfiles,
+                None => Request::AppProfiles,
+            };
+            let r = call(&mut connect()?, req)?;
+            print!("{}", render_reply(&r));
+            match r {
+                Reply::AppProfiles(AppProfilesInfo { error: Some(e), .. }) if action.is_some() => {
+                    bail!("the rules were not loaded: {e}")
+                }
+                _ => Ok(()),
+            }
+        }
         AgentAction::Stop => {
             let r = call(&mut connect()?, Request::Shutdown)?;
             println!("{}", render_reply(&r));
@@ -199,8 +228,16 @@ pub(crate) fn render_applied(
     s
 }
 
+/// The agent's pipe: `OPENSYNAPSE_AGENT_PIPE`, else the current user's default.
+fn pipe_name() -> Result<String> {
+    match std::env::var(PIPE_ENV) {
+        Ok(n) if !n.trim().is_empty() => Ok(n),
+        _ => default_pipe_name().map_err(|e| anyhow!(render_io_error(&e))),
+    }
+}
+
 fn connect() -> Result<Client> {
-    Client::connect().map_err(|e| anyhow!(render_io_error(&e)))
+    Client::connect_to(&pipe_name()?).map_err(|e| anyhow!(render_io_error(&e)))
 }
 
 fn call(c: &mut Client, req: Request) -> Result<Reply> {
@@ -214,7 +251,7 @@ fn call(c: &mut Client, req: Request) -> Result<Reply> {
 /// Block on the subscription and print each event. No timers: the iterator only
 /// returns when the agent sends something or closes the pipe.
 fn watch() -> Result<()> {
-    let name = default_pipe_name().map_err(|e| anyhow!(render_io_error(&e)))?;
+    let name = pipe_name()?;
     let sub = Client::subscribe_to(&name).map_err(|e| anyhow!(render_io_error(&e)))?;
     println!("Watching agent events (Ctrl+C to stop).");
     for ev in sub {
@@ -304,7 +341,45 @@ pub(crate) fn render_reply(r: &Reply) -> String {
             s
         }
         Reply::ShuttingDown => "Agent is shutting down.".into(),
+        Reply::AppProfiles(i) => render_app_profiles(i),
     }
+}
+
+/// `agent app-profiles [reload]`: file, state, rules, what is active.
+pub(crate) fn render_app_profiles(i: &AppProfilesInfo) -> String {
+    let mut s = String::new();
+    let file = i.config.as_deref().unwrap_or("(no APPDATA folder)");
+    let _ = writeln!(s, "Rules file: {file}");
+    match (&i.error, i.enabled) {
+        (Some(e), _) => {
+            let _ = writeln!(s, "Per-app profiles: off (invalid file: {e})");
+        }
+        (None, false) => {
+            let _ = writeln!(s, "Per-app profiles: off (no rules file)");
+        }
+        (None, true) => {
+            let _ = writeln!(s, "Per-app profiles: on, {} rule(s)", i.rules.len());
+        }
+    }
+    for r in &i.rules {
+        let _ = writeln!(s, "  {} -> {}", r.exe, r.profile);
+    }
+    if let Some(d) = &i.default {
+        let _ = writeln!(s, "  (no match) -> {d}");
+    }
+    let _ = writeln!(
+        s,
+        "Foreground: {}",
+        i.foreground.as_deref().unwrap_or("(unknown)")
+    );
+    let _ = writeln!(s, "Active: {}", i.active.as_deref().unwrap_or("(none)"));
+    if i.restore_pending {
+        let _ = writeln!(
+            s,
+            "Values from before the first app profile are kept for restoring."
+        );
+    }
+    s
 }
 
 pub(crate) fn render_pong(agent_version: &str) -> String {
@@ -462,6 +537,26 @@ pub(crate) fn render_event(e: &Event) -> String {
         }
         Event::Error { message } => format!("agent error: {message}"),
         Event::ShuttingDown => "Agent is shutting down.".into(),
+        Event::AppProfile {
+            exe,
+            profile,
+            lines,
+            error,
+        } => {
+            let what = match profile {
+                Some(p) => format!("app profile {p}"),
+                None => "values from before restored".into(),
+            };
+            let mut s = match error {
+                Some(e) => format!("{what} for {exe} FAILED: {e}"),
+                None => format!("{what} for {exe}"),
+            };
+            for l in lines {
+                s.push_str("\n  ");
+                s.push_str(l);
+            }
+            s
+        }
     }
 }
 
@@ -489,6 +584,16 @@ mod tests {
         assert_eq!(parse(&["os", "agent", "devices"]).0, AgentAction::Devices);
         assert_eq!(parse(&["os", "agent", "watch"]).0, AgentAction::Watch);
         assert_eq!(parse(&["os", "agent", "stop"]).0, AgentAction::Stop);
+        assert_eq!(
+            parse(&["os", "agent", "app-profiles"]).0,
+            AgentAction::AppProfiles { action: None }
+        );
+        assert_eq!(
+            parse(&["os", "agent", "app-profiles", "reload"]).0,
+            AgentAction::AppProfiles {
+                action: Some(AppProfilesAction::Reload)
+            }
+        );
         assert_eq!(
             parse(&["os", "agent", "snapshot"]),
             (AgentAction::Snapshot { path: None }, None)
@@ -859,5 +964,57 @@ mod tests {
             render_event(&Event::ShuttingDown),
             "Agent is shutting down."
         );
+        assert_eq!(
+            render_event(&Event::AppProfile {
+                exe: "C:\\cs2.exe".into(),
+                profile: Some("p/cs2.toml".into()),
+                lines: vec!["1 write(s), 0 unchanged.".into()],
+                error: None,
+            }),
+            "app profile p/cs2.toml for C:\\cs2.exe\n  1 write(s), 0 unchanged."
+        );
+        assert_eq!(
+            render_event(&Event::AppProfile {
+                exe: "x.exe".into(),
+                profile: None,
+                lines: vec![],
+                error: Some("busy".into()),
+            }),
+            "values from before restored for x.exe FAILED: busy"
+        );
+    }
+
+    #[test]
+    fn app_profiles() {
+        use opensynapse_ipc::msg::AppRuleInfo;
+        assert_eq!(
+            render_app_profiles(&AppProfilesInfo::default()),
+            "Rules file: (no APPDATA folder)\nPer-app profiles: off (no rules file)\n\
+             Foreground: (unknown)\nActive: (none)\n"
+        );
+        let i = AppProfilesInfo {
+            config: Some("r.toml".into()),
+            enabled: true,
+            error: None,
+            default: Some("d.toml".into()),
+            rules: vec![AppRuleInfo {
+                exe: "cs2.exe".into(),
+                profile: "c.toml".into(),
+            }],
+            foreground: Some("cs2.exe".into()),
+            active: Some("c.toml".into()),
+            restore_pending: true,
+        };
+        assert_eq!(
+            render_reply(&Reply::AppProfiles(i)),
+            "Rules file: r.toml\nPer-app profiles: on, 1 rule(s)\n  cs2.exe -> c.toml\n\
+             \x20 (no match) -> d.toml\nForeground: cs2.exe\nActive: c.toml\n\
+             Values from before the first app profile are kept for restoring.\n"
+        );
+        let bad = AppProfilesInfo {
+            error: Some("rule 1: `exe` must not be empty".into()),
+            ..AppProfilesInfo::default()
+        };
+        assert!(render_app_profiles(&bad).contains("off (invalid file: rule 1"));
     }
 }

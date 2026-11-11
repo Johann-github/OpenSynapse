@@ -10,7 +10,7 @@ use std::time::Duration;
 
 use opensynapse_core::Profile;
 use opensynapse_device as dev;
-use opensynapse_device::profile_apply::{self as pa, ApplyError, ApplyOptions};
+use opensynapse_device::profile_apply::{self as pa, ApplyError, ApplyOptions, ApplyReport};
 use opensynapse_hid::{HidEntry, Session};
 use opensynapse_ipc::msg::{DeviceRef, ErrorKind, Event, IpcError, Reply, Request, WireWriteOpts};
 use opensynapse_protocol::dpi::Storage;
@@ -36,6 +36,8 @@ pub enum CoreMsg {
     Rescan,
     /// A hardware event from an [`EventSource`].
     DeviceEvent(Event),
+    /// The foreground application changed (full executable path); per-app profiles.
+    Foreground { exe: String },
 }
 
 /// `outer: cause: cause…`, so a read error keeps its HID reason.
@@ -70,6 +72,8 @@ pub struct Core<H: Hardware> {
     subscribers: Vec<Sender<Event>>,
     /// No hotplug watch: re-enumerate on every `ListDevices` instead.
     rescan_on_list: bool,
+    /// Per-app profiles (`core/apps.rs`).
+    apps: apps::AppState,
 }
 
 impl<H: Hardware> Core<H> {
@@ -91,6 +95,7 @@ impl<H: Hardware> Core<H> {
             detachers: HashMap::new(),
             subscribers: Vec::new(),
             rescan_on_list: false,
+            apps: apps::AppState::default(),
         }
     }
 
@@ -129,6 +134,10 @@ impl<H: Hardware> Core<H> {
             }
             CoreMsg::DeviceEvent(ev) => {
                 self.broadcast(ev);
+                false
+            }
+            CoreMsg::Foreground { exe } => {
+                self.on_foreground(exe);
                 false
             }
         }
@@ -281,6 +290,8 @@ impl<H: Hardware> Core<H> {
                 opts,
             } => self.apply_profile(&device, &toml, dry_run, all, opts),
             Request::Shutdown => Ok(Reply::ShuttingDown),
+            Request::ReloadAppProfiles => Ok(self.reload_app_profiles()),
+            Request::AppProfiles => Ok(Reply::AppProfiles(self.app_profiles_info())),
         }
     }
 
@@ -300,43 +311,14 @@ impl<H: Hardware> Core<H> {
         let path = self.resolve(device)?;
         let profile =
             Profile::from_toml(toml).map_err(|e| err(ErrorKind::BadRequest, e.to_string()))?;
-        // Checked at write time, never on a timer; refused before touching the device.
-        let conflict = self.hw.conflict();
-        let pid = self.devices[&path].pid;
-        let registry = convert::registry_device(pid);
-        let name = registry.map_or("unknown device", |d| d.name.as_str());
-        let s = self.session(&path)?;
         let options = ApplyOptions {
             storage: Storage::Persistent,
             all,
             force: opts.confirmed,
         };
-        let report = match pa::apply(
-            s,
-            pid,
-            registry,
-            conflict.as_deref(),
-            profile,
-            options,
-            dry_run,
-        ) {
-            Ok(r) => r,
-            Err(e) => {
-                let kind = match e {
-                    ApplyError::Conflict(_) => ErrorKind::Conflict,
-                    ApplyError::Read { .. } | ApplyError::Write { .. } => {
-                        // Reopen next time; the device may have been replugged.
-                        self.sessions.remove(&path);
-                        ErrorKind::Device
-                    }
-                    _ => ErrorKind::BadRequest,
-                };
-                return Err(err(kind, error_chain(&e)));
-            }
-        };
-        if report.failed.is_some() {
-            self.sessions.remove(&path);
-        }
+        let pid = self.devices[&path].pid;
+        let name = convert::registry_device(pid).map_or("unknown device", |d| d.name.as_str());
+        let report = self.run_apply(&path, profile, options, dry_run)?;
         let restore_toml = match &report.restore {
             Some(p) => Some(
                 pa::render(p, &pa::header(name, pid, "values before applying to"))
@@ -349,6 +331,51 @@ impl<H: Hardware> Core<H> {
             restore_toml,
             error: report.failed,
         })
+    }
+
+    /// Run the shared engine on the device at `path` (one of `self.devices`).
+    /// Razer software is checked here, at write time. Errors before the first write
+    /// are `Err`; a failed write is a report with `failed` set. The session is
+    /// dropped after a device error so the next call reopens it.
+    fn run_apply(
+        &mut self,
+        path: &str,
+        profile: Profile,
+        options: ApplyOptions,
+        dry_run: bool,
+    ) -> Result<ApplyReport, IpcError> {
+        let conflict = self.hw.conflict();
+        let pid = self.devices[path].pid;
+        let registry = convert::registry_device(pid);
+        let s = self.session(path)?;
+        match pa::apply(
+            s,
+            pid,
+            registry,
+            conflict.as_deref(),
+            profile,
+            options,
+            dry_run,
+        ) {
+            Ok(r) => {
+                if r.failed.is_some() {
+                    self.sessions.remove(path);
+                }
+                Ok(r)
+            }
+            Err(e) => {
+                let kind = match e {
+                    ApplyError::Conflict(_) => ErrorKind::Conflict,
+                    ApplyError::Read { .. } | ApplyError::Write { .. } => {
+                        // Reopen next time; the device may have been replugged.
+                        self.sessions.remove(path);
+                        ErrorKind::Device
+                    }
+                    _ => ErrorKind::BadRequest,
+                };
+                Err(err(kind, error_chain(&e)))
+            }
+        }
     }
 
     /// The control-collection path a request targets.
@@ -409,6 +436,8 @@ impl<H: Hardware> Core<H> {
         self.sessions.len()
     }
 }
+
+mod apps;
 
 #[cfg(test)]
 mod tests;

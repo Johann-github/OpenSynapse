@@ -118,7 +118,9 @@ pub fn apply_event(
         },
         Event::Error { message } => EventEffect::Note(format!("agent: {message}")),
         // The subscription ends right after; that switches the backend.
-        Event::ShuttingDown | Event::Hardware { .. } => EventEffect::Nothing,
+        Event::ShuttingDown | Event::Hardware { .. } | Event::AppProfile { .. } => {
+            EventEffect::Nothing
+        }
     }
 }
 

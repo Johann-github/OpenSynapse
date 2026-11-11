@@ -45,3 +45,18 @@ Device-specific limits (`DeviceLimits`: DPI min/max/step, max stages) are passed
 the caller, usually from the device registry. `Target` also picks the onboard profile
 slot for button writes, the DPI storage byte (default persistent) and the polling
 command variant (period or HyperPolling).
+
+## Per-app rules
+
+`AppProfiles::from_toml(&str)` reads `app-profiles.toml` (used by the agent,
+[[Decisions/ADR-0007 Per-app profiles]]); `profile_for(exe)` returns the first matching
+rule's profile, else `default`; `resolve_profile_path` resolves it against the rules file's
+folder. `Profile::fill_missing_from` merges restore profiles (first value wins).
+
+```toml
+# profile paths relative to this file's folder or absolute
+default = "profiles/desktop.toml"   # optional: applied when no rule matches
+[[app]]
+exe = "cs2.exe"                      # file name, case-insensitive; or a full path
+profile = "profiles/cs2.toml"
+```

@@ -91,7 +91,13 @@ fn opts() -> WireWriteOpts {
 }
 
 fn requests() -> Vec<Request> {
-    let mut v = vec![Request::Ping, Request::ListDevices, Request::Shutdown];
+    let mut v = vec![
+        Request::Ping,
+        Request::ListDevices,
+        Request::Shutdown,
+        Request::ReloadAppProfiles,
+        Request::AppProfiles,
+    ];
     for device in device_refs() {
         v.push(Request::ReadSnapshot {
             device: device.clone(),
@@ -215,6 +221,26 @@ fn replies() -> Vec<Reply> {
             error: Some("sleep time reads back as 300 s".into()),
         },
         Reply::ShuttingDown,
+        Reply::AppProfiles(AppProfilesInfo::default()),
+        Reply::AppProfiles(AppProfilesInfo {
+            config: Some(r"C:\Users\u\AppData\Roaming\OpenSynapse\app-profiles.toml".into()),
+            enabled: true,
+            error: Some("invalid app-profiles file".into()),
+            default: Some("profiles/desktop.toml".into()),
+            rules: vec![
+                AppRuleInfo {
+                    exe: "cs2.exe".into(),
+                    profile: "profiles/cs2.toml".into(),
+                },
+                AppRuleInfo {
+                    exe: String::new(),
+                    profile: "ü".into(),
+                },
+            ],
+            foreground: Some(r"C:\Windows\notepad.exe".into()),
+            active: Some("profiles/cs2.toml".into()),
+            restore_pending: true,
+        }),
         Reply::Written(Err(WriteFailed {
             old: None,
             message: "no reply".into(),
@@ -271,6 +297,18 @@ fn events() -> Vec<Event> {
             message: "hotplug failed".into(),
         },
         Event::ShuttingDown,
+        Event::AppProfile {
+            exe: r"C:\Steam\cs2.exe".into(),
+            profile: Some("profiles/cs2.toml".into()),
+            lines: vec!["Changed polling rate: 1000 Hz -> 500 Hz.".into()],
+            error: None,
+        },
+        Event::AppProfile {
+            exe: String::new(),
+            profile: None,
+            lines: vec![],
+            error: Some("RazerAppEngine.exe is running".into()),
+        },
     ]
 }
 
@@ -412,12 +450,12 @@ fn unknown_tags() {
             tag: 2
         })
     );
-    // Request id 0, request tag 6.
+    // Request id 0, request tag 8.
     assert_eq!(
-        decode_client(&[1, 0, 0, 0, 0, 6]),
+        decode_client(&[1, 0, 0, 0, 0, 8]),
         Err(DecodeError::UnknownTag {
             what: "Request",
-            tag: 6
+            tag: 8
         })
     );
     // Response id 0, Result tag 2.
@@ -436,12 +474,12 @@ fn unknown_tags() {
             tag: 7
         })
     );
-    // Event tag 7.
+    // Event tag 8.
     assert_eq!(
-        decode_server(&[2, 7]),
+        decode_server(&[2, 8]),
         Err(DecodeError::UnknownTag {
             what: "Event",
-            tag: 7
+            tag: 8
         })
     );
 }

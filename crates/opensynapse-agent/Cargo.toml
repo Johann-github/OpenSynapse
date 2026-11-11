@@ -21,6 +21,10 @@ opensynapse-core.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
 
+# Foreground watch for per-app profiles (SetWinEventHook), ADR-0007.
+[target.'cfg(windows)'.dependencies]
+windows-sys.workspace = true
+
 [dev-dependencies]
 opensynapse-device = { workspace = true, features = ["fake"] }
 
