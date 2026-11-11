@@ -8,9 +8,12 @@
 //! written back and forgotten. Running Razer software blocks every switch.
 //!
 //! Hotplug: a device that arrives while an app profile is active gets it (its
-//! values at arrival become its restore profile); one that does not answer yet is
-//! retried on its next hardware event or hotplug change, never on a timer. A
-//! removed device's restore profile and pending retry are dropped.
+//! values at arrival become its restore profile, unless it already has older
+//! ones); one that does not answer yet is retried on its next hardware event or
+//! hotplug change, never on a timer. A removed device keeps its restore profile:
+//! a wireless mouse keeps its volatile settings while its dongle is unplugged
+//! (observed 2026-11-11), so its values at re-arrival are still the app's. When it
+//! comes back with no app profile active, it gets its old values back.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::io;
@@ -48,7 +51,8 @@ pub struct AppState {
     active: Option<String>,
     /// Device path → values from before the first app profile (first read wins).
     restore: BTreeMap<String, Profile>,
-    /// Devices that arrived while an app profile was active and did not take it yet.
+    /// Devices that arrived and did not take the active app profile yet, or (no
+    /// app profile active) returned and did not take their values from before yet.
     pending: BTreeSet<String>,
 }
 
@@ -257,12 +261,13 @@ impl<H: Hardware> Core<H> {
         self.apps.pending.contains(dev)
     }
 
-    /// The device is gone: drop its values from before and any pending retry. A
-    /// replugged device counts as new (its state at arrival is what gets restored).
+    /// The device is gone: drop any pending retry, keep its values from before.
+    /// A wireless mouse keeps the app values while its dongle is out, so reading
+    /// them again at re-arrival would lose the real "before" (observed 2026-11-11).
     pub(super) fn forget_app_device(&mut self, dev: &str) {
         self.apps.pending.remove(dev);
-        if self.apps.restore.remove(dev).is_some() {
-            tracing::info!(path = %dev, "device removed; its values from before the app profile are dropped");
+        if self.apps.restore.contains_key(dev) {
+            tracing::info!(path = %dev, "device removed; its values from before the app profile are kept for its return");
         }
     }
 
@@ -274,7 +279,10 @@ impl<H: Hardware> Core<H> {
     /// hotplug change; never on a timer.
     pub(super) fn apply_app_profile_late(&mut self, arrived: &[String]) {
         let Some(active) = self.apps.active.clone() else {
-            self.apps.pending.clear();
+            // `pending` now holds returning devices whose restore failed.
+            let mut back = std::mem::take(&mut self.apps.pending);
+            back.extend(arrived.iter().cloned());
+            self.restore_returning(back, arrived);
             return;
         };
         let mut targets = std::mem::take(&mut self.apps.pending);
@@ -343,8 +351,52 @@ impl<H: Hardware> Core<H> {
         });
     }
 
+    /// Devices that come back after the app profile ended while they were away:
+    /// write their values from before. A failure keeps them and retries on the
+    /// device's next event (reported once, at arrival), like a late apply.
+    fn restore_returning(&mut self, mut back: BTreeSet<String>, arrived: &[String]) {
+        back.retain(|d| self.devices.contains_key(d) && self.apps.restore.contains_key(d));
+        if back.is_empty() {
+            return;
+        }
+        if let Some(name) = self.hw.conflict() {
+            let error = format!(
+                "{name} is running and may talk to the device at the same time;                  values from before the app profile not restored (nothing written)"
+            );
+            tracing::warn!("{error}");
+            if back.iter().any(|d| arrived.contains(d)) {
+                self.broadcast_app_profile(None, Vec::new(), Some(error));
+            }
+            self.apps.pending.extend(back);
+            return;
+        }
+        for dev in back {
+            let profile = self.apps.restore.remove(&dev).expect("filtered above");
+            let (lines, error) = match self.run_apply(&dev, profile.clone(), SWITCH_OPTIONS, false)
+            {
+                Ok(r) => (r.lines, r.failed),
+                Err(e) => (Vec::new(), Some(e.message)),
+            };
+            let first = arrived.contains(&dev);
+            match &error {
+                None => {
+                    tracing::info!(path = %dev, "returning device got its values from before the app profile")
+                }
+                Some(e) => {
+                    tracing::warn!(path = %dev, error = %e, "restore of returning device failed; retry on its next event");
+                    self.apps.restore.insert(dev.clone(), profile);
+                    self.apps.pending.insert(dev);
+                }
+            }
+            if error.is_none() || first {
+                self.broadcast_app_profile(None, lines, error);
+            }
+        }
+    }
+
     /// Write back the values from before the first app profile, then forget them.
-    /// A device whose restore fails keeps its values for the next try.
+    /// A device whose restore fails keeps its values for the next try; one that is
+    /// not connected keeps them until it returns.
     fn restore_app_values(&mut self) -> (Vec<String>, Option<String>) {
         if self.apps.restore.is_empty() {
             return (vec!["Nothing to restore.".into()], None);
@@ -354,8 +406,9 @@ impl<H: Hardware> Core<H> {
         for (dev, profile) in std::mem::take(&mut self.apps.restore) {
             if !self.devices.contains_key(&dev) {
                 lines.push(format!(
-                    "{dev} is not connected; its values from before are dropped."
+                    "{dev} is not connected; its values from before are restored when it returns."
                 ));
+                self.apps.restore.insert(dev, profile);
                 continue;
             }
             match self.run_apply(&dev, profile.clone(), SWITCH_OPTIONS, false) {

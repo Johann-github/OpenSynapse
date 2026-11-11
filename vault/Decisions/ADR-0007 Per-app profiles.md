@@ -47,21 +47,29 @@ the core actor ([[Architecture/Agent]]), no writes while Razer software runs, li
   - Each apply's restore profile is merged into one per device with "first value wins"
     (`Profile::fill_missing_from`), so it holds the values from before the *first* app profile.
   - No target and values kept → they are written back (same options) and forgotten. A device
-    whose restore fails keeps its values for the next try; an unplugged device's are dropped.
+    whose restore fails keeps its values for the next try; an unplugged device keeps them until it
+    returns (see hotplug).
   - Reload re-evaluates the app in front; an invalid or removed file therefore restores.
   - **Hotplug** (added 2026-11-11): after each rescan, every newly arrived device with the active
     profile's PID gets the active profile (same engine, same options). The engine's restore
-    profile — the values read before writing — becomes that device's restore profile, so a later
-    switch away brings it back to its state *at arrival*. No active app profile → nothing.
+    profile — the values read before writing — is merged "first value wins" into that device's
+    restore profile, so a new device goes back to its state *at arrival* and a returning one to
+    its values from before the first app profile. No active app profile and no kept values → nothing.
   - A late device that fails (e.g. the dongle arrives while the wireless mouse is asleep or not
     linked, or Razer software runs) is reported once (`AppProfile` event with error, warn log) and
     kept as *pending*. It is retried, quietly, on its next hardware event (`DeviceEvent` from its
     path, e.g. DPI button or link change) or on the next hotplug rescan; never on a timer. Any
     full switch clears pending (it covers all connected devices itself).
-  - A removed device's restore profile and pending retry are dropped at removal (no restore
-    attempt, no error later). Caveat (accepted): settings the app profile wrote persistently
-    (polling, sleep, buttons) survive a replug, so the replugged device's restore profile holds the
-    app values for those; volatile DPI stages are back to the stored ones after the power cycle anyway.
+  - A removed device's pending retry is dropped, its restore profile is **kept** (keyed by device
+    path). Reason (observed on hardware 2026-11-11, Viper V3 HyperSpeed): pulling the dongle does
+    not reset the wireless mouse; it keeps the volatile app DPI stages (800/1600, DPI 1600). The
+    first version dropped the values at removal, so the re-arrival read took the app values as
+    "before" and switching away left the mouse at 1600 DPI.
+  - A switch away while the device is unplugged keeps its values ("restored when it returns").
+    When it returns with no app profile active, they are written back at arrival; on failure
+    (asleep) it is reported once and retried on its next hardware event or rescan, like a late apply.
+  - Limit: the key is the device path. The same dongle in another USB port gets another path, so
+    its old values are not matched (they stay until the agent exits).
   - The apply runs in the core actor like every HID call: a device that does not answer costs the
     session's bounded retries (25 ms timing, 10 in / 20 out), then the actor moves on.
 - **IPC** (`PROTOCOL_VERSION` 1 → 2, new tags only): `Request::ReloadAppProfiles` (6),
@@ -101,7 +109,8 @@ polling/sleep/buttons per app get one write per changed setting per switch; that
 **Consequences:**
 - The agent links `user32` (working set 9.8 MB idle, measured; was 9.2 MB).
 - A device that is plugged in while an app profile is active gets it at arrival (unit-tested;
-  hardware check pending: replug the dongle while an app profile is active).
+  hardware: the mouse took the profile at re-arrival; the restore fix after the first test is
+  pending a re-check).
 - Unsupported-protocol devices with a matching PID get an error event, nothing written.
 - Linux/macOS: the watch returns `Unsupported`; the feature is inactive there.
 
@@ -111,7 +120,9 @@ polling/sleep/buttons per app get one write per changed setting per switch; that
   traffic, unmatched without default → restore and forget, default, Razer running → no traffic,
   unknown PID / missing PID → skip, DPI stages volatile, invalid/missing file, reload; hotplug:
   arrival during app profile → applied, no app profile / other PID → nothing, switch away →
-  late device back to its arrival state, removal → restore dropped quietly, asleep device →
+  late device back to its arrival state, removal keeps the values from before, wireless replug
+  during the app profile → original values on switch away, return after the app profile ended →
+  values written back (asleep → one error, retry on its event), asleep device →
   one error then retry on its own event or a rescan, Razer running at arrival → retry).
 - Live (2026-11-11, release build, test pipe, rule `powershell.exe` → profile for PID 00C0 so no
   device write): foreground events for `Code.exe` at start, `powershell.exe` when a test window

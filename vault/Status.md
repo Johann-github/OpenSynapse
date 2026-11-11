@@ -45,8 +45,10 @@ Next tasks, in order:
    `agent app-profiles [reload]`, IPC v2. Hardware-tested on the Viper (switch ~112 ms, restore verified).
    → [[Decisions/ADR-0007 Per-app profiles]], [[RE-Log/2026-11-11 Per-app profile hardware test]]
    ✅ Hotplug (2026-11-11): a device plugged in while an app profile is active gets it (restore = its state
-   at arrival); asleep mouse → one error, retry on its next event / rescan; removal drops its restore values.
-   Unit-tested. **Hardware check pending: replug dongle while app profile active.**
+   at arrival); asleep mouse → one error, retry on its next event / rescan. Hardware 2026-11-11: mouse took
+   the profile at re-arrival, but switching away left 1600 DPI (wireless mouse keeps volatile settings while
+   the dongle is out; removal had dropped the restore values). Fixed: removal keeps them, a returning device
+   gets them back. GUI now re-reads after `AppProfile` events. **Re-check pending.**
    ✅ GUI editor (2026-11-11, **user check pending**): top-bar "Per-app profiles" window lists rules
    (exe → profile file), add/edit/remove/reorder, default profile, settings of the rule's profile
    (PID, DPI stages, polling, sleep; buttons kept), inline errors, atomic save, then `ReloadAppProfiles`

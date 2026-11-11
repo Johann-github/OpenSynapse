@@ -27,7 +27,9 @@ profile's `[device] pid`. The values from before the first app profile are kept 
 and written back when no rule matches and there is no `default`. Hotplug: a device that arrives
 while an app profile is active gets it (values at arrival = its restore profile); if it does not
 answer yet (wireless mouse asleep / not linked) it is reported once and retried on its next hardware
-event or hotplug change, never on a timer. A removed device's restore profile is dropped.
+event or hotplug change, never on a timer. A removed device keeps its restore profile (a wireless
+mouse keeps its settings while the dongle is out); it is written back when the device returns with
+no app profile active.
 Details: [[Decisions/ADR-0007 Per-app profiles]].
 
 ## Connection roles

@@ -309,6 +309,16 @@ impl T {
         self.core.hw().plug(path, VIPER_PID)
     }
 
+    /// Plug `mouse` back in with the state it kept (a wireless mouse whose dongle
+    /// was out).
+    fn replug(&mut self, path: &str, mouse: &FakeMouse) {
+        self.core
+            .hw()
+            .mice
+            .insert(path.into(), (VIPER_PID, mouse.clone()));
+        self.core.rescan();
+    }
+
     fn unplug(&mut self, path: &str) {
         self.core.hw().mice.remove(path);
         self.core.rescan();
@@ -396,7 +406,7 @@ fn switch_back_restores_the_late_device_to_its_arrival_state() {
 }
 
 #[test]
-fn removal_drops_the_snapshot_quietly() {
+fn removal_keeps_the_values_from_before_quietly() {
     let mut t = start("late-removal", RULES);
     t.focus("cs2.exe");
     let _b = t.plug(B);
@@ -408,21 +418,62 @@ fn removal_drops_the_snapshot_quietly() {
     assert_eq!(s.len(), 1);
     assert_eq!(s[0].1, None, "no error for the unplugged mouse");
     assert!(
-        !s[0].2.iter().any(|l| l.contains("not connected")),
-        "its values were dropped at removal: {:?}",
+        s[0].2
+            .iter()
+            .any(|l| l.contains("restored when it returns")),
+        "{:?}",
         s[0].2
     );
     assert_eq!(t.mouse.state().polling_hz, 1000);
+    assert!(t.info().restore_pending, "kept for the unplugged mouse");
+}
+
+/// Hardware 2026-11-11: the Viper keeps its volatile settings while its dongle is
+/// out, so at re-arrival it still has the app values.
+#[test]
+fn wireless_replug_during_app_profile_keeps_the_real_before() {
+    let mut t = start("late-replug", RULES);
+    t.focus("cs2.exe");
+    assert_eq!(t.mouse.state().polling_hz, 500);
+    t.unplug(A);
+    t.replug(A, &t.mouse.clone());
+    assert_eq!(t.mouse.state().polling_hz, 500);
+    t.focus("explorer.exe");
+    assert_eq!(
+        t.mouse.state().polling_hz,
+        1000,
+        "the value from before cs2"
+    );
     assert!(!t.info().restore_pending);
 }
 
 #[test]
-fn removal_of_the_only_device_clears_restore() {
-    let mut t = start("late-removal-only", RULES);
+fn device_returning_after_the_app_profile_ended_gets_its_values_back() {
+    let mut t = start("late-return", RULES);
     t.focus("cs2.exe");
-    assert!(t.info().restore_pending);
     t.unplug(A);
+    t.focus("explorer.exe");
+    let _ = t.switches();
+    assert!(t.info().restore_pending);
+    // Away, the mouse kept the app value.
+    assert_eq!(t.mouse.state().polling_hz, 500);
+    t.mouse.state().answers = false;
+    t.replug(A, &t.mouse.clone());
+    let s = t.switches();
+    assert_eq!(s.len(), 1, "one error at return");
+    assert!(s[0].1.is_some());
+    // It wakes up and talks: the restore is retried and works.
+    t.mouse.state().answers = true;
+    t.event_from(A);
+    assert_eq!(t.mouse.state().polling_hz, 1000);
+    let s = t.switches();
+    assert_eq!(s.len(), 1);
+    assert_eq!((s[0].0.as_deref(), s[0].1.as_deref()), (None, None));
     assert!(!t.info().restore_pending);
+    // Done: later events cost nothing.
+    let sent = t.mouse.sent().len();
+    t.event_from(A);
+    assert_eq!(t.mouse.sent().len(), sent);
 }
 
 #[test]
