@@ -10,8 +10,9 @@ installer framework, no new dependencies.
 - **Autostart:** one `REG_SZ` value `OpenSynapse Agent` under
   `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`, holding the quoted path of
   `opensynapse-agent.exe`. Per user, no admin rights, removable in Task Manager → Startup.
-  Managed by `opensynapse agent autostart [on|off]`; the agent binary is the one next to
-  the CLI. Rejected: Windows service (runs as SYSTEM in session 0, cannot own the user's
+  Managed by `opensynapse agent autostart [on|off]`; the agent binary is the installed one
+  (`%LOCALAPPDATA%\Programs\OpenSynapse`, [[Decisions/ADR-0009 Install location]]), else the one
+  next to the CLI. `opensynapse install` points the value at the installed agent. Rejected: Windows service (runs as SYSTEM in session 0, cannot own the user's
   per-user pipe, needs admin to install), scheduled task (heavier API, admin for some
   triggers).
 - **No window:** the agent is a `windows_subsystem = "windows"` binary. Started from a

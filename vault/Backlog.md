@@ -20,6 +20,11 @@ Parked items, ranked. Pick from here when [[Status]] "Resume here" is empty.
 - **Linux / macOS** (goal: second). Missing there: HID transport (hidapi path exists, untested on
   hardware), autostart, foreground watch for per-app profiles (returns `Unsupported`), install location.
 
+## Install
+- Start-menu shortcut for the GUI (needs `IShellLink` COM). [[Decisions/ADR-0009 Install location]]
+- Detached agent inherits a piped stdout in Git Bash (`agent start | tail`, `install | grep` hang
+  until the agent exits). Fix: spawn with handle inheritance off (`STARTUPINFO` / explicit handle list).
+
 ## Ideas, declined for now
 - Windows toast when an automatic write (app-profile switch) fails because the mouse sleeps.
   User 2026-11-11: not wanted; the opt-in hint in CLI/GUI is enough ([[Decisions/ADR-0008 User settings and wake hint]]).

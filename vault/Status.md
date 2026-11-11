@@ -22,14 +22,12 @@ button 4, wake hint off, `app-profiles.toml` with 0 rules, agent running from `t
 `main` is pushed (c4ef50f). The install WIP branch is local only.
 
 **Next, in order:**
-1. **Finish install (ADR-0009, unfinished).** Branch `worktree-agent-ab0f6c4238b63f425`, WIP commit
-   `6ac3ea2` (compiles; worktree `.claude/worktrees/agent-ab0f6c4238b63f425`). The agent hit the usage
-   limit while making `set_autostart` re-resolve the agent exe. Done so far: `opensynapse-sys::install`
-   (location `%LOCALAPPDATA%\Programs\OpenSynapse`), CLI `install.rs`, changes in `lifecycle.rs`,
-   GUI `agent_ctl.rs`/`worker.rs`. Still to do: finish autostart re-resolve, tests, ADR-0009 note,
-   ADR-0006 update, READMEs, fmt/clippy/test, merge. Then **user step**: run
-   `target\release\opensynapse.exe install` once (the Run-key write is blocked for Claude), check
-   autostart + GUI "Start agent" use the installed exe.
+1. ✅ **Install (ADR-0009)** done 2026-11-11: `opensynapse install|uninstall`, location
+   `%LOCALAPPDATA%\Programs\OpenSynapse`, agent/autostart/GUI prefer the installed agent. Tested
+   end-to-end with `--dir` + `--no-autostart`. **User step pending:** run
+   `targetelease\opensynapse.exe install` once (unpiped; writes the Run key), then check
+   `agent autostart` shows the installed path and the GUI "Start agent" works.
+   → [[Decisions/ADR-0009 Install location]]
 2. **User check: buttons in the per-app profile editor** (merged, unit-tested): open a rule's
    Settings → Buttons, set Side button 4 = DPI down, Save, check the TOML and the switch. Reset DPI to 800 after.
 3. **Open question: flash wear.** 02/0C button writes are stored onboard (power-cycle test), so an app
