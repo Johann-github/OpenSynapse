@@ -26,3 +26,12 @@ All frames: class 02, command 0C, data_size 10, args `[profile, button, layer, f
 ## Code
 `opensynapse-protocol::buttons::{off, dpi_down}`, `Known::{Off, DpiDown}`; profile actions
 `off` / `dpi-down`; CLI `buttons set <n> off|dpi-down`; GUI editor choices "DPI down", "Off (disabled)".
+
+## Power-cycle test (2026-11-11, agent stopped)
+- (observed) `buttons set 4 off --apply` (02/0C, profile 1, normal mode), then the user switched the
+  mouse off for ~5 s and on again. Read back: button 4 still `off (function 0, data [])`;
+  HyperShift slot unchanged (mouse button 4). So 02/0C writes are stored on the device (onboard
+  memory), not volatile.
+- (observed) Volatile DPI stages also came back as 400/800, active 2, DPI 800 (same as the
+  stored list at that time, so this does not tell volatile from persistent).
+- Restored: button 4 = mouse button 4.
