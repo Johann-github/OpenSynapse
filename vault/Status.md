@@ -25,7 +25,7 @@ button 4, wake hint off, `app-profiles.toml` with 0 rules, agent running from `t
 1. ✅ **Install (ADR-0009)** done 2026-11-11: `opensynapse install|uninstall`, location
    `%LOCALAPPDATA%\Programs\OpenSynapse`, agent/autostart/GUI prefer the installed agent. Tested
    end-to-end with `--dir` + `--no-autostart`. **User step pending:** run
-   `targetelease\opensynapse.exe install` once (unpiped; writes the Run key), then check
+   `target\release\opensynapse.exe install` once (unpiped; writes the Run key), then check
    `agent autostart` shows the installed path and the GUI "Start agent" works.
    → [[Decisions/ADR-0009 Install location]]
 2. **User check: buttons in the per-app profile editor** (merged, unit-tested): open a rule's
