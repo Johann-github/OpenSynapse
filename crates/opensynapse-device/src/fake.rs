@@ -12,10 +12,8 @@ use opensynapse_hid::{FeatureIo, HidError};
 use opensynapse_protocol::command::{self, Command};
 use opensynapse_protocol::{FEATURE_REPORT_LEN, Report, Request, dpi, polling, power};
 
+pub use crate::VIPER_BUTTONS;
 use crate::{HYPER_PROFILE, stages_from};
-
-/// Viper V3 HyperSpeed button IDs in 02/8E order (observed).
-pub const VIPER_BUTTONS: [u8; 8] = [1, 2, 3, 4, 5, 96, 9, 10];
 
 /// The fake's factory stage list: 400 [800].
 pub fn default_stages() -> dpi::DpiStages {

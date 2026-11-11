@@ -54,6 +54,9 @@ Next tasks, in order:
    (exe → profile file), add/edit/remove/reorder, default profile, settings of the rule's profile
    (PID, DPI stages, polling, sleep; buttons kept), inline errors, atomic save, then `ReloadAppProfiles`
    if the agent runs. Writer `AppProfiles::to_toml` in core (round-trip tests). GUI 5.05 MB.
+   🔄 Buttons editable in the rule's profile (2026-11-11): normal + HyperShift rows, "Unchanged" or
+   the main panel's actions, left/right-click opt-in; GUI 5.13 MB; unit-tested, **user check pending**
+   (open a rule's Settings, set Side button 4 = DPI down, Save, check the file and the switch).
    ✅ GUI "Start agent" click (2026-11-11, user-checked): switches to "Backend: agent".
 5. ✅ Captures for "off" (function 0, no data) and "DPI down" (function 6, `[02]`), both hardware-tested
    (2026-11-11). → [[RE-Log/2026-11-11 Button capture off and DPI down]]. ✅ Power-cycle test: 02/0C assignments survive
