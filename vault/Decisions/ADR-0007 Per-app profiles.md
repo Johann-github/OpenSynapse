@@ -109,8 +109,8 @@ polling/sleep/buttons per app get one write per changed setting per switch; that
 **Consequences:**
 - The agent links `user32` (working set 9.8 MB idle, measured; was 9.2 MB).
 - A device that is plugged in while an app profile is active gets it at arrival (unit-tested;
-  hardware: the mouse took the profile at re-arrival; the restore fix after the first test is
-  pending a re-check).
+  hardware 2026-11-11, user-checked: notepad profile 800/1600, dongle replugged with notepad in
+  front → 1600 kept, switch away → 800 on device and in the GUI).
 - Unsupported-protocol devices with a matching PID get an error event, nothing written.
 - Linux/macOS: the watch returns `Unsupported`; the feature is inactive there.
 

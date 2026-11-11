@@ -48,8 +48,9 @@ Next tasks, in order:
    at arrival); asleep mouse → one error, retry on its next event / rescan. Hardware 2026-11-11: mouse took
    the profile at re-arrival, but switching away left 1600 DPI (wireless mouse keeps volatile settings while
    the dongle is out; removal had dropped the restore values). Fixed: removal keeps them, a returning device
-   gets them back. GUI now re-reads after `AppProfile` events. **Re-check pending.**
-   ✅ GUI editor (2026-11-11, **user check pending**): top-bar "Per-app profiles" window lists rules
+   gets them back. GUI now re-reads after `AppProfile` events. ✅ Re-check (user): replug during notepad
+   profile → 1600 kept, switch away → 800 (GUI and device).
+   ✅ GUI editor (2026-11-11, user-checked: add rule, auto profile path, DPI stages, save + switch): top-bar "Per-app profiles" window lists rules
    (exe → profile file), add/edit/remove/reorder, default profile, settings of the rule's profile
    (PID, DPI stages, polling, sleep; buttons kept), inline errors, atomic save, then `ReloadAppProfiles`
    if the agent runs. Writer `AppProfiles::to_toml` in core (round-trip tests). GUI 5.05 MB.
