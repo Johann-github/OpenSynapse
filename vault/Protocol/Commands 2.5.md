@@ -101,6 +101,7 @@ Which polling command the Viper supports is chosen by the per-product UI (not ca
   `[buttonId, functionId, dataLen, data×5]` (inferred from hardware), mode honoured (observed).
 - 02/A5 · 02/25: meaning of "mode" unknown (parser labels `[buttonId, mode]`, no enum).
 - functionId: 0 off, 1 mouse button, 2 key, 3/4/5/15 macro types, 6 DPI, 7 profile, 8 lighting, 9 power keys, 10 media keys, 11 double-click, 12 mode key, 13 turbo key, 14 turbo button, 16 controller, 17 Razer key, 18 scroll mode, 21 Win8 shortcut (observed).
+- Data per function (USB capture + hardware test): 0 off = no data; 1 mouse button = `[buttonId]`; 2 key = `[modifiers, usage]`; 6 DPI = `[01]` up / `[02]` down; 11 double-click = `[1]` (observed). → [[RE-Log/2026-11-11 Button capture off and DPI down]]
 - buttonId: 1 left, 2 right, 3 wheel click, 4–8 buttons 4–8, 9 wheel up, 10 wheel down, 11 DPI up, 12 DPI down, 13 user select, 14 profile switch, 15 sniper, 16–31 macro 1–16, 52/53 tilt L/R, 57 HyperShift, 104/105 scroll L/R, 106 free/notch switch, 121 rapid fire (observed).
 - Data bytes per functionId are built by the per-product UI. Known from a USB capture
   ([[2026-11-09 Button remap capture]]):
