@@ -51,7 +51,12 @@ Next tasks, in order:
    ✅ GUI "Start agent" click (2026-11-11, user-checked): switches to "Backend: agent".
 5. ✅ Captures for "off" (function 0, no data) and "DPI down" (function 6, `[02]`), both hardware-tested
    (2026-11-11). → [[RE-Log/2026-11-11 Button capture off and DPI down]]. Open: power-cycle test for button assignments.
-6. Mouse asleep → friendlier error ("move the mouse to wake it").
+6. ✅ Mouse asleep hint (2026-11-11, unit/mock tests only): `HidError::NoResponse` (retries used up,
+   last reply status 0x04 Timeout; observed in the slice-1 test), IPC `ErrorKind::NoResponse` (IPC v3),
+   `settings.toml` + `opensynapse settings get|set wake-hint on|off`, GUI checkbox "Show hint when the
+   mouse is asleep". **Default off.** → [[Decisions/ADR-0008 User settings and wake hint]]
+   To check: `opensynapse settings set wake-hint on`, let the mouse sleep (> sleep timer), run
+   `opensynapse dpi get` (and `agent snapshot`): expect `Error: … no response from the device …` then `Hint: …`.
 
 Before every commit: `cargo fmt --all --check && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace`.
 

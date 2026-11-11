@@ -15,9 +15,11 @@ mod agent;
 mod hid_probe;
 mod lifecycle;
 mod profile;
+mod settings;
 
 pub use agent::AgentAction;
 pub use hid_probe::HidAction;
+pub use settings::{SettingKey, SettingsAction, hint_for as wake_hint_for};
 
 #[derive(Parser)]
 #[command(
@@ -89,6 +91,11 @@ pub enum Command {
     Hid {
         #[command(subcommand)]
         action: HidAction,
+    },
+    /// User settings of the CLI and GUI (`settings.toml`).
+    Settings {
+        #[command(subcommand)]
+        action: SettingsAction,
     },
 }
 
@@ -305,6 +312,9 @@ pub fn run(cli: Cli) -> Result<()> {
     if let Command::Hid { action } = cli.command {
         return hid_probe::run(action, cli.pid);
     }
+    if let Command::Settings { action } = cli.command {
+        return settings::run(action);
+    }
     let transport = Transport::new().context("cannot enumerate HID devices")?;
     if let Command::List = cli.command {
         return list(&transport);
@@ -312,7 +322,9 @@ pub fn run(cli: Cli) -> Result<()> {
 
     let mut dev = Target::select(&transport, cli.pid)?;
     match cli.command {
-        Command::List | Command::Agent { .. } | Command::Hid { .. } => unreachable!(),
+        Command::List | Command::Agent { .. } | Command::Hid { .. } | Command::Settings { .. } => {
+            unreachable!()
+        }
         Command::Info => info(&mut dev),
         Command::Battery => battery(&mut dev),
         Command::Dpi { action } => match action {

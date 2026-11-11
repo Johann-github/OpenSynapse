@@ -102,6 +102,7 @@ mod tag {
     pub const ERR_UNSUPPORTED: u8 = 4;
     pub const ERR_CONFLICT: u8 = 5;
     pub const ERR_DEVICE: u8 = 6;
+    pub const ERR_NO_RESPONSE: u8 = 7;
     // Event
     pub const EV_DEVICE_ARRIVED: u8 = 0;
     pub const EV_DEVICE_REMOVED: u8 = 1;
@@ -360,6 +361,7 @@ impl Writer {
             ErrorKind::Unsupported => tag::ERR_UNSUPPORTED,
             ErrorKind::Conflict => tag::ERR_CONFLICT,
             ErrorKind::Device => tag::ERR_DEVICE,
+            ErrorKind::NoResponse => tag::ERR_NO_RESPONSE,
         });
         self.str(&e.message);
     }
@@ -796,6 +798,7 @@ impl<'a> Reader<'a> {
             tag::ERR_UNSUPPORTED => ErrorKind::Unsupported,
             tag::ERR_CONFLICT => ErrorKind::Conflict,
             tag::ERR_DEVICE => ErrorKind::Device,
+            tag::ERR_NO_RESPONSE => ErrorKind::NoResponse,
             t => return unknown("ErrorKind", t),
         };
         Ok(IpcError {

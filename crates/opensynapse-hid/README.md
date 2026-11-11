@@ -8,6 +8,10 @@ HID transport and device sessions. Windows: native SetupAPI + hid.dll (`src/wind
   the collection must also report a 91-byte feature report.
 - `Session::execute` runs Synapse's send algorithm: SET → 25 ms → GET, poll while busy,
   resend on failure or mismatched reply, stop on permanent failure.
+- Errors: `HidError::NoResponse` when the retries ran out and the last reply was status
+  Timeout (0x04): a sleeping wireless mouse (observed) or one out of range (inferred).
+  Its text starts with `NO_RESPONSE`; `is_no_response_text` recognises it after the error
+  became a string. [[Decisions/ADR-0008 User settings and wake hint]]
 - `conflicting_process()` warns when `RazerAppEngine.exe` runs (ToolHelp snapshot).
 
 Implements [[Protocol/Windows Transport]] and the timing part of [[Protocol/Report Format 2.5]].

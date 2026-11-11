@@ -160,4 +160,16 @@ invalid. `agent watch` prints each switch (`app profile <file> for <exe>`, then 
 lines). `OPENSYNAPSE_AGENT_PIPE` selects another agent pipe (tests).
 See [[Decisions/ADR-0007 Per-app profiles]].
 
+Settings ([[Decisions/ADR-0008 User settings and wake hint]]):
+
+    opensynapse settings get
+    opensynapse settings set wake-hint on|off
+
+`settings.toml` lives in `%APPDATA%\OpenSynapse` (shared with the GUI). `get` lists every
+setting and the file; a missing file means defaults. `set` refuses to overwrite a file it
+cannot parse. With `wake-hint on`, a command that fails because the device did not respond
+(direct HID `HidError::NoResponse`, agent `ErrorKind::NoResponse`, or that error's text in a
+write failure) prints `Hint: Mouse seems asleep — move it to wake it, then retry` after the
+usual `Error: …`. Default: off.
+
 Vault: [[Architecture/Crates]], [[Status]]

@@ -32,6 +32,9 @@ pub struct State {
     /// Accept writes but keep the old value (read-back mismatch).
     pub ignore_writes: bool,
     pub answers: bool,
+    /// Answer every report with status Timeout (0x04), like a sleeping
+    /// wireless mouse behind its dongle (observed 2026-11-10).
+    pub asleep: bool,
     /// (mode, button) -> (function, data); Viper defaults: button N -> mouse
     /// button N, DPI button -> DPI function.
     pub slots: BTreeMap<(u8, u8), (u8, Vec<u8>)>,
@@ -48,6 +51,7 @@ impl Default for State {
             period_supported: true,
             ignore_writes: false,
             answers: true,
+            asleep: false,
             slots: [0u8, 1]
                 .into_iter()
                 .flat_map(|m| {
@@ -139,7 +143,9 @@ fn reply(request: &[u8], status: u8, args: &[u8]) -> [u8; FEATURE_REPORT_LEN] {
 fn answer(st: &mut State, req: &Report) -> (u8, Vec<u8>) {
     let is = |c: Command| c.class == req.class() && c.id == req.command_id();
     let ok = |args: Vec<u8>| (2u8, args);
-    if !st.answers {
+    if st.asleep {
+        (4, vec![])
+    } else if !st.answers {
         (5, vec![])
     } else if is(command::GET_FIRMWARE_VERSION) {
         ok(vec![1, 4])

@@ -253,7 +253,7 @@ fn connect() -> Result<Client> {
 fn call(c: &mut Client, req: Request) -> Result<Reply> {
     match c.call(req) {
         Ok(Ok(r)) => Ok(r),
-        Ok(Err(e)) => bail!(render_ipc_error(&e)),
+        Ok(Err(e)) => Err(AgentError::from(e).into()),
         Err(e) => bail!(render_io_error(&e)),
     }
 }
@@ -314,9 +314,35 @@ pub(crate) fn render_ipc_error(e: &IpcError) -> String {
         ErrorKind::Unsupported => "unsupported",
         ErrorKind::Conflict => "conflict",
         ErrorKind::Device => "device error",
+        ErrorKind::NoResponse => "device not responding",
     };
     format!("agent: {kind}: {}", e.message)
 }
+
+/// An error the agent answered with. Keeps the [`ErrorKind`] so callers can
+/// recognise a class (e.g. `NoResponse` for the wake hint) after `?`.
+#[derive(Debug)]
+pub(crate) struct AgentError {
+    pub kind: ErrorKind,
+    rendered: String,
+}
+
+impl From<IpcError> for AgentError {
+    fn from(e: IpcError) -> Self {
+        Self {
+            kind: e.kind,
+            rendered: render_ipc_error(&e),
+        }
+    }
+}
+
+impl std::fmt::Display for AgentError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.rendered)
+    }
+}
+
+impl std::error::Error for AgentError {}
 
 /// Output for any reply; multi-line replies end with a newline.
 pub(crate) fn render_reply(r: &Reply) -> String {

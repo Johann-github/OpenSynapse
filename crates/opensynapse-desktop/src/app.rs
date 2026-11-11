@@ -20,6 +20,7 @@ use crate::ops::{
     self, ActionEdit, ActionKind, ButtonRow, Field, Setting, Snapshot, WriteFailure, WriteOpts,
     WriteOutcome,
 };
+use crate::user_settings::UserSettings;
 use crate::worker::{self, DeviceRow, Job, Reply, SubMsg};
 
 const WARN: Color32 = Color32::from_rgb(0xE0, 0x9A, 0x20);
@@ -78,6 +79,8 @@ pub struct App {
     stage_values: Vec<u16>,
     stage_active: usize,
     stage_persistent: bool,
+    /// `settings.toml` (wake hint), shared with the CLI.
+    user_settings: UserSettings,
 }
 
 impl App {
@@ -113,6 +116,7 @@ impl App {
             stage_values: Vec::new(),
             stage_active: 0,
             stage_persistent: false,
+            user_settings: UserSettings::load(),
         };
         app.send(Job::Connect);
         app.send(Job::Scan { reselect: true });
@@ -334,6 +338,7 @@ impl App {
             }
         });
         self.autostart_row(ui);
+        self.user_settings.ui(ui, BAD);
         let note = self.backend.as_ref().and_then(BackendState::note);
         for n in note.into_iter().chain(self.agent_note.as_deref()) {
             ui.label(RichText::new(n).weak());
@@ -459,7 +464,7 @@ impl App {
                 return;
             }
             Some(Err(e)) => {
-                ui.colored_label(BAD, e);
+                self.user_settings.error_label(ui, BAD, e);
                 return;
             }
             Some(Ok(s)) => s.clone(),
@@ -788,7 +793,8 @@ impl App {
                 (o.old != o.now).then(|| o.old.clone())
             }
             Err(f) => {
-                ui.colored_label(BAD, format!("Write not done: {}", f.message));
+                let msg = format!("Write not done: {}", f.message);
+                self.user_settings.error_label(ui, BAD, &msg);
                 f.old.clone()
             }
         };

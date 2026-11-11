@@ -23,6 +23,13 @@ it runs, else talks to the device in-process on a worker thread ([[Architecture/
   warning and "Fix" (re-point it at this installation). Without the agent binary next to
   the GUI the checkbox and button are disabled with a tooltip; errors are status lines.
 
+- Settings (`src/user_settings.rs`, [[Decisions/ADR-0008 User settings and wake hint]]): a "Settings" row under the autostart
+  checkbox with "Show hint when the mouse is asleep" (default off). It reads
+  `%APPDATA%\OpenSynapse\settings.toml` once at start and writes it on each toggle (same
+  file as `opensynapse settings`). When on, a snapshot error or "Write not done" line of the
+  no-response class gets "Mouse seems asleep — move it to wake it, then retry" below it. An
+  invalid file disables the checkbox and shows why; it is never overwritten.
+
 - Left: control collections from `opensynapse-hid` with names from the device registry.
   Only protocol 2.5 devices can be selected.
 - Right, grouped: Device (firmware, serial, mode, battery, charging), DPI (current, stages

@@ -46,6 +46,17 @@ the caller, usually from the device registry. `Target` also picks the onboard pr
 slot for button writes, the DPI storage byte (default persistent) and the polling
 command variant (period or HyperPolling).
 
+## User settings
+
+`Settings::from_toml(&str)` / `to_toml()` read and write `settings.toml` (CLI and GUI
+preferences, [[Decisions/ADR-0008 User settings and wake hint]]). Empty text = defaults; missing keys = defaults; unknown keys are kept
+and written back. `WAKE_HINT` is the hint text; `wake_hint_for(asleep)` returns it only when
+`wake_hint` is on. The file path and I/O live in `opensynapse_sys::config`.
+
+```toml
+wake_hint = false   # "move the mouse to wake it" after a no-response error (default off)
+```
+
 ## Per-app rules
 
 `AppProfiles::from_toml(&str)` reads `app-profiles.toml` (used by the agent,

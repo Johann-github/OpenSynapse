@@ -182,7 +182,7 @@ const CHARGING: [ChargingStatus; 9] = [
     ChargingStatus::Other(0),
 ];
 
-const ERROR_KINDS: [ErrorKind; 7] = [
+const ERROR_KINDS: [ErrorKind; 8] = [
     ErrorKind::BadRequest,
     ErrorKind::Version,
     ErrorKind::NoSuchDevice,
@@ -190,6 +190,7 @@ const ERROR_KINDS: [ErrorKind; 7] = [
     ErrorKind::Unsupported,
     ErrorKind::Conflict,
     ErrorKind::Device,
+    ErrorKind::NoResponse,
 ];
 
 fn replies() -> Vec<Reply> {
@@ -466,12 +467,12 @@ fn unknown_tags() {
             tag: 2
         })
     );
-    // Response Err with ErrorKind 7.
+    // Response Err with ErrorKind 8.
     assert_eq!(
-        decode_server(&[1, 0, 0, 0, 0, 1, 7]),
+        decode_server(&[1, 0, 0, 0, 0, 1, 8]),
         Err(DecodeError::UnknownTag {
             what: "ErrorKind",
-            tag: 7
+            tag: 8
         })
     );
     // Event tag 8.

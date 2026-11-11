@@ -91,6 +91,75 @@ pub fn attach_parent_console() -> bool {
     }
 }
 
+/// Per-user configuration files: `%APPDATA%\OpenSynapse\<file>` on Windows,
+/// `$XDG_CONFIG_HOME/OpenSynapse` (or `~/.config/OpenSynapse`) elsewhere. One
+/// place for the folder, so the agent (`app-profiles.toml`), the CLI and the GUI
+/// (`settings.toml`) agree. Read only on demand, never watched.
+pub mod config {
+    use super::*;
+
+    /// Folder name under the per-user config root.
+    pub const DIR_NAME: &str = "OpenSynapse";
+    /// User settings of the CLI and GUI (ADR-0008).
+    pub const SETTINGS_FILE: &str = "settings.toml";
+    /// Per-app profile rules of the agent (ADR-0007).
+    pub const APP_PROFILES_FILE: &str = "app-profiles.toml";
+
+    /// `<root>\OpenSynapse` for a config root such as the `APPDATA` value;
+    /// `None` when the root is missing or blank.
+    pub fn dir_from(root: Option<&str>) -> Option<PathBuf> {
+        let root = root.filter(|d| !d.trim().is_empty())?;
+        Some(PathBuf::from(root).join(DIR_NAME))
+    }
+
+    /// The config folder of the current user, if the environment names one.
+    pub fn dir() -> Option<PathBuf> {
+        let var = |k: &str| std::env::var(k).ok();
+        if cfg!(windows) {
+            dir_from(var("APPDATA").as_deref())
+        } else {
+            dir_from(var("XDG_CONFIG_HOME").as_deref()).or_else(|| {
+                let home = var("HOME").filter(|h| !h.trim().is_empty())?;
+                Some(PathBuf::from(home).join(".config").join(DIR_NAME))
+            })
+        }
+    }
+
+    /// `settings.toml` in [`dir`].
+    pub fn settings_path() -> Option<PathBuf> {
+        dir().map(|d| d.join(SETTINGS_FILE))
+    }
+
+    /// The file's text, or `None` when it does not exist.
+    pub fn read_optional(path: &Path) -> io::Result<Option<String>> {
+        match std::fs::read_to_string(path) {
+            Ok(t) => Ok(Some(t)),
+            Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(None),
+            Err(e) => Err(io::Error::new(
+                e.kind(),
+                format!("cannot read {}: {e}", path.display()),
+            )),
+        }
+    }
+
+    /// Write `text` to `path`, creating the folder. Writes a sibling temp file and
+    /// renames it over the target, so a crash never leaves half a file.
+    pub fn write(path: &Path, text: &str) -> io::Result<()> {
+        let ctx = |e: io::Error| io::Error::new(e.kind(), format!("{}: {e}", path.display()));
+        if let Some(dir) = path.parent() {
+            std::fs::create_dir_all(dir).map_err(ctx)?;
+        }
+        let mut tmp = path.as_os_str().to_owned();
+        tmp.push(".tmp");
+        let tmp = PathBuf::from(tmp);
+        std::fs::write(&tmp, text).map_err(ctx)?;
+        std::fs::rename(&tmp, path).map_err(|e| {
+            let _ = std::fs::remove_file(&tmp);
+            ctx(e)
+        })
+    }
+}
+
 /// Login autostart through the per-user Run key
 /// (`HKCU\Software\Microsoft\Windows\CurrentVersion\Run`, value [`VALUE_NAME`]).
 /// No admin rights, no service, no scheduled task.
@@ -172,7 +241,32 @@ pub mod autostart {
 #[cfg(test)]
 mod tests {
     use super::autostart::*;
-    use std::path::Path;
+    use super::config;
+    use std::path::{Path, PathBuf};
+
+    #[test]
+    fn config_dir_from_root() {
+        assert_eq!(
+            config::dir_from(Some(r"C:\Users\u\AppData\Roaming")),
+            Some(PathBuf::from(r"C:\Users\u\AppData\Roaming").join("OpenSynapse"))
+        );
+        assert_eq!(config::dir_from(Some("  ")), None);
+        assert_eq!(config::dir_from(None), None);
+    }
+
+    #[test]
+    fn config_read_write_round_trip() {
+        let dir = std::env::temp_dir().join(format!("opensynapse-sys-test-{}", std::process::id()));
+        let file = dir.join("sub").join("settings.toml");
+        assert_eq!(config::read_optional(&file).unwrap(), None);
+        config::write(&file, "wake_hint = true\n").unwrap();
+        config::write(&file, "wake_hint = false\n").unwrap();
+        assert_eq!(
+            config::read_optional(&file).unwrap().as_deref(),
+            Some("wake_hint = false\n")
+        );
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
 
     #[test]
     fn command_line_quotes_the_path() {
