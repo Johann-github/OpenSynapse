@@ -1,7 +1,9 @@
 //! `opensynapse agent start` and `opensynapse agent autostart [on|off]`
-//! (`vault/Decisions/ADR-0006 Agent autostart.md`). The agent binary is found
-//! next to this executable; autostart is the per-user Run key.
+//! (`vault/Decisions/ADR-0006 Agent autostart.md`). The agent binary is the
+//! installed one if present, else the one next to this executable
+//! (`opensynapse_sys::agent_exe`, ADR-0009); autostart is the per-user Run key.
 
+use std::ffi::OsString;
 use std::path::Path;
 use std::process::ExitStatus;
 use std::time::{Duration, Instant};
@@ -22,25 +24,46 @@ pub enum Toggle {
 }
 
 /// Start the agent detached (no window, no inherited console) and wait until its
-/// pipe answers.
+/// pipe answers. The binary is `opensynapse_sys::agent_exe` (installed first).
 pub fn start() -> Result<()> {
-    if Client::connect().is_ok() {
+    let pipe = crate::agent::pipe_name()?;
+    if Client::connect_to(&pipe).is_ok() {
         println!("OpenSynapse agent is already running.");
         return Ok(());
     }
-    let mut child = opensynapse_sys::spawn_agent_detached().context("cannot start the agent")?;
+    let exe = opensynapse_sys::agent_exe().context("cannot start the agent")?;
+    println!("{}", start_and_wait(&exe, &pipe)?);
+    Ok(())
+}
+
+/// Arguments for a spawned agent: `--pipe <name>` when `OPENSYNAPSE_AGENT_PIPE`
+/// points the CLI at another pipe, so the new agent serves the same one.
+pub(crate) fn agent_args(pipe_override: Option<&str>) -> Vec<OsString> {
+    match pipe_override {
+        Some(p) => vec!["--pipe".into(), p.into()],
+        None => Vec::new(),
+    }
+}
+
+/// Spawn `exe` detached and wait until `pipe` answers. Returns the status line.
+pub(crate) fn start_and_wait(exe: &Path, pipe: &str) -> Result<String> {
+    let args = agent_args(crate::agent::pipe_override().as_deref());
+    let mut child =
+        opensynapse_sys::spawn_detached(exe, &args).context("cannot start the agent")?;
     let deadline = Instant::now() + START_WAIT;
     loop {
         if let Some(status) = child.try_wait()? {
             if status.code() == Some(agent_exit::ALREADY_RUNNING) {
-                println!("OpenSynapse agent is already running.");
-                return Ok(());
+                return Ok("OpenSynapse agent is already running.".into());
             }
             bail!(render_exit(status));
         }
-        if Client::connect().is_ok() {
-            println!("OpenSynapse agent started (pid {}).", child.id());
-            return Ok(());
+        if Client::connect_to(pipe).is_ok() {
+            return Ok(format!(
+                "OpenSynapse agent started (pid {}): {}",
+                child.id(),
+                exe.display()
+            ));
         }
         if Instant::now() >= deadline {
             bail!("the agent (pid {}) did not answer within 3 s", child.id());
@@ -119,6 +142,15 @@ mod tests {
         assert!(
             render_status(Some(r#""C:\os\opensynapse-agent.exe""#), None)
                 .starts_with("Autostart on, but for another binary")
+        );
+    }
+
+    #[test]
+    fn spawned_agent_follows_the_pipe_override() {
+        assert!(agent_args(None).is_empty());
+        assert_eq!(
+            agent_args(Some("p")),
+            vec![OsString::from("--pipe"), "p".into()]
         );
     }
 

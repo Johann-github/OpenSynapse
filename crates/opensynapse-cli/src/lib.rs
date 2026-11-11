@@ -13,6 +13,7 @@ use std::path::PathBuf;
 
 mod agent;
 mod hid_probe;
+mod install;
 mod lifecycle;
 mod profile;
 mod settings;
@@ -96,6 +97,25 @@ pub enum Command {
     Settings {
         #[command(subcommand)]
         action: SettingsAction,
+    },
+    /// Copy CLI, agent and GUI from this build to the per-user install folder
+    /// (%LOCALAPPDATA%\Programs\OpenSynapse), stopping and restarting a running
+    /// agent, and point the login autostart at the installed agent.
+    Install {
+        /// Install folder instead of the default.
+        #[arg(long)]
+        dir: Option<PathBuf>,
+        /// Do not turn autostart on. An entry for this build is still moved to
+        /// the installed agent; any other entry is left alone.
+        #[arg(long)]
+        no_autostart: bool,
+    },
+    /// Stop the installed agent, remove its autostart entry and delete the
+    /// installed binaries. Settings in %APPDATA%\OpenSynapse are kept.
+    Uninstall {
+        /// Install folder instead of the default.
+        #[arg(long)]
+        dir: Option<PathBuf>,
     },
 }
 
@@ -315,6 +335,12 @@ pub fn run(cli: Cli) -> Result<()> {
     if let Command::Settings { action } = cli.command {
         return settings::run(action);
     }
+    if let Command::Install { dir, no_autostart } = cli.command {
+        return install::install(dir, no_autostart);
+    }
+    if let Command::Uninstall { dir } = cli.command {
+        return install::uninstall(dir);
+    }
     let transport = Transport::new().context("cannot enumerate HID devices")?;
     if let Command::List = cli.command {
         return list(&transport);
@@ -322,7 +348,12 @@ pub fn run(cli: Cli) -> Result<()> {
 
     let mut dev = Target::select(&transport, cli.pid)?;
     match cli.command {
-        Command::List | Command::Agent { .. } | Command::Hid { .. } | Command::Settings { .. } => {
+        Command::List
+        | Command::Agent { .. }
+        | Command::Hid { .. }
+        | Command::Settings { .. }
+        | Command::Install { .. }
+        | Command::Uninstall { .. } => {
             unreachable!()
         }
         Command::Info => info(&mut dev),

@@ -238,11 +238,18 @@ pub(crate) fn render_applied(
     s
 }
 
+/// The `OPENSYNAPSE_AGENT_PIPE` override, if set.
+pub(crate) fn pipe_override() -> Option<String> {
+    std::env::var(PIPE_ENV)
+        .ok()
+        .filter(|n| !n.trim().is_empty())
+}
+
 /// The agent's pipe: `OPENSYNAPSE_AGENT_PIPE`, else the current user's default.
-fn pipe_name() -> Result<String> {
-    match std::env::var(PIPE_ENV) {
-        Ok(n) if !n.trim().is_empty() => Ok(n),
-        _ => default_pipe_name().map_err(|e| anyhow!(render_io_error(&e))),
+pub(crate) fn pipe_name() -> Result<String> {
+    match pipe_override() {
+        Some(n) => Ok(n),
+        None => default_pipe_name().map_err(|e| anyhow!(render_io_error(&e))),
     }
 }
 

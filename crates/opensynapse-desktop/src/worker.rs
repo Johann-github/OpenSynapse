@@ -236,7 +236,7 @@ impl Worker {
         state
     }
 
-    /// Spawn the agent next to the GUI and connect once its pipe answers. Waits
+    /// Spawn the agent (installed, else next to the GUI) and connect once its pipe answers. Waits
     /// at most [`agent_ctl::START_WAIT`]; a slow agent keeps running and can be
     /// reached later with "Reconnect to agent".
     fn start_agent(&mut self) -> Result<BackendState, StartFailure> {

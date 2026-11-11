@@ -17,7 +17,7 @@ pub const START_STEP: Duration = Duration::from_millis(50);
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum AutostartState {
     Off,
-    /// On, for the agent next to this GUI.
+    /// On, for the agent this GUI uses (installed, else next to the GUI).
     On,
     /// On, but the Run value starts another binary (stored command).
     Other(String),
@@ -26,7 +26,7 @@ pub enum AutostartState {
 }
 
 impl AutostartState {
-    /// From `autostart::get()` and the agent next to the GUI (if found).
+    /// From `autostart::get()` and the agent this GUI uses (`opensynapse_sys::agent_exe`, if found).
     pub fn from_read(current: io::Result<Option<String>>, exe: Option<&Path>) -> Self {
         match current {
             Ok(None) => Self::Off,
@@ -44,12 +44,12 @@ impl AutostartState {
     }
 }
 
-/// Why the checkbox is disabled, if it is: without the agent next to the GUI
+/// Why the checkbox is disabled, if it is: without an agent binary (installed or next to the GUI)
 /// there is nothing to register; elsewhere than Windows it is not implemented.
 pub fn autostart_blocked(state: &AutostartState, exe_found: bool) -> Option<String> {
     if !exe_found {
         return Some(format!(
-            "{} not found next to the GUI; autostart registers that binary",
+            "{} not found (neither installed nor next to the GUI); autostart registers that binary",
             opensynapse_sys::AGENT_EXE
         ));
     }
@@ -129,7 +129,7 @@ mod tests {
             AutostartState::from_read(Ok(Some(other.clone())), Some(exe)),
             AutostartState::Other(other)
         );
-        // No agent next to the GUI: any entry is "another binary".
+        // No agent binary found: any entry is "another binary".
         assert_eq!(
             AutostartState::from_read(Ok(Some(mine.clone())), None),
             AutostartState::Other(mine)

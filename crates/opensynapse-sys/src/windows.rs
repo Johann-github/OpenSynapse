@@ -9,7 +9,7 @@ use std::ptr::{null, null_mut};
 
 use windows_sys::Win32::Foundation::{
     CloseHandle, ERROR_FILE_NOT_FOUND, ERROR_SUCCESS, GENERIC_READ, GENERIC_WRITE, HANDLE,
-    INVALID_HANDLE_VALUE, WIN32_ERROR,
+    INVALID_HANDLE_VALUE, WAIT_OBJECT_0, WAIT_TIMEOUT, WIN32_ERROR,
 };
 use windows_sys::Win32::Security::{
     GetTokenInformation, TOKEN_ELEVATION, TOKEN_QUERY, TokenElevation,
@@ -24,9 +24,64 @@ use windows_sys::Win32::System::Console::{
 use windows_sys::Win32::System::Registry::{
     HKEY_CURRENT_USER, REG_SZ, RRF_RT_REG_SZ, RegDeleteKeyValueW, RegGetValueW, RegSetKeyValueW,
 };
-use windows_sys::Win32::System::Threading::{GetCurrentProcess, OpenProcessToken};
+use windows_sys::Win32::System::Threading::{
+    GetCurrentProcess, OpenProcess, OpenProcessToken, PROCESS_NAME_WIN32,
+    PROCESS_QUERY_LIMITED_INFORMATION, PROCESS_SYNCHRONIZE, QueryFullProcessImageNameW,
+    WaitForSingleObject,
+};
 
 use crate::autostart::VALUE_NAME;
+
+/// An open process handle (`SYNCHRONIZE | PROCESS_QUERY_LIMITED_INFORMATION`).
+pub(crate) struct Process(HANDLE);
+
+impl Process {
+    pub(crate) fn open(pid: u32) -> io::Result<Self> {
+        // SAFETY: no pointer arguments; a null result is checked.
+        let h = unsafe {
+            OpenProcess(
+                PROCESS_SYNCHRONIZE | PROCESS_QUERY_LIMITED_INFORMATION,
+                0,
+                pid,
+            )
+        };
+        if h.is_null() {
+            return Err(io::Error::last_os_error());
+        }
+        Ok(Self(h))
+    }
+
+    pub(crate) fn image_path(&self) -> io::Result<std::path::PathBuf> {
+        use std::os::windows::ffi::OsStringExt;
+        let mut buf = vec![0u16; 32 * 1024];
+        let mut len = buf.len() as u32;
+        // SAFETY: `buf` is writable for `len` u16s; the handle is open.
+        let ok = unsafe {
+            QueryFullProcessImageNameW(self.0, PROCESS_NAME_WIN32, buf.as_mut_ptr(), &mut len)
+        };
+        if ok == 0 {
+            return Err(io::Error::last_os_error());
+        }
+        Ok(std::ffi::OsString::from_wide(&buf[..len as usize]).into())
+    }
+
+    pub(crate) fn wait_exit(&self, timeout: std::time::Duration) -> io::Result<bool> {
+        let ms = u32::try_from(timeout.as_millis()).unwrap_or(u32::MAX - 1);
+        // SAFETY: the handle is open with SYNCHRONIZE access.
+        match unsafe { WaitForSingleObject(self.0, ms) } {
+            WAIT_OBJECT_0 => Ok(true),
+            WAIT_TIMEOUT => Ok(false),
+            _ => Err(io::Error::last_os_error()),
+        }
+    }
+}
+
+impl Drop for Process {
+    fn drop(&mut self) {
+        // SAFETY: opened in `open`, closed exactly once here.
+        unsafe { CloseHandle(self.0) };
+    }
+}
 
 /// The per-user Run key, relative to `HKEY_CURRENT_USER`.
 pub(crate) const RUN_KEY: &str = r"Software\Microsoft\Windows\CurrentVersion\Run";
@@ -210,5 +265,23 @@ mod tests {
     #[test]
     fn elevation_query_works() {
         is_elevated().unwrap();
+    }
+
+    /// Wait on a short-lived child by pid: times out while it runs, then sees the exit.
+    #[test]
+    fn process_wait_and_image_path() {
+        let mut child = std::process::Command::new("cmd")
+            .args(["/C", "ping -n 2 127.0.0.1 >NUL"])
+            .spawn()
+            .unwrap();
+        let p = Process::open(child.id()).unwrap();
+        let img = p.image_path().unwrap();
+        assert!(
+            img.to_string_lossy().to_lowercase().ends_with("cmd.exe"),
+            "{img:?}"
+        );
+        assert!(!p.wait_exit(std::time::Duration::ZERO).unwrap());
+        assert!(p.wait_exit(std::time::Duration::from_secs(10)).unwrap());
+        child.wait().unwrap();
     }
 }

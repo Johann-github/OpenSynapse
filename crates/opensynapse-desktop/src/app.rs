@@ -50,7 +50,8 @@ pub struct App {
     backend: Option<BackendState>,
     /// Last message from the agent's event stream.
     agent_note: Option<String>,
-    /// The agent binary next to this GUI (what "Start agent" and autostart use).
+    /// The agent this GUI starts and registers: installed first, else next to the
+    /// GUI (`opensynapse_sys::agent_exe`, ADR-0009).
     agent_exe: Option<PathBuf>,
     /// The Run-key entry, read at start and after each toggle (no polling).
     autostart: AutostartState,
@@ -320,7 +321,7 @@ impl App {
                         let r = ui.add_enabled(can_start, start);
                         let r = if self.agent_exe.is_none() {
                             r.on_disabled_hover_text(format!(
-                                "{} not found next to the GUI",
+                                "{} not found (neither installed nor next to the GUI)",
                                 opensynapse_sys::AGENT_EXE
                             ))
                         } else {
@@ -387,7 +388,9 @@ impl App {
                 ui.colored_label(WARN, agent_ctl::other_binary_note(cmd));
                 if ui
                     .add_enabled(self.agent_exe.is_some(), egui::Button::new("Fix"))
-                    .on_hover_text("Point autostart at the agent next to this GUI")
+                    .on_hover_text(
+                        "Point autostart at the installed agent (else the one next to this GUI)",
+                    )
                     .clicked()
                 {
                     self.set_autostart(true);
@@ -410,11 +413,16 @@ impl App {
 
     /// Write or remove the Run value, then read it back for the checkbox.
     fn set_autostart(&mut self, on: bool) {
+        // Re-resolve: an `opensynapse install` since the GUI started wins.
+        self.agent_exe = opensynapse_sys::agent_exe().ok();
         let r = match (on, &self.agent_exe) {
             (true, Some(exe)) => autostart::enable(exe).map(|()| true),
             (true, None) => Err(io::Error::new(
                 io::ErrorKind::NotFound,
-                format!("{} not found next to the GUI", opensynapse_sys::AGENT_EXE),
+                format!(
+                    "{} not found (neither installed nor next to the GUI)",
+                    opensynapse_sys::AGENT_EXE
+                ),
             )),
             (false, _) => autostart::disable(),
         };

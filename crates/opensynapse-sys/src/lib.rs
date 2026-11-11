@@ -1,6 +1,7 @@
 //! OS integration for OpenSynapse: start the agent at login, refuse to run
-//! elevated, and reach the parent console from a GUI-subsystem binary.
-//! Decision: `vault/Decisions/ADR-0006 Agent autostart.md`.
+//! elevated, reach the parent console from a GUI-subsystem binary, and the
+//! per-user install location. Decisions: `vault/Decisions/ADR-0006 Agent
+//! autostart.md`, `vault/Decisions/ADR-0009 Install location.md`.
 //!
 //! Windows only for now; elsewhere [`autostart`] reports `Unsupported`,
 //! [`is_elevated`] answers `false` and [`attach_parent_console`] does nothing.
@@ -17,22 +18,64 @@ pub const AGENT_EXE: &str = if cfg!(windows) {
 } else {
     "opensynapse-agent"
 };
+/// File name of the CLI binary on this OS.
+pub const CLI_EXE: &str = if cfg!(windows) {
+    "opensynapse.exe"
+} else {
+    "opensynapse"
+};
+/// File name of the desktop GUI binary on this OS.
+pub const GUI_EXE: &str = if cfg!(windows) {
+    "opensynapse-desktop.exe"
+} else {
+    "opensynapse-desktop"
+};
 
-/// The agent binary next to the running executable (CLI and GUI ship beside it).
-pub fn agent_exe() -> io::Result<PathBuf> {
+pub mod install;
+
+/// The agent binary next to the running executable (dev builds: CLI and GUI
+/// in `target/release` beside it).
+pub fn sibling_agent_exe() -> io::Result<PathBuf> {
     let me = std::env::current_exe()?;
     let dir = me
         .parent()
         .ok_or_else(|| io::Error::other("the executable has no parent directory"))?;
-    let exe = dir.join(AGENT_EXE);
-    if exe.is_file() {
-        Ok(exe)
-    } else {
-        Err(io::Error::new(
+    Ok(dir.join(AGENT_EXE))
+}
+
+/// The installed agent ([`install::dir`]), whether or not it exists.
+pub fn installed_agent_exe() -> Option<PathBuf> {
+    install::dir().map(|d| d.join(AGENT_EXE))
+}
+
+/// Pick the agent: the installed one if present, else the sibling (pure).
+pub fn resolve_agent_exe(
+    installed: Option<PathBuf>,
+    sibling: Option<PathBuf>,
+    is_file: impl Fn(&Path) -> bool,
+) -> Option<PathBuf> {
+    [installed, sibling]
+        .into_iter()
+        .flatten()
+        .find(|p| is_file(p))
+}
+
+/// The one answer to "which agent binary": the installed agent
+/// (`%LOCALAPPDATA%\Programs\OpenSynapse`, ADR-0009) if present, else the one
+/// next to the running executable. Used for spawning and for autostart.
+pub fn agent_exe() -> io::Result<PathBuf> {
+    let sibling = sibling_agent_exe().ok();
+    resolve_agent_exe(installed_agent_exe(), sibling.clone(), Path::is_file).ok_or_else(|| {
+        let looked: Vec<String> = [installed_agent_exe(), sibling]
+            .into_iter()
+            .flatten()
+            .map(|p| p.display().to_string())
+            .collect();
+        io::Error::new(
             io::ErrorKind::NotFound,
-            format!("{} not found", exe.display()),
-        ))
-    }
+            format!("{AGENT_EXE} not found (looked at {})", looked.join(", ")),
+        )
+    })
 }
 
 /// Exit codes of `opensynapse-agent` that callers react to (owner: the agent's
@@ -44,14 +87,19 @@ pub mod agent_exit {
     pub const ELEVATED: i32 = 3;
 }
 
-/// Start [`agent_exe`] detached: no window, no inherited console, null stdio, its
-/// own process group (Ctrl+C in the caller's terminal does not reach it). Does not
-/// wait; the caller decides how long to wait for the pipe.
+/// Start [`agent_exe`] detached; see [`spawn_detached`].
 pub fn spawn_agent_detached() -> io::Result<std::process::Child> {
+    spawn_detached(&agent_exe()?, &[])
+}
+
+/// Start `exe` with `args` detached: no window, no inherited console, null stdio,
+/// its own process group (Ctrl+C in the caller's terminal does not reach it).
+/// Does not wait; the caller decides how long to wait for the pipe.
+pub fn spawn_detached(exe: &Path, args: &[std::ffi::OsString]) -> io::Result<std::process::Child> {
     use std::process::{Command, Stdio};
-    let exe = agent_exe()?;
-    let mut cmd = Command::new(&exe);
-    cmd.stdin(Stdio::null())
+    let mut cmd = Command::new(exe);
+    cmd.args(args)
+        .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(Stdio::null());
     #[cfg(windows)]
@@ -63,6 +111,58 @@ pub fn spawn_agent_detached() -> io::Result<std::process::Child> {
     }
     cmd.spawn()
         .map_err(|e| io::Error::new(e.kind(), format!("cannot start {}: {e}", exe.display())))
+}
+
+/// Another process by pid, to read its image path and wait for its exit without
+/// polling (a process handle is signalled when the process ends). Open it
+/// *before* asking the process to quit, so the pid cannot be reused meanwhile.
+pub struct Process {
+    #[cfg(windows)]
+    inner: windows::Process,
+}
+
+impl Process {
+    pub fn open(pid: u32) -> io::Result<Self> {
+        #[cfg(windows)]
+        {
+            Ok(Self {
+                inner: windows::Process::open(pid)?,
+            })
+        }
+        #[cfg(not(windows))]
+        {
+            let _ = pid;
+            Err(io::Error::new(
+                io::ErrorKind::Unsupported,
+                "waiting for another process is only implemented on Windows so far",
+            ))
+        }
+    }
+
+    /// Full path of the process's executable.
+    pub fn image_path(&self) -> io::Result<PathBuf> {
+        #[cfg(windows)]
+        {
+            self.inner.image_path()
+        }
+        #[cfg(not(windows))]
+        {
+            Err(io::Error::from(io::ErrorKind::Unsupported))
+        }
+    }
+
+    /// Block until the process exits or `timeout` passes; `true` if it exited.
+    pub fn wait_exit(&self, timeout: std::time::Duration) -> io::Result<bool> {
+        #[cfg(windows)]
+        {
+            self.inner.wait_exit(timeout)
+        }
+        #[cfg(not(windows))]
+        {
+            let _ = timeout;
+            Err(io::Error::from(io::ErrorKind::Unsupported))
+        }
+    }
 }
 
 /// `true` when this process runs with an elevated (administrator) token.
@@ -248,6 +348,27 @@ mod tests {
     use super::autostart::*;
     use super::config;
     use std::path::{Path, PathBuf};
+
+    #[test]
+    fn agent_exe_prefers_installed() {
+        let inst = PathBuf::from(r"C:\inst\opensynapse-agent.exe");
+        let sib = PathBuf::from(r"C:\repo\target\release\opensynapse-agent.exe");
+        let both = |_: &Path| true;
+        let only_sib = |p: &Path| p.starts_with(r"C:\repo");
+        assert_eq!(
+            super::resolve_agent_exe(Some(inst.clone()), Some(sib.clone()), both),
+            Some(inst.clone())
+        );
+        assert_eq!(
+            super::resolve_agent_exe(Some(inst.clone()), Some(sib.clone()), only_sib),
+            Some(sib.clone())
+        );
+        assert_eq!(
+            super::resolve_agent_exe(None, Some(sib.clone()), both),
+            Some(sib)
+        );
+        assert_eq!(super::resolve_agent_exe(Some(inst), None, |_| false), None);
+    }
 
     #[test]
     fn config_dir_from_root() {
