@@ -222,6 +222,8 @@ fn button_action(a: &ButtonAssignment) -> Option<ButtonAction> {
                 .collect(),
         },
         Known::DpiUp => ButtonAction::DpiUp {},
+        Known::DpiDown => ButtonAction::DpiDown {},
+        Known::Off => ButtonAction::Off {},
         Known::MouseButton(_) | Known::DoubleClick(_) => return None,
     })
 }
@@ -304,6 +306,8 @@ fn action_label(a: &ButtonAction) -> String {
         ButtonAction::Key { key, mods } if mods.is_empty() => format!("key {key}"),
         ButtonAction::Key { key, mods } => format!("key {} {key}", mods.join("+")),
         ButtonAction::DpiUp {} => "DPI up".into(),
+        ButtonAction::DpiDown {} => "DPI down".into(),
+        ButtonAction::Off {} => "off".into(),
     }
 }
 

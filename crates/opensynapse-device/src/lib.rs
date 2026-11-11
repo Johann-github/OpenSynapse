@@ -381,6 +381,10 @@ pub enum ActionKind {
     Key,
     /// Step DPI up.
     DpiUp,
+    /// Step DPI down.
+    DpiDown,
+    /// Button disabled.
+    Off,
     /// Anything else the device reports; shown, never written by the editor.
     Other,
 }
@@ -390,7 +394,14 @@ impl ActionKind {
     pub fn choices() -> Vec<ActionKind> {
         MOUSE_TARGETS
             .map(ActionKind::Mouse)
-            .chain([Self::DoubleClick, Self::Key, Self::DpiUp, Self::Other])
+            .chain([
+                Self::DoubleClick,
+                Self::Key,
+                Self::DpiUp,
+                Self::DpiDown,
+                Self::Off,
+                Self::Other,
+            ])
             .collect()
     }
 
@@ -403,6 +414,8 @@ impl ActionKind {
             Self::DoubleClick => "Double-click".into(),
             Self::Key => "Key".into(),
             Self::DpiUp => "DPI up".into(),
+            Self::DpiDown => "DPI down".into(),
+            Self::Off => "Off (disabled)".into(),
             Self::Other => "Other (read-only)".into(),
         }
     }
@@ -445,6 +458,8 @@ impl ActionEdit {
                 };
             }
             Some(Known::DpiUp) => e.kind = ActionKind::DpiUp,
+            Some(Known::DpiDown) => e.kind = ActionKind::DpiDown,
+            Some(Known::Off) => e.kind = ActionKind::Off,
             _ => {}
         }
         e
@@ -459,6 +474,8 @@ impl ActionEdit {
             ActionKind::DoubleClick => buttons::double_click(p, button, mode, 1),
             ActionKind::Key => buttons::keyboard(p, button, mode, self.modifiers, self.usage),
             ActionKind::DpiUp => buttons::dpi_up(p, button, mode),
+            ActionKind::DpiDown => buttons::dpi_down(p, button, mode),
+            ActionKind::Off => buttons::off(p, button, mode),
             ActionKind::Other => return None,
         })
     }
@@ -548,7 +565,7 @@ fn check_action(a: &ButtonAssignment) -> Result<(), String> {
         Some(Known::Key { modifiers, usage }) => {
             hid_usage::name(usage).is_some() && hid_usage::modifier_names(modifiers).is_some()
         }
-        Some(Known::DpiUp) => true,
+        Some(Known::DpiUp | Known::DpiDown | Known::Off) => true,
         None => false,
     };
     if ok {
@@ -556,7 +573,7 @@ fn check_action(a: &ButtonAssignment) -> Result<(), String> {
     } else {
         Err(format!(
             "{} is not an action the GUI writes (mouse button 1-5, double-click, \
-             named key, DPI up)",
+             named key, DPI up/down, off)",
             action_text(a)
         ))
     }

@@ -82,6 +82,32 @@ fn round_trip() {
 }
 
 #[test]
+fn dpi_down_and_off_actions() {
+    let p = Profile::from_toml(
+        "[buttons.4]
+action = \"dpi-down\"
+[buttons.5]
+action = \"off\"
+",
+    )
+    .unwrap();
+    assert_eq!(p.buttons[&ButtonId(4)], ButtonAction::DpiDown {});
+    assert_eq!(p.buttons[&ButtonId(5)], ButtonAction::Off {});
+    assert_eq!(p.validate(&viper()), Ok(()));
+    let text = p.to_toml().unwrap();
+    assert_eq!(Profile::from_toml(&text).unwrap(), p);
+    assert!(
+        Profile::from_toml(
+            "[buttons.4]
+action = \"off\"
+target = 1
+"
+        )
+        .is_err()
+    );
+}
+
+#[test]
 fn every_section_optional() {
     let p = Profile::from_toml("").unwrap();
     assert_eq!(p, Profile::default());

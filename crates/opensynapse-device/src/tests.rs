@@ -399,6 +399,14 @@ fn action_edit_round_trip() {
         e.to_assignment(4, Mode::Normal),
         Some(buttons::dpi_up(1, 4, Mode::Normal))
     );
+    for (a, kind) in [
+        (buttons::dpi_down(1, 4, Mode::Normal), ActionKind::DpiDown),
+        (buttons::off(1, 4, Mode::Normal), ActionKind::Off),
+    ] {
+        let e = ActionEdit::from_assignment(&a);
+        assert_eq!(e.kind, kind);
+        assert_eq!(e.to_assignment(4, Mode::Normal), Some(a));
+    }
     // Unknown functions, unnamed keys, right-side modifiers and mouse buttons the
     // editor does not offer show as Other.
     for a in [
@@ -407,7 +415,7 @@ fn action_edit_round_trip() {
             button: 4,
             mode: Mode::Normal,
             function: 0,
-            data: vec![],
+            data: vec![1],
         },
         buttons::keyboard(1, 4, Mode::Normal, 0, 0x50),
         buttons::keyboard(1, 4, Mode::Normal, 0x20, 0x04),

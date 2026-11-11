@@ -49,7 +49,8 @@ Next tasks, in order:
    Unit-tested. **Hardware check pending: replug dongle while app profile active.**
    Open: GUI view/editor for app profiles;
    ✅ GUI "Start agent" click (2026-11-11, user-checked): switches to "Backend: agent".
-5. Captures for "off" and "DPI down"; power-cycle test for button assignments.
+5. ✅ Captures for "off" (function 0, no data) and "DPI down" (function 6, `[02]`), both hardware-tested
+   (2026-11-11). → [[RE-Log/2026-11-11 Button capture off and DPI down]]. Open: power-cycle test for button assignments.
 6. Mouse asleep → friendlier error ("move the mouse to wake it").
 
 Before every commit: `cargo fmt --all --check && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace`.

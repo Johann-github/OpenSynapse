@@ -118,7 +118,7 @@ fn export_leaves_out_unexpressible() {
         buttons: vec![
             buttons::keyboard(1, 4, Mode::Normal, 0x00, 0x50), // unnamed usage
             buttons::keyboard(1, 5, Mode::Normal, 0x10, 0x04), // right ctrl
-            raw(6, Mode::Normal, 6, vec![2]),                  // DPI, not "up"
+            raw(6, Mode::Normal, 6, vec![3]),                  // DPI, not up/down
             buttons::mouse_button(1, 7, Mode::Normal, 9),      // target out of range
         ],
     };

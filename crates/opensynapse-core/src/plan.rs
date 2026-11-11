@@ -145,6 +145,8 @@ fn assignment(
             buttons::keyboard(profile, b, mode, mask, usage)
         }
         ButtonAction::DpiUp {} => buttons::dpi_up(profile, b, mode),
+        ButtonAction::DpiDown {} => buttons::dpi_down(profile, b, mode),
+        ButtonAction::Off {} => buttons::off(profile, b, mode),
     }
 }
 

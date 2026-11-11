@@ -143,6 +143,10 @@ pub enum ButtonAction {
     /// Step DPI up.
     // Empty struct (not unit) so `deny_unknown_fields` rejects stray keys.
     DpiUp {},
+    /// Step DPI down.
+    DpiDown {},
+    /// Button does nothing.
+    Off {},
 }
 
 /// TOML parse or serialize failure.

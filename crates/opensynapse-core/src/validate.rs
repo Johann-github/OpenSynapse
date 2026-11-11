@@ -156,7 +156,7 @@ impl Profile {
                         }
                     }
                 }
-                ButtonAction::DpiUp {} => {}
+                ButtonAction::DpiUp {} | ButtonAction::DpiDown {} | ButtonAction::Off {} => {}
             }
         }
 

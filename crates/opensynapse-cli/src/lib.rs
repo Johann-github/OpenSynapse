@@ -244,6 +244,8 @@ pub enum ButtonKind {
     DoubleClick,
     Key,
     DpiUp,
+    DpiDown,
+    Off,
 }
 
 #[derive(Args, Clone, Copy)]
@@ -730,6 +732,18 @@ fn requested_assignment(
             }
             buttons::dpi_up(p, button, l)
         }
+        ButtonKind::DpiDown => {
+            if let Some(t) = target {
+                bail!("dpi-down takes no argument (got `{t}`)");
+            }
+            buttons::dpi_down(p, button, l)
+        }
+        ButtonKind::Off => {
+            if let Some(t) = target {
+                bail!("off takes no argument (got `{t}`)");
+            }
+            buttons::off(p, button, l)
+        }
     })
 }
 
@@ -748,6 +762,8 @@ fn button_restore(old: &ButtonAssignment) -> Option<String> {
             }
         }
         Known::DpiUp => "dpi-up".to_string(),
+        Known::DpiDown => "dpi-down".to_string(),
+        Known::Off => "off".to_string(),
     };
     let hs = if old.mode == Mode::HyperShift {
         " --hypershift"
@@ -1177,6 +1193,15 @@ mod tests {
         assert_eq!(a, buttons::keyboard(1, 4, Mode::Normal, 0x00, 0x04));
         let (a, _) = parse_buttons_set(&["4", "key", "F5", "--mods", "ctrl,shift"]).unwrap();
         assert_eq!(a, buttons::keyboard(1, 4, Mode::Normal, 0x03, 0x3E));
+        let (a, _) = parse_buttons_set(&["4", "dpi-down"]).unwrap();
+        assert_eq!(a, buttons::dpi_down(1, 4, Mode::Normal));
+        let (a, _) = parse_buttons_set(&["4", "off"]).unwrap();
+        assert_eq!(a, buttons::off(1, 4, Mode::Normal));
+        assert!(parse_buttons_set(&["4", "off", "2"]).is_err());
+        assert_eq!(
+            button_restore(&buttons::off(1, 4, Mode::Normal)).as_deref(),
+            Some("buttons set 4 off --profile 1 --apply")
+        );
         let (a, _) = parse_buttons_set(&["4", "dpi-up"]).unwrap();
         assert_eq!(a, buttons::dpi_up(1, 4, Mode::Normal));
 
@@ -1298,7 +1323,7 @@ mod tests {
         };
         assert_eq!(button_restore(&raw(2, vec![0, 0x50])), None);
         assert_eq!(button_restore(&raw(2, vec![0x10, 0x04])), None);
-        assert_eq!(button_restore(&raw(6, vec![2])), None);
+        assert_eq!(button_restore(&raw(6, vec![3])), None);
         assert_eq!(button_restore(&raw(9, vec![1])), None);
     }
 

@@ -8,14 +8,17 @@ use crate::{ProtocolError, Request, fixed, need};
 
 /// Function type IDs whose data layout was seen in a capture (observed).
 pub mod function {
+    /// No data (`dataLen` 0): the button does nothing (observed, Synapse "Disable",
+    /// `vault/RE-Log/2026-11-11 Button capture off and DPI down.md`).
+    pub const OFF: u8 = 0;
     /// Data `[buttonId]`, e.g. `[4]` = mouse button 4.
     pub const MOUSE_BUTTON: u8 = 1;
     /// Data `[modifiers, usage]`; `[0x00, 0x04]` = key "A" (observed). Inferred:
     /// `modifiers` is the HID boot-keyboard modifier byte (0 = none) and `usage` the
     /// HID keyboard usage ID (see [`crate::hid_usage`]).
     pub const KEYBOARD: u8 = 2;
-    /// Data `[action]`; `[1]` = DPI up (observed via Synapse, meaning inferred from
-    /// the UI choice). Other values (e.g. DPI down) are not observed.
+    /// Data `[action]`; `[1]` = DPI up, `[2]` = DPI down (both observed via Synapse,
+    /// meaning inferred from the UI choice).
     pub const DPI: u8 = 6;
     /// Data `[buttonId]`; `[1]` = double left click (button inferred).
     pub const DOUBLE_CLICK: u8 = 11;
@@ -55,8 +58,32 @@ pub fn dpi_up(profile: u8, button: u8, mode: Mode) -> ButtonAssignment {
     }
 }
 
+/// Make `button` step the DPI down.
+pub fn dpi_down(profile: u8, button: u8, mode: Mode) -> ButtonAssignment {
+    ButtonAssignment {
+        profile,
+        button,
+        mode,
+        function: function::DPI,
+        data: vec![DPI_DOWN],
+    }
+}
+
+/// Make `button` do nothing.
+pub fn off(profile: u8, button: u8, mode: Mode) -> ButtonAssignment {
+    ButtonAssignment {
+        profile,
+        button,
+        mode,
+        function: function::OFF,
+        data: vec![],
+    }
+}
+
 /// Data byte of [`function::DPI`] for "DPI up" (observed).
 const DPI_UP: u8 = 1;
+/// Data byte of [`function::DPI`] for "DPI down" (observed).
+const DPI_DOWN: u8 = 2;
 
 /// Make `button` send a double click of `target` (1 = left).
 pub fn double_click(profile: u8, button: u8, mode: Mode, target: u8) -> ButtonAssignment {
@@ -105,6 +132,10 @@ pub enum Known {
     Key { modifiers: u8, usage: u8 },
     /// Step DPI up.
     DpiUp,
+    /// Step DPI down.
+    DpiDown,
+    /// Button disabled.
+    Off,
 }
 
 impl ButtonAssignment {
@@ -115,6 +146,8 @@ impl ButtonAssignment {
             (function::DOUBLE_CLICK, &[t]) => Some(Known::DoubleClick(t)),
             (function::KEYBOARD, &[modifiers, usage]) => Some(Known::Key { modifiers, usage }),
             (function::DPI, &[DPI_UP]) => Some(Known::DpiUp),
+            (function::DPI, &[DPI_DOWN]) => Some(Known::DpiDown),
+            (function::OFF, &[]) => Some(Known::Off),
             _ => None,
         }
     }
@@ -129,6 +162,8 @@ impl std::fmt::Display for Known {
                 write!(f, "key {usage:#04x} (mods {modifiers:#04x})")
             }
             Known::DpiUp => f.write_str("DPI up"),
+            Known::DpiDown => f.write_str("DPI down"),
+            Known::Off => f.write_str("off"),
         }
     }
 }
@@ -358,6 +393,25 @@ mod tests {
         assert_eq!(dpi.as_bytes(), &want);
     }
 
+    /// `vault/RE-Log/2026-11-11 Button capture off and DPI down.md`.
+    #[test]
+    fn matches_capture_off_and_dpi_down() {
+        let frame = |a: &ButtonAssignment, tid: u8| set_button_assignment(a).unwrap().encode(tid);
+        let mut want = [0u8; 90];
+        want[..13].copy_from_slice(&[
+            0x00, 0x01, 0, 0, 0, 0x0a, 0x02, 0x0c, 0x01, 0x04, 0x00, 0x00, 0x00,
+        ]);
+        want[88] = xor_crc(&want);
+        assert_eq!(frame(&off(1, 4, Mode::Normal), 0x01).as_bytes(), &want);
+
+        let mut want = [0u8; 90];
+        want[..14].copy_from_slice(&[
+            0x00, 0x02, 0, 0, 0, 0x0a, 0x02, 0x0c, 0x01, 0x04, 0x00, 0x06, 0x01, 0x02,
+        ]);
+        want[88] = xor_crc(&want);
+        assert_eq!(frame(&dpi_down(1, 4, Mode::Normal), 0x02).as_bytes(), &want);
+    }
+
     #[test]
     fn long_data_grows_size() {
         let mut a = mouse_button(1, 4, Mode::Normal, 4);
@@ -475,13 +529,16 @@ mod tests {
             up.to_string()
                 .contains("mode: DPI up (function 6, data [1])")
         );
-        // DPI data other than "up" is not observed and stays raw.
+        let down = dpi_down(1, 4, Mode::Normal);
+        assert_eq!(down.known(), Some(Known::DpiDown));
+        assert_eq!(off(1, 4, Mode::Normal).known(), Some(Known::Off));
+        // DPI data other than up/down is not observed and stays raw.
         let raw = ButtonAssignment {
-            data: vec![2],
+            data: vec![3],
             ..up
         };
         assert_eq!(raw.known(), None);
-        assert!(raw.to_string().ends_with("mode: (function 6, data [2])"));
+        assert!(raw.to_string().ends_with("mode: (function 6, data [3])"));
         // Known function with unexpected data length stays raw.
         let odd = ButtonAssignment {
             data: vec![1, 0],
