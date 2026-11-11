@@ -9,7 +9,8 @@ use std::ptr::{null, null_mut};
 
 use windows_sys::Win32::Foundation::{
     CloseHandle, ERROR_FILE_NOT_FOUND, ERROR_SUCCESS, GENERIC_READ, GENERIC_WRITE, HANDLE,
-    INVALID_HANDLE_VALUE, WAIT_OBJECT_0, WAIT_TIMEOUT, WIN32_ERROR,
+    HANDLE_FLAG_INHERIT, INVALID_HANDLE_VALUE, SetHandleInformation, WAIT_OBJECT_0, WAIT_TIMEOUT,
+    WIN32_ERROR,
 };
 use windows_sys::Win32::Security::{
     GetTokenInformation, TOKEN_ELEVATION, TOKEN_QUERY, TokenElevation,
@@ -31,6 +32,30 @@ use windows_sys::Win32::System::Threading::{
 };
 
 use crate::autostart::VALUE_NAME;
+
+/// Make this process's stdin/stdout/stderr handles non-inheritable.
+///
+/// `CreateProcess` (used by `std::process::Command`) inherits *every* inheritable
+/// handle, not only the child's stdio. A detached agent started from a shell pipe
+/// (`opensynapse agent start | tail`, `install | grep` in Git Bash) would otherwise
+/// keep the pipe's write end open for its whole lifetime, so the reader never sees
+/// EOF and hangs (observed 2026-11-11). std duplicates handles it passes to a
+/// child as inheritable copies, so later `Stdio::inherit` spawns still work.
+/// Best effort: a missing or invalid handle is skipped.
+pub fn stop_std_handle_inheritance() {
+    use windows_sys::Win32::System::Console::STD_INPUT_HANDLE;
+    for which in [STD_INPUT_HANDLE, STD_OUTPUT_HANDLE, STD_ERROR_HANDLE] {
+        // SAFETY: GetStdHandle has no preconditions; SetHandleInformation only
+        // changes a flag on a handle this process owns and fails harmlessly on
+        // a null or invalid one.
+        unsafe {
+            let h = GetStdHandle(which);
+            if !h.is_null() && h != INVALID_HANDLE_VALUE {
+                SetHandleInformation(h, HANDLE_FLAG_INHERIT, 0);
+            }
+        }
+    }
+}
 
 /// An open process handle (`SYNCHRONIZE | PROCESS_QUERY_LIMITED_INFORMATION`).
 pub(crate) struct Process(HANDLE);

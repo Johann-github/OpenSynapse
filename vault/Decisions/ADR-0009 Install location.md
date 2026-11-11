@@ -42,6 +42,6 @@ plans, uninstall file list, refusal, leftovers; `agent_exe_prefers_installed`). 
 (`target\release`), copied 3 files, started the installed agent (ping OK); a second install over
 the running installed agent stopped it, "Updated" all 3, restarted it; uninstall stopped it,
 deleted 3 files + folder, kept settings, left the foreign Run entry alone.
-Known quirk: piping `install` into another program in Git Bash (`| grep`) hangs the pipe until
-the agent exits, because the detached agent inherits the pipe handle (same as `agent start | tail`).
-Run it unpiped.
+Fixed 2026-11-11: piping `install` or `agent start` into another program in Git Bash (`| grep`) hung until
+the agent exited (the detached agent inherited the pipe). `spawn_detached` now clears the inherit flag
+on the std handles first; `install --dir … | grep -c Copied` returns at once (tested).

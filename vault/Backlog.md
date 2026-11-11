@@ -22,8 +22,6 @@ Parked items, ranked. Pick from here when [[Status]] "Resume here" is empty.
 
 ## Install
 - Start-menu shortcut for the GUI (needs `IShellLink` COM). [[Decisions/ADR-0009 Install location]]
-- Detached agent inherits a piped stdout in Git Bash (`agent start | tail`, `install | grep` hang
-  until the agent exits). Fix: spawn with handle inheritance off (`STARTUPINFO` / explicit handle list).
 
 ## Ideas, declined for now
 - Windows toast when an automatic write (app-profile switch) fails because the mouse sleeps.
