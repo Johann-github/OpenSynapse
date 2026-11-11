@@ -133,7 +133,12 @@ impl<H: Hardware> Core<H> {
                 false
             }
             CoreMsg::DeviceEvent(ev) => {
+                // A device that talks is awake: retry a late app profile it missed.
+                let retry = convert::event_path(&ev).is_some_and(|p| self.app_apply_pending(p));
                 self.broadcast(ev);
+                if retry {
+                    self.apply_app_profile_late(&[]);
+                }
                 false
             }
             CoreMsg::Foreground { exe } => {
@@ -192,12 +197,14 @@ impl<H: Hardware> Core<H> {
                 d.detach();
             }
             self.devices.remove(&e.path);
+            self.forget_app_device(&e.path);
             self.broadcast(Event::DeviceRemoved {
                 path: e.path,
                 pid: e.pid,
             });
         }
 
+        let mut arrived = Vec::new();
         for (path, e) in now {
             if self.devices.contains_key(&path) {
                 continue;
@@ -213,8 +220,11 @@ impl<H: Hardware> Core<H> {
                 self.detachers.insert(path.clone(), d);
             }
             self.broadcast(Event::DeviceArrived(convert::device_info(&e)));
-            self.devices.insert(path, e);
+            self.devices.insert(path.clone(), e);
+            arrived.push(path);
         }
+        // An app profile active now also belongs on the new devices; waiting ones retry.
+        self.apply_app_profile_late(&arrived);
     }
 
     /// Answer one control request.

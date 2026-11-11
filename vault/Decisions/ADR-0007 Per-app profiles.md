@@ -49,6 +49,21 @@ the core actor ([[Architecture/Agent]]), no writes while Razer software runs, li
   - No target and values kept → they are written back (same options) and forgotten. A device
     whose restore fails keeps its values for the next try; an unplugged device's are dropped.
   - Reload re-evaluates the app in front; an invalid or removed file therefore restores.
+  - **Hotplug** (added 2026-11-11): after each rescan, every newly arrived device with the active
+    profile's PID gets the active profile (same engine, same options). The engine's restore
+    profile — the values read before writing — becomes that device's restore profile, so a later
+    switch away brings it back to its state *at arrival*. No active app profile → nothing.
+  - A late device that fails (e.g. the dongle arrives while the wireless mouse is asleep or not
+    linked, or Razer software runs) is reported once (`AppProfile` event with error, warn log) and
+    kept as *pending*. It is retried, quietly, on its next hardware event (`DeviceEvent` from its
+    path, e.g. DPI button or link change) or on the next hotplug rescan; never on a timer. Any
+    full switch clears pending (it covers all connected devices itself).
+  - A removed device's restore profile and pending retry are dropped at removal (no restore
+    attempt, no error later). Caveat (accepted): settings the app profile wrote persistently
+    (polling, sleep, buttons) survive a replug, so the replugged device's restore profile holds the
+    app values for those; volatile DPI stages are back to the stored ones after the power cycle anyway.
+  - The apply runs in the core actor like every HID call: a device that does not answer costs the
+    session's bounded retries (25 ms timing, 10 in / 20 out), then the actor moves on.
 - **IPC** (`PROTOCOL_VERSION` 1 → 2, new tags only): `Request::ReloadAppProfiles` (6),
   `Request::AppProfiles` (7) → `Reply::AppProfiles(AppProfilesInfo)` (6) with file, enabled,
   parse error, default, rules, foreground exe, active profile, restore pending;
@@ -78,8 +93,8 @@ polling/sleep/buttons per app get one write per changed setting per switch; that
 
 **Consequences:**
 - The agent links `user32` (working set 9.8 MB idle, measured; was 9.2 MB).
-- A device that is plugged in while an app profile is active does not get it until the next
-  switch (open).
+- A device that is plugged in while an app profile is active gets it at arrival (unit-tested;
+  hardware check pending: replug the dongle while an app profile is active).
 - Unsupported-protocol devices with a matching PID get an error event, nothing written.
 - Linux/macOS: the watch returns `Unsupported`; the feature is inactive there.
 
@@ -87,7 +102,10 @@ polling/sleep/buttons per app get one write per changed setting per switch; that
 - Unit tests: `opensynapse-core` `app_profiles::tests` (parser, matching, path resolution, merge);
   `opensynapse-agent` `core::apps::tests` against fake mice (match → apply, same profile → no
   traffic, unmatched without default → restore and forget, default, Razer running → no traffic,
-  unknown PID / missing PID → skip, DPI stages volatile, invalid/missing file, reload).
+  unknown PID / missing PID → skip, DPI stages volatile, invalid/missing file, reload; hotplug:
+  arrival during app profile → applied, no app profile / other PID → nothing, switch away →
+  late device back to its arrival state, removal → restore dropped quietly, asleep device →
+  one error then retry on its own event or a rescan, Razer running at arrival → retry).
 - Live (2026-11-11, release build, test pipe, rule `powershell.exe` → profile for PID 00C0 so no
   device write): foreground events for `Code.exe` at start, `powershell.exe` when a test window
   opened (switch in ~16 ms, "No connected device with PID 00C0; nothing written."), back to

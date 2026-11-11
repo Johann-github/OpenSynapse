@@ -12,7 +12,7 @@ named pipe. Decisions: [[Decisions/ADR-0005 Agent IPC]], [[Decisions/ADR-0006 Ag
 | `hardware.rs` | `Hardware` trait (enumerate/open/conflict); `RealHardware`; `FakeHardware` in tests |
 | `server.rs` | accept thread, one 64 KiB thread per connection; Control and Subscribe roles |
 | `convert.rs` | `opensynapse-device` ↔ `opensynapse-ipc` types |
-| `core/apps.rs` | per-app profiles: rules file, switching, restore of the values from before ([[Decisions/ADR-0007 Per-app profiles]]) |
+| `core/apps.rs` | per-app profiles: rules file, switching, restore of the values from before, late apply to hotplugged devices ([[Decisions/ADR-0007 Per-app profiles]]) |
 | `foreground.rs`, `foreground_windows.rs` | foreground watch: `SetWinEventHook` thread, posts `Foreground { exe }` on change (FFI only in `foreground_windows.rs`) |
 | `events.rs` | pluggable `EventSource`; slice 1 ships `NoEvents` ([[Protocol/Hardware Events]]) |
 

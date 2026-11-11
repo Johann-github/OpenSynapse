@@ -18,7 +18,8 @@ app comes to the front, and restore it afterwards? ([[Decisions/ADR-0007 Per-app
   the real window belongs to another process that reopens the previous session's tabs.
 
 ## Open questions
-- Device plugged in while an app profile is active gets it only at the next switch.
+- ~~Device plugged in while an app profile is active gets it only at the next switch.~~ Fixed
+  in code (ADR-0007 "Hotplug"); hardware check pending: replug dongle while app profile active.
 - Polling/sleep/button switches write persistently (no volatile variant known) — not exercised here.
 
 ## Next

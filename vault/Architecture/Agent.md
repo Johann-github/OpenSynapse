@@ -24,7 +24,11 @@ Rules: `%APPDATA%\OpenSynapse\app-profiles.toml` (`--app-profiles <file>` overri
 Same target as active → nothing. Razer software running → nothing written, error event. Applies
 through the shared engine with volatile DPI stages and skip-unchanged, only to devices with the
 profile's `[device] pid`. The values from before the first app profile are kept (first value wins)
-and written back when no rule matches and there is no `default`. Details: [[Decisions/ADR-0007 Per-app profiles]].
+and written back when no rule matches and there is no `default`. Hotplug: a device that arrives
+while an app profile is active gets it (values at arrival = its restore profile); if it does not
+answer yet (wireless mouse asleep / not linked) it is reported once and retried on its next hardware
+event or hotplug change, never on a timer. A removed device's restore profile is dropped.
+Details: [[Decisions/ADR-0007 Per-app profiles]].
 
 ## Connection roles
 The role is fixed in the `Hello`/`Welcome` handshake, which also checks the protocol version.

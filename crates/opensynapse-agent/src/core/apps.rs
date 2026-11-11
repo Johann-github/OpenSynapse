@@ -6,8 +6,13 @@
 //! is written when the target profile is the active one. When no rule matches and
 //! there is no `default`, the values from before the first app profile are
 //! written back and forgotten. Running Razer software blocks every switch.
+//!
+//! Hotplug: a device that arrives while an app profile is active gets it (its
+//! values at arrival become its restore profile); one that does not answer yet is
+//! retried on its next hardware event or hotplug change, never on a timer. A
+//! removed device's restore profile and pending retry are dropped.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::io;
 use std::path::{Path, PathBuf};
 
@@ -43,6 +48,8 @@ pub struct AppState {
     active: Option<String>,
     /// Device path → values from before the first app profile (first read wins).
     restore: BTreeMap<String, Profile>,
+    /// Devices that arrived while an app profile was active and did not take it yet.
+    pending: BTreeSet<String>,
 }
 
 impl<H: Hardware> Core<H> {
@@ -163,6 +170,8 @@ impl<H: Hardware> Core<H> {
             });
             return;
         }
+        // The switch covers every connected device; nothing waits any longer.
+        self.apps.pending.clear();
         let (lines, error) = match &target {
             Some(path) => self.apply_app_profile(path),
             None => self.restore_app_values(),
@@ -189,27 +198,9 @@ impl<H: Hardware> Core<H> {
 
     /// Apply the profile file at `path` to every connected device with its PID.
     fn apply_app_profile(&mut self, path: &Path) -> (Vec<String>, Option<String>) {
-        let text = match std::fs::read_to_string(path) {
-            Ok(t) => t,
-            Err(e) => {
-                return (
-                    Vec::new(),
-                    Some(format!("cannot read {}: {e}", path.display())),
-                );
-            }
-        };
-        let profile = match Profile::from_toml(&text) {
+        let (profile, pid) = match load_app_profile(path) {
             Ok(p) => p,
-            Err(e) => return (Vec::new(), Some(format!("{}: {e}", path.display()))),
-        };
-        let Some(pid) = profile.device.as_ref().map(|d| d.pid.0) else {
-            return (
-                Vec::new(),
-                Some(format!(
-                    "{}: per-app profiles need [device] pid",
-                    path.display()
-                )),
-            );
+            Err(e) => return (Vec::new(), Some(e)),
         };
         let targets: Vec<String> = self
             .devices
@@ -228,26 +219,128 @@ impl<H: Hardware> Core<H> {
         let mut lines = Vec::new();
         let mut error = None;
         for dev in targets {
-            match self.run_apply(&dev, profile.clone(), SWITCH_OPTIONS, false) {
-                Ok(r) => {
-                    // Keep the oldest value of each setting for the final restore;
-                    // also after a failed write (it undoes the writes that were sent).
-                    if let Some(old) = &r.restore {
-                        self.apps
-                            .restore
-                            .entry(dev.clone())
-                            .or_default()
-                            .fill_missing_from(old);
-                    }
-                    lines.extend(r.lines);
-                    if let Some(f) = r.failed {
-                        error = Some(f);
-                    }
-                }
-                Err(e) => error = Some(e.message),
+            let (l, e) = self.apply_app_profile_to(&dev, profile.clone());
+            lines.extend(l);
+            if e.is_some() {
+                error = e;
             }
         }
         (lines, error)
+    }
+
+    /// Apply `profile` to one device and keep the values read before it, merged
+    /// "first value wins" into the device's restore profile.
+    fn apply_app_profile_to(
+        &mut self,
+        dev: &str,
+        profile: Profile,
+    ) -> (Vec<String>, Option<String>) {
+        match self.run_apply(dev, profile, SWITCH_OPTIONS, false) {
+            Ok(r) => {
+                // Keep the oldest value of each setting for the final restore;
+                // also after a failed write (it undoes the writes that were sent).
+                if let Some(old) = &r.restore {
+                    self.apps
+                        .restore
+                        .entry(dev.to_owned())
+                        .or_default()
+                        .fill_missing_from(old);
+                }
+                (r.lines, r.failed)
+            }
+            Err(e) => (Vec::new(), Some(e.message)),
+        }
+    }
+
+    /// The device's late apply failed and waits for a retry.
+    pub(super) fn app_apply_pending(&self, dev: &str) -> bool {
+        self.apps.pending.contains(dev)
+    }
+
+    /// The device is gone: drop its values from before and any pending retry. A
+    /// replugged device counts as new (its state at arrival is what gets restored).
+    pub(super) fn forget_app_device(&mut self, dev: &str) {
+        self.apps.pending.remove(dev);
+        if self.apps.restore.remove(dev).is_some() {
+            tracing::info!(path = %dev, "device removed; its values from before the app profile are dropped");
+        }
+    }
+
+    /// Give the active app profile to devices that were not there when it was
+    /// switched to: the ones in `arrived` and the ones waiting for a retry. The
+    /// values read before applying become the device's restore profile. A device
+    /// that does not answer (e.g. a wireless mouse asleep or not linked to its
+    /// dongle) is reported once and retried on its next hardware event or the next
+    /// hotplug change; never on a timer.
+    pub(super) fn apply_app_profile_late(&mut self, arrived: &[String]) {
+        let Some(active) = self.apps.active.clone() else {
+            self.apps.pending.clear();
+            return;
+        };
+        let mut targets = std::mem::take(&mut self.apps.pending);
+        targets.extend(arrived.iter().cloned());
+        targets.retain(|d| self.devices.contains_key(d));
+        if targets.is_empty() {
+            return;
+        }
+        let (profile, pid) = match load_app_profile(Path::new(&active)) {
+            Ok(p) => p,
+            Err(error) => {
+                // The file changed since the switch; the next switch reports it
+                // again, so no retry here.
+                if !arrived.is_empty() {
+                    tracing::error!(profile = %active, %error, "app profile not applied to new device");
+                    self.broadcast_app_profile(Some(active), Vec::new(), Some(error));
+                }
+                return;
+            }
+        };
+        // Devices with another PID have nothing to do.
+        targets.retain(|d| self.devices[d].pid == pid);
+        let conflict = self.hw.conflict();
+        for dev in targets {
+            let (lines, error) = match &conflict {
+                Some(name) => (
+                    Vec::new(),
+                    Some(format!(
+                        "{name} is running and may talk to the device at the same time; \
+                         per-app profile not applied to {dev} (nothing written)"
+                    )),
+                ),
+                None => self.apply_app_profile_to(&dev, profile.clone()),
+            };
+            match error {
+                None => {
+                    tracing::info!(path = %dev, profile = %active, "app profile applied to late device");
+                    self.broadcast_app_profile(Some(active.clone()), lines, None);
+                }
+                Some(e) => {
+                    // Reported once, at arrival; retries stay quiet until one works.
+                    if arrived.contains(&dev) {
+                        tracing::warn!(path = %dev, profile = %active, error = %e, "app profile not applied to new device; retry on its next event");
+                        self.broadcast_app_profile(Some(active.clone()), lines, Some(e));
+                    } else {
+                        tracing::debug!(path = %dev, error = %e, "app profile retry failed");
+                    }
+                    self.apps.pending.insert(dev);
+                }
+            }
+        }
+    }
+
+    fn broadcast_app_profile(
+        &mut self,
+        profile: Option<String>,
+        lines: Vec<String>,
+        error: Option<String>,
+    ) {
+        let exe = self.apps.foreground.clone().unwrap_or_default();
+        self.broadcast(Event::AppProfile {
+            exe,
+            profile,
+            lines,
+            error,
+        });
     }
 
     /// Write back the values from before the first app profile, then forget them.
@@ -281,6 +374,19 @@ impl<H: Hardware> Core<H> {
         }
         (lines, error)
     }
+}
+
+/// Read an app-profile file; it must name its device PID.
+fn load_app_profile(path: &Path) -> Result<(Profile, u16), String> {
+    let text = std::fs::read_to_string(path)
+        .map_err(|e| format!("cannot read {}: {e}", path.display()))?;
+    let profile = Profile::from_toml(&text).map_err(|e| format!("{}: {e}", path.display()))?;
+    let pid = profile
+        .device
+        .as_ref()
+        .map(|d| d.pid.0)
+        .ok_or_else(|| format!("{}: per-app profiles need [device] pid", path.display()))?;
+    Ok((profile, pid))
 }
 
 #[cfg(test)]

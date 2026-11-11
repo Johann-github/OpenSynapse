@@ -145,6 +145,18 @@ pub fn device_info(e: &HidEntry) -> DeviceInfo {
 /// A decoded hardware notification as a subscriber event. `raw` is the input
 /// report it came from (record ID, event ID, payload).
 #[cfg_attr(not(test), allow(dead_code))] // used by EventSink (no source in slice 1)
+/// The device a hardware event came from (`None` for agent-level events).
+pub fn event_path(ev: &Event) -> Option<&str> {
+    match ev {
+        Event::Battery { path, .. }
+        | Event::DpiChanged { path, .. }
+        | Event::Hardware { path, .. }
+        | Event::DeviceRemoved { path, .. } => Some(path),
+        Event::DeviceArrived(info) => Some(&info.path),
+        Event::Error { .. } | Event::ShuttingDown | Event::AppProfile { .. } => None,
+    }
+}
+
 pub fn notification_to_wire(path: &str, raw: &[u8], n: Notification) -> Event {
     let path = path.to_owned();
     let raw_event = |path: String| Event::Hardware {

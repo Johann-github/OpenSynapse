@@ -297,3 +297,225 @@ fn reload_reports_rules_and_reevaluates() {
     assert!(!i.enabled && i.error.is_some());
     assert_eq!(t.mouse.state().polling_hz, 1000);
 }
+
+// --- Devices that arrive or leave while an app profile is active ---
+
+const B: &str = r"\\?\hid#vid_1532&pid_00b8&mi_00#b";
+const OTHER: &str = r"\\?\hid#vid_1532&pid_00c0&mi_00#o";
+
+impl T {
+    /// Plug a fresh Viper at `path` (the core sees it on the next rescan).
+    fn plug(&mut self, path: &str) -> FakeMouse {
+        self.core.hw().plug(path, VIPER_PID)
+    }
+
+    fn unplug(&mut self, path: &str) {
+        self.core.hw().mice.remove(path);
+        self.core.rescan();
+    }
+
+    fn event_from(&mut self, path: &str) {
+        self.core.dispatch(CoreMsg::DeviceEvent(Event::DpiChanged {
+            path: path.into(),
+            x: 800,
+            y: 800,
+        }));
+    }
+}
+
+#[test]
+fn arrival_during_app_profile_gets_it() {
+    let mut t = start("late-arrival", RULES);
+    t.focus("cs2.exe");
+    let _ = t.switches();
+    let b = t.plug(B);
+    t.core.rescan();
+    assert_eq!(
+        b.state().polling_hz,
+        500,
+        "new mouse takes the active profile"
+    );
+    assert_eq!(b.writes(), 1);
+    let s = t.switches();
+    assert_eq!(s.len(), 1);
+    assert_eq!(
+        (s[0].0.as_deref(), s[0].1.as_deref()),
+        (Some("cs2.toml"), None)
+    );
+    assert!(
+        s[0].2
+            .contains(&"Changed polling rate: 1000 Hz -> 500 Hz.".to_string())
+    );
+    // Nobody is touched again by a later rescan.
+    let sent = (t.mouse.sent().len(), b.sent().len());
+    t.core.rescan();
+    assert_eq!((t.mouse.sent().len(), b.sent().len()), sent);
+}
+
+#[test]
+fn arrival_without_app_profile_writes_nothing() {
+    let mut t = start("late-none", RULES);
+    let b = t.plug(B);
+    t.core.rescan();
+    assert!(b.sent().is_empty(), "no foreground yet");
+
+    t.focus("explorer.exe");
+    let c = t.plug(r"\\?\hid#vid_1532&pid_00b8&mi_00#c");
+    t.core.rescan();
+    assert!(c.sent().is_empty(), "unmatched app, no default");
+    assert!(t.switches().is_empty());
+}
+
+#[test]
+fn arrival_with_other_pid_is_left_alone() {
+    let mut t = start("late-pid", RULES);
+    t.focus("cs2.exe");
+    let _ = t.switches();
+    let other = t.core.hw().plug(OTHER, 0x00C0);
+    t.core.rescan();
+    assert!(other.sent().is_empty());
+    assert!(t.switches().is_empty());
+}
+
+#[test]
+fn switch_back_restores_the_late_device_to_its_arrival_state() {
+    let mut t = start("late-restore", RULES);
+    t.focus("cs2.exe");
+    let b = t.plug(B);
+    b.state().polling_hz = 125;
+    t.core.rescan();
+    assert_eq!(b.state().polling_hz, 500);
+    t.focus("explorer.exe");
+    assert_eq!(t.mouse.state().polling_hz, 1000);
+    assert_eq!(
+        b.state().polling_hz,
+        125,
+        "back to what it had when it arrived"
+    );
+    assert!(!t.info().restore_pending);
+}
+
+#[test]
+fn removal_drops_the_snapshot_quietly() {
+    let mut t = start("late-removal", RULES);
+    t.focus("cs2.exe");
+    let _b = t.plug(B);
+    t.core.rescan();
+    t.unplug(B);
+    let _ = t.switches();
+    t.focus("explorer.exe");
+    let s = t.switches();
+    assert_eq!(s.len(), 1);
+    assert_eq!(s[0].1, None, "no error for the unplugged mouse");
+    assert!(
+        !s[0].2.iter().any(|l| l.contains("not connected")),
+        "its values were dropped at removal: {:?}",
+        s[0].2
+    );
+    assert_eq!(t.mouse.state().polling_hz, 1000);
+    assert!(!t.info().restore_pending);
+}
+
+#[test]
+fn removal_of_the_only_device_clears_restore() {
+    let mut t = start("late-removal-only", RULES);
+    t.focus("cs2.exe");
+    assert!(t.info().restore_pending);
+    t.unplug(A);
+    assert!(!t.info().restore_pending);
+}
+
+#[test]
+fn asleep_device_is_reported_once_and_retried_on_its_next_event() {
+    let mut t = start("late-asleep", RULES);
+    t.focus("cs2.exe");
+    let _ = t.switches();
+    let b = t.plug(B);
+    b.state().answers = false;
+    t.core.rescan();
+    let s = t.switches();
+    assert_eq!(s.len(), 1, "one error event at arrival");
+    assert!(s[0].1.is_some());
+
+    // A later hotplug change retries, quietly while it still fails.
+    let sent = b.sent().len();
+    let other = t.core.hw().plug(OTHER, 0x00C0);
+    t.core.rescan();
+    assert!(other.sent().is_empty());
+    assert!(b.sent().len() > sent, "retried");
+    assert!(t.switches().is_empty(), "no error spam on retries");
+
+    // Events from other devices do not retry it.
+    let sent = b.sent().len();
+    t.event_from(A);
+    assert_eq!(b.sent().len(), sent);
+
+    // The mouse wakes up and sends an event: now it takes the profile.
+    b.state().answers = true;
+    t.event_from(B);
+    assert_eq!(b.state().polling_hz, 500);
+    let s = t.switches();
+    assert_eq!(s.len(), 1);
+    assert_eq!(
+        (s[0].0.as_deref(), s[0].1.as_deref()),
+        (Some("cs2.toml"), None)
+    );
+
+    // Done: later events cost nothing.
+    let sent = b.sent().len();
+    t.event_from(B);
+    assert_eq!(b.sent().len(), sent);
+
+    // Its arrival state comes back on switching away.
+    t.focus("explorer.exe");
+    assert_eq!(b.state().polling_hz, 1000);
+}
+
+#[test]
+fn removal_of_a_waiting_device_stops_its_retry() {
+    let mut t = start("late-pending-removal", RULES);
+    t.focus("cs2.exe");
+    let b = t.plug(B);
+    b.state().answers = false;
+    t.core.rescan();
+    t.unplug(B);
+    let _ = t.switches();
+    let sent = b.sent().len();
+    let _other = t.core.hw().plug(OTHER, 0x00C0);
+    t.core.rescan();
+    assert_eq!(b.sent().len(), sent);
+    assert!(t.switches().is_empty());
+}
+
+#[test]
+fn switch_away_clears_a_pending_retry() {
+    let mut t = start("late-pending-switch", RULES);
+    t.focus("cs2.exe");
+    let b = t.plug(B);
+    b.state().answers = false;
+    t.core.rescan();
+    t.focus("explorer.exe");
+    b.state().answers = true;
+    let sent = b.sent().len();
+    t.event_from(B);
+    assert_eq!(b.sent().len(), sent, "no app profile active any more");
+    assert_eq!(b.state().polling_hz, 1000);
+}
+
+#[test]
+fn razer_running_at_arrival_writes_nothing_and_retries() {
+    let mut t = start("late-conflict", RULES);
+    t.focus("cs2.exe");
+    let _ = t.switches();
+    t.core.hw().conflict = Some("RazerAppEngine.exe".into());
+    let b = t.plug(B);
+    t.core.rescan();
+    assert!(b.sent().is_empty());
+    let s = t.switches();
+    assert_eq!(s.len(), 1);
+    assert!(s[0].1.as_deref().unwrap().contains("RazerAppEngine.exe"));
+
+    t.core.hw().conflict = None;
+    t.event_from(B);
+    assert_eq!(b.state().polling_hz, 500);
+}

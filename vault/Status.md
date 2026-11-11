@@ -44,7 +44,10 @@ Next tasks, in order:
 4c. ✅ Per-app profiles (2026-11-11): `%APPDATA%\OpenSynapse\app-profiles.toml`, WinEvent foreground hook,
    `agent app-profiles [reload]`, IPC v2. Hardware-tested on the Viper (switch ~112 ms, restore verified).
    → [[Decisions/ADR-0007 Per-app profiles]], [[RE-Log/2026-11-11 Per-app profile hardware test]]
-   Open: GUI view/editor for app profiles; apply to a device plugged in while an app profile is active;
+   ✅ Hotplug (2026-11-11): a device plugged in while an app profile is active gets it (restore = its state
+   at arrival); asleep mouse → one error, retry on its next event / rescan; removal drops its restore values.
+   Unit-tested. **Hardware check pending: replug dongle while app profile active.**
+   Open: GUI view/editor for app profiles;
    ✅ GUI "Start agent" click (2026-11-11, user-checked): switches to "Backend: agent".
 5. Captures for "off" and "DPI down"; power-cycle test for button assignments.
 6. Mouse asleep → friendlier error ("move the mouse to wake it").
