@@ -14,7 +14,7 @@ use anyhow::{Context, Result, anyhow, bail};
 use opensynapse_ipc::Client;
 use opensynapse_ipc::msg::{Reply, Request};
 use opensynapse_sys::install::{self, AutostartPlan, Replaced};
-use opensynapse_sys::{AGENT_EXE, Process, autostart, config};
+use opensynapse_sys::{AGENT_EXE, GUI_EXE, Process, autostart, config, shortcut};
 
 /// How long to wait for a stopped agent to exit (it answers `Shutdown` first,
 /// then closes its sessions). Blocks on the process handle, no polling.
@@ -111,6 +111,8 @@ fn describe(pid: u32, image: &Option<PathBuf>) -> String {
 
 /// `opensynapse install [--dir] [--no-autostart]`.
 pub fn install(dir: Option<PathBuf>, no_autostart: bool) -> Result<()> {
+    // The Start-menu shortcut belongs to the default installation only.
+    let default_location = dir.is_none();
     let dst = target_dir(dir)?;
     let src = exe_dir()?;
     let plan = install::plan_copy(&src, &dst, Path::is_file).map_err(|e| anyhow!(e))?;
@@ -134,6 +136,14 @@ pub fn install(dir: Option<PathBuf>, no_autostart: bool) -> Result<()> {
     }
     for name in &plan.skipped {
         println!("Skipped {name}: not in {}", src.display());
+    }
+
+    let gui = dst.join(GUI_EXE);
+    if default_location && gui.is_file() {
+        match write_shortcut(&gui, &dst) {
+            Ok(p) => println!("Start menu: {}", p.display()),
+            Err(e) => println!("Start menu: no shortcut ({e})."),
+        }
     }
 
     let agent = dst.join(AGENT_EXE);
@@ -202,7 +212,25 @@ fn apply_autostart(agent: &Path, src: &Path, no_autostart: bool) -> Result<bool>
 /// `opensynapse uninstall [--dir]`. Deletes only the known binaries (and their
 /// `.tmp`/`.old` leftovers) inside the folder, then the folder if it is empty.
 /// The user's settings (`%APPDATA%\OpenSynapse`) stay.
+/// Write the GUI's Start-menu shortcut (temp file + rename).
+fn write_shortcut(gui: &Path, dir: &Path) -> io::Result<PathBuf> {
+    let folder = shortcut::start_menu_dir()
+        .ok_or_else(|| io::Error::other("the Start-menu folder is unknown (APPDATA not set)"))?;
+    std::fs::create_dir_all(&folder)?;
+    let path = folder.join(shortcut::FILE_NAME);
+    let bytes = shortcut::encode(
+        &gui.to_string_lossy(),
+        &dir.to_string_lossy(),
+        "OpenSynapse: Razer device settings",
+    );
+    let tmp = install::with_suffix(&path, install::TMP_SUFFIX);
+    std::fs::write(&tmp, bytes)?;
+    std::fs::rename(&tmp, &path)?;
+    Ok(path)
+}
+
 pub fn uninstall(dir: Option<PathBuf>) -> Result<()> {
+    let default_location = dir.is_none();
     let dir = target_dir(dir)?;
     let me = std::env::current_exe().context("cannot locate this executable")?;
     if let Some(why) = install::uninstall_refusal(&me, &dir) {
@@ -227,6 +255,16 @@ pub fn uninstall(dir: Option<PathBuf>) -> Result<()> {
         Ok(Some(cmd)) => println!("Autostart: left as is, starts {cmd}."),
         Ok(None) => println!("Autostart: off."),
         Err(e) => println!("Autostart: not checked ({e})."),
+    }
+
+    if default_location
+        && let Some(lnk) = shortcut::start_menu_dir().map(|d| d.join(shortcut::FILE_NAME))
+    {
+        match std::fs::remove_file(&lnk) {
+            Ok(()) => println!("Start menu: removed {}", lnk.display()),
+            Err(e) if e.kind() == io::ErrorKind::NotFound => {}
+            Err(e) => println!("Start menu: could not remove {} ({e}).", lnk.display()),
+        }
     }
 
     if !dir.is_dir() {

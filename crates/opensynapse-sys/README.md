@@ -13,6 +13,8 @@ OS integration, kept out of the pure crates. Decisions: [[Decisions/ADR-0006 Age
 - `install`: per-user install folder `%LOCALAPPDATA%\Programs\OpenSynapse` (XDG elsewhere) and the
   pure plan of `opensynapse install` / `uninstall` (copy plan, autostart plan, files to delete,
   leftovers), plus `copy_file` (temp + rename, running exe renamed to `.old`).
+- `shortcut`: pure `.lnk` encoder ([MS-SHLLINK], no COM) and the Start-menu folder; used by
+  `install` for the GUI shortcut.
 - `Process`: open a process by pid, read its image path, block until it exits (no polling).
 - `spawn_detached`: the generic detached spawn behind `spawn_agent_detached`.
 - `spawn_agent_detached`: starts `agent_exe` with `DETACHED_PROCESS |

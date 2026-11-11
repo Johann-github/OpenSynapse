@@ -30,7 +30,17 @@ no installer framework, no MSI, no new dependencies.
   "Start agent" and autostart "Fix" (re-resolved on each toggle).
 - An agent that answers with another IPC version cannot be asked to stop: install stops with a
   message (stop it in Task Manager) and changes nothing.
-- No Start-menu shortcut yet: it needs `IShellLink` (COM). Parked in [[Backlog]].
+- **Start-menu shortcut** (added 2026-11-11): install to the default location writes
+  `%APPDATA%\Microsoft\Windows\Start Menu\Programs\OpenSynapse.lnk` for the GUI; uninstall
+  (default location) removes it; `--dir` installs never touch the Start menu. No COM: the `.lnk`
+  is encoded in `opensynapse_sys::shortcut` from Microsoft's open spec [MS-SHLLINK] (header,
+  LinkInfo with ANSI + Unicode local path, StringData name / working dir / icon, an
+  EnvironmentVariableDataBlock with the target, terminal block). No LinkTargetIDList.
+  Evidence (2026-11-11): a generated shortcut to the installed GUI launched it via
+  `Start-Process <lnk>` (observed). With LinkInfo alone and with the env block, WScript's
+  `TargetPath` reads empty (it only reports ID-list targets; cosmetic: Properties shows no
+  target). Real install with the shortcut: **user step pending** (install touches autostart,
+  which Claude may not run).
 
 **Consequences:** rebuilding `target\release` no longer touches the running agent once installed.
 The user installs once and re-runs `install` after each build they want to use. Writing the Run

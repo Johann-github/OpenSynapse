@@ -144,7 +144,8 @@ subscription and prints one line per event (no timers) until the agent shuts dow
 
 `install` copies CLI, agent and GUI from this build to `%LOCALAPPDATA%\Programs\OpenSynapse`,
 stopping a running agent first and starting the installed one after; autostart is pointed at the
-installed agent. `uninstall` reverses it and keeps the settings in `%APPDATA%\OpenSynapse`
+installed agent, and (default location only) a Start-menu shortcut `OpenSynapse` for the GUI is
+written. `uninstall` reverses it and keeps the settings in `%APPDATA%\OpenSynapse`
 ([[Decisions/ADR-0009 Install location]]).
 
 `start` launches the installed agent (else the one in the CLI's folder) detached (no window) and

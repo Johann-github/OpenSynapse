@@ -21,7 +21,8 @@ Parked items, ranked. Pick from here when [[Status]] "Resume here" is empty.
   hardware), autostart, foreground watch for per-app profiles (returns `Unsupported`), install location.
 
 ## Install
-- Start-menu shortcut for the GUI (needs `IShellLink` COM). [[Decisions/ADR-0009 Install location]]
+- Start-menu shortcut: add a LinkTargetIDList so the Properties dialog shows the target (works
+  without it). [[Decisions/ADR-0009 Install location]]
 
 ## Ideas, declined for now
 - Windows toast when an automatic write (app-profile switch) fails because the mouse sleeps.
