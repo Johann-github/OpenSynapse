@@ -7,6 +7,7 @@ Entry point. Repo root is the vault; code lives in `crates/`.
 
 ## Maps
 - [[Status]] — **current phase, next steps, handoff**
+- [[Backlog]] — parked items for later
 - [[Architecture/Crates]] — crate map, where code lives
 - [[Protocol/Overview]] — Razer HID protocol families (2.5 / 3.0 / 4.0)
   - [[Protocol/Report Format 2.5]] · [[Protocol/Commands 2.5]] · [[Protocol/Protocol 3.0 and 4.0]] · [[Protocol/Hardware Events]] · [[Protocol/Windows Transport]]
