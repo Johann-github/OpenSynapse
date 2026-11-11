@@ -10,6 +10,11 @@ the desktop GUI and the background agent; no OS code, no UI.
   export|apply` and by the agent's `ApplyProfile`. Validate → snapshot of what the
   profile overwrites → plan (`opensynapse-core`) → skip unchanged → write + read-back.
   No printing, no files: returns lines, typed errors and the restore `Profile`.
+- Button editor model (`ActionKind`, `ActionEdit`, `key_choices`, `primary_guard`,
+  `VIPER_BUTTONS`), shared by the GUI's main panel and per-app profile editor.
+  `ActionEdit::from_action`/`to_action` convert profile actions through the core mapping
+  (`opensynapse_core::plan::button_assignment`) and the export mapping
+  (`profile_apply::button_action`).
 - Report bytes come only from `opensynapse-protocol` builders.
 - `fake` feature (and `cfg(test)`): `FakeMouse`, an in-memory Viper V3 HyperSpeed that
   answers feature reports, for tests in this crate and in dependent crates.

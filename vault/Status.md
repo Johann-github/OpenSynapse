@@ -10,27 +10,39 @@ updated: 2026-11-11
 | Phase | State |
 |---|---|
 | 0 Setup (tools, repo, vault, workspace) | ✅ done |
-| 1 Reverse engineering (protocol, transport, device DB) | ✅ done (open questions below) |
-| 2 Implementation (protocol, registry, hid, CLI) | ✅ done 2026-11-09 (budget miss below) |
-| 3 Hardware test on Viper V3 HyperSpeed + USB capture | 🔄 **in progress** (reads/writes ✅, first capture ✅) |
-| 4 Agent (background service) + GUI | ⏳ later |
+| 1 Reverse engineering (protocol, transport, device DB) | ✅ done (open questions below, rest in [[Backlog]]) |
+| 2 Implementation (protocol, registry, hid, CLI) | ✅ done 2026-11-09 |
+| 3 Hardware test on Viper V3 HyperSpeed + USB capture | ✅ done 2026-11-11 (all button functions incl. off / DPI down, power cycle) |
+| 4 Agent (background service) + GUI | 🔄 **in progress**: agent, autostart, per-app profiles, GUI editor done; install pending |
 
-## ▶ Resume here (next session)
-State at end of 2026-11-10: phase 3 done except "off"/"DPI down" captures; phase 4 started.
-- CLI: `buttons get|set|list` (mouse-button, double-click, key, dpi-up; normal + HyperShift),
-  `dpi-stages get|set --active`, `profile export|apply` (TOML, restore snapshot). All hardware-tested.
-- GUI `opensynapse-desktop` (egui, green accent, 4.4 MB): read panel + guarded DPI/polling/sleep writes. User-checked.
-- Viper has separate HyperShift slots; reply byte 2 of 02/8C is unknown (not a mode echo).
-- Mouse state: defaults, DPI 800 (stage 2), 1000 Hz, sleep 300 s.
-→ [[RE-Log/2026-11-10 Onboard button test]], [[RE-Log/2026-11-10 Button capture key and DPI]], [[Decisions/ADR-0004 GUI toolkit egui]]
+## ▶ Resume here (handoff 2026-11-11 → next session)
+Mouse state at end of day: DPI 800 (stages 400/800, active 2), 1000 Hz, sleep 300 s, button 4 = mouse
+button 4, wake hint off, `app-profiles.toml` with 0 rules, agent running from `target\release`
+(autostart on, Run key points at `target\release\opensynapse-agent.exe`). Synapse autostart is off.
+`main` is pushed (c4ef50f). The install WIP branch is local only.
 
-- Agent slice 1 done (2026-11-10): `opensynapse-agent` + `opensynapse-ipc` (named pipe, own codec) +
-  `opensynapse-device` + CLI `agent ping|devices|snapshot|watch|stop`. Hardware-tested: 9.2 MB RAM, idle CPU 0,
-  hotplug events work. → [[RE-Log/2026-11-10 Agent slice 1 test]], [[Architecture/Agent]]
+**Next, in order:**
+1. **Finish install (ADR-0009, unfinished).** Branch `worktree-agent-ab0f6c4238b63f425`, WIP commit
+   `6ac3ea2` (compiles; worktree `.claude/worktrees/agent-ab0f6c4238b63f425`). The agent hit the usage
+   limit while making `set_autostart` re-resolve the agent exe. Done so far: `opensynapse-sys::install`
+   (location `%LOCALAPPDATA%\Programs\OpenSynapse`), CLI `install.rs`, changes in `lifecycle.rs`,
+   GUI `agent_ctl.rs`/`worker.rs`. Still to do: finish autostart re-resolve, tests, ADR-0009 note,
+   ADR-0006 update, READMEs, fmt/clippy/test, merge. Then **user step**: run
+   `target\release\opensynapse.exe install` once (the Run-key write is blocked for Claude), check
+   autostart + GUI "Start agent" use the installed exe.
+2. **User check: buttons in the per-app profile editor** (merged, unit-tested): open a rule's
+   Settings → Buttons, set Side button 4 = DPI down, Save, check the TOML and the switch. Reset DPI to 800 after.
+3. **Open question: flash wear.** 02/0C button writes are stored onboard (power-cycle test), so an app
+   profile with buttons writes flash on *every* foreground switch. Unknown endurance. Options: skip
+   unchanged (already done: skip-unchanged), warn in the editor, or keep buttons out of app profiles.
+4. Then pick from [[Backlog]].
 
-Next tasks, in order:
+Rules for hardware tests: after any DPI-changing test, reset to DPI 800 / stage 2 (volatile + persistent).
+Stop the agent before `cargo build --release` (exe lock) or build with `--target-dir`.
+
+## Done 2026-11-10 / 11
 1. ✅ Events found: MI_01 COL06, report 5 (DPI changed observed); agent listens by default.
-   Open: battery/charging events (plug the cable in during `hid listen`). → [[RE-Log/2026-11-10 Hardware events capture]]
+   Charging events: n/a (AA battery). Battery-level events → [[Backlog]]. → [[RE-Log/2026-11-10 Hardware events capture]]
 2. ✅ ApplyProfile in the agent (`opensynapse agent apply`), shared engine in `opensynapse-device`; hardware-tested.
 3. ✅ GUI over IPC (agent if running, else direct HID; live events). User-checked: "Backend: agent", DPI button press updates the GUI live.
 4. ✅ Autostart (2026-11-11): `opensynapse agent start` + `agent autostart [on|off]` (HKCU Run), agent is
@@ -54,6 +66,9 @@ Next tasks, in order:
    (exe → profile file), add/edit/remove/reorder, default profile, settings of the rule's profile
    (PID, DPI stages, polling, sleep; buttons kept), inline errors, atomic save, then `ReloadAppProfiles`
    if the agent runs. Writer `AppProfiles::to_toml` in core (round-trip tests). GUI 5.05 MB.
+   🔄 Buttons editable in the rule's profile (2026-11-11): normal + HyperShift rows, "Unchanged" or
+   the main panel's actions, left/right-click opt-in; GUI 5.13 MB; unit-tested, **user check pending**
+   (open a rule's Settings, set Side button 4 = DPI down, Save, check the file and the switch).
    ✅ GUI "Start agent" click (2026-11-11, user-checked): switches to "Backend: agent".
 5. ✅ Captures for "off" (function 0, no data) and "DPI down" (function 6, `[02]`), both hardware-tested
    (2026-11-11). → [[RE-Log/2026-11-11 Button capture off and DPI down]]. ✅ Power-cycle test: 02/0C assignments survive
@@ -123,11 +138,12 @@ device. Fixed with a native Windows backend → [[Decisions/ADR-0003 Own Windows
 ## Open questions (carry over)
 - ~~Storage byte meaning~~ resolved (observed, power-cycle test): 0 = volatile, 1 = persistent; a storage-1 write also sets the active value.
 - Viper: polling 00/05 works on the dongle (observed); 00/40 untested. Sleep unit: seconds (inferred, 300 read).
-- Button-assignment data bytes: functions 1 and 11 known; key, DPI, macro etc. still unknown.
+- ~~Button-assignment data bytes~~ known for off (0), mouse button (1), key (2), DPI up/down (6), double-click (11); macro etc. unknown (no use yet).
   ~~Does the onboard mapping act with Synapse closed?~~ yes (observed 2026-11-10).
 - Wireshark: the Viper dongle hangs on USBPcap3 (device 3.9). USBPcapCMD.exe had to be copied
   into `%APPDATA%\Wireshark\extcap`.
-- Event collection usage page/report on the Viper.
+- ~~Event collection usage page/report on the Viper~~ MI_01 COL06, report 5 (2026-11-10).
+- Viper power: one AA battery, no charging (user 2026-11-11) → no charging events.
 - 81 products without manifest → protocol unknown.
 
 ## Environment (dev machine)

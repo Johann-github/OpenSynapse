@@ -622,10 +622,7 @@ impl App {
             let normal = snap.buttons_normal.as_deref().unwrap_or(&[]);
             let hyper = snap.buttons_hypershift.as_deref().unwrap_or(&[]);
             let rows = ops::button_rows(normal, hyper);
-            ui.checkbox(
-                &mut self.allow_primary,
-                "Allow editing left/right click (without left click the mouse is hard to use)",
-            );
+            ui.checkbox(&mut self.allow_primary, ops::ALLOW_PRIMARY_LABEL);
             egui::Grid::new("buttons")
                 .num_columns(3)
                 .spacing([16.0, 8.0])
@@ -691,27 +688,13 @@ impl App {
                     }
                 });
                 if edit.kind == ActionKind::Key {
-                    ui.horizontal(|ui| {
-                        let name = self
-                            .key_choices
-                            .iter()
-                            .find(|(u, _)| *u == edit.usage)
-                            .map_or_else(|| format!("{:#04x}", edit.usage), |(_, n)| n.clone());
-                        egui::ComboBox::from_id_salt(("key", salt))
-                            .width(70.0)
-                            .selected_text(name)
-                            .show_ui(ui, |ui| {
-                                for (u, n) in &self.key_choices {
-                                    ui.selectable_value(&mut edit.usage, *u, n);
-                                }
-                            });
-                        for &(bit, label) in &self.modifier_choices {
-                            let mut on = edit.modifiers & bit != 0;
-                            if ui.checkbox(&mut on, label).changed() {
-                                edit.modifiers ^= bit;
-                            }
-                        }
-                    });
+                    crate::app_profiles_view::buttons::key_editor(
+                        ui,
+                        salt,
+                        &mut edit,
+                        &self.key_choices,
+                        &self.modifier_choices,
+                    );
                 }
             });
         });
@@ -833,7 +816,8 @@ impl eframe::App for App {
             .show(ui, |ui| self.device_list(ui));
         egui::CentralPanel::default().show(ui, |ui| self.settings(ui));
         let pid = self.selected_row().map(|d| d.pid);
-        self.app_profiles.window(ui.ctx(), pid);
+        let snap = self.snapshot.as_ref().and_then(|s| s.as_ref().ok());
+        self.app_profiles.window(ui.ctx(), pid, snap);
     }
 }
 

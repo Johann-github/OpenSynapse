@@ -32,6 +32,7 @@ manifest 184, product UI bundle `products/184/mw`, dashboard lists. Background:
 | DPI | 100 – 30000, step 50, separate X/Y supported | observed |
 | Default DPI stages | 5 stages: 400 / 800 / 1600 / 3200 / 6400, default 800 | observed |
 | Polling rates (Synapse UI, this receiver) | 125, 500, 1000 Hz | observed |
+| Power source | one replaceable **AA battery**; no built-in rechargeable cell, so no charging (user, 2026-11-11). Charging status 07/84 reads "not charging" (observed). Charging events cannot occur on this mouse | observed (user + read) |
 | Battery | battery-state events supported. The lighting-engine "battery monitoring" flag is false (that is a lighting feature) | observed |
 | Low-power default | 30 (unit presumably % battery) | observed (value), inferred (unit) |
 | Lighting | none. Flagged non-Chroma; the manifest carries only a 1×1 placeholder matrix | observed |

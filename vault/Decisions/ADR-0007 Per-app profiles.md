@@ -85,6 +85,14 @@ the core actor ([[Architecture/Agent]]), no writes while Razer software runs, li
   message). It edits the file the agent reports in `AppProfilesInfo.config`, else the default
   path from `opensynapse_sys::config::app_profiles_path_from` (owned by `opensynapse-sys`, shared with the
   agent). The GUI never writes to the device for this; switching stays in the agent.
+  Button assignments (2026-11-11, `src/app_profiles_view/buttons.rs`): normal and HyperShift
+  (collapsed) rows per button, "Unchanged (not in profile)" or the main panel's actions
+  (`ActionKind`/`ActionEdit` from `opensynapse-device`; mapping through core
+  `plan::button_assignment` and the export mapping, no second copy). Button list: the
+  selected device's (read via 02/8E) when its PID matches, else the Viper layout
+  `VIPER_BUTTONS` (registry has no button lists). Left/right click need the same opt-in as
+  the main panel (`primary_guard`), checked with `Profile::validate` before Save. Unit-tested;
+  user check pending.
 
 **Flash wear (what a switch writes persistently):**
 | Setting | Storage on switch |

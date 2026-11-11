@@ -13,6 +13,7 @@
 use std::fmt;
 use std::ops::RangeInclusive;
 
+use opensynapse_core::{ButtonAction, ButtonId};
 use opensynapse_device_registry::Device;
 use opensynapse_hid::{FeatureIo, HidError, Session};
 use opensynapse_protocol::buttons::{self, ButtonAssignment, Known, Mode};
@@ -32,6 +33,13 @@ pub const MOUSE_TARGETS: RangeInclusive<u8> = 1..=5;
 /// Left and right click: losing them makes the mouse hard to use, so writes to
 /// them need [`WriteOpts::allow_primary`].
 pub const PRIMARY_BUTTONS: [u8; 2] = [1, 2];
+/// Label of the opt-in checkbox for [`PRIMARY_BUTTONS`] (main panel and per-app editor).
+pub const ALLOW_PRIMARY_LABEL: &str =
+    "Allow editing left/right click (without left click the mouse is hard to use)";
+/// Viper V3 HyperSpeed button IDs in 02/8E list order (observed, vault
+/// `Devices/Viper V3 HyperSpeed`). The registry has no button lists; editors that
+/// cannot read the device (per-app profiles) fall back to this layout.
+pub const VIPER_BUTTONS: [u8; 8] = [1, 2, 3, 4, 5, 96, 9, 10];
 /// Stages the editor offers at most when the device reports fewer. The registry
 /// has no stage count; the Viper V3 HyperSpeed ships 5 stages (observed, vault
 /// `Devices/Viper V3 HyperSpeed`), so the GUI does not go beyond what was seen.
@@ -435,13 +443,18 @@ pub struct ActionEdit {
 const DEFAULT_USAGE: u8 = 0x04;
 
 impl ActionEdit {
-    /// Start the editor at what the device reports.
-    pub fn from_assignment(a: &ButtonAssignment) -> Self {
-        let mut e = Self {
-            kind: ActionKind::Other,
+    /// `kind` with the default key (`a`, no modifiers).
+    pub fn new(kind: ActionKind) -> Self {
+        Self {
+            kind,
             usage: DEFAULT_USAGE,
             modifiers: 0,
-        };
+        }
+    }
+
+    /// Start the editor at what the device reports.
+    pub fn from_assignment(a: &ButtonAssignment) -> Self {
+        let mut e = Self::new(ActionKind::Other);
         match a.known() {
             Some(Known::MouseButton(t)) if MOUSE_TARGETS.contains(&t) => {
                 e.kind = ActionKind::Mouse(t);
@@ -478,6 +491,24 @@ impl ActionEdit {
             ActionKind::Off => buttons::off(p, button, mode),
             ActionKind::Other => return None,
         })
+    }
+}
+
+impl ActionEdit {
+    /// Start the editor at a profile action, through the core mapping
+    /// (`opensynapse_core::plan::button_assignment`). Actions the editor does not
+    /// offer (e.g. mouse button 7, unknown key names) give [`ActionKind::Other`].
+    pub fn from_action(a: &ButtonAction) -> Self {
+        opensynapse_core::plan::button_assignment(BUTTON_PROFILE, Mode::Normal, ButtonId(1), a)
+            .map_or(Self::new(ActionKind::Other), |x| Self::from_assignment(&x))
+    }
+
+    /// The profile action, through the export mapping
+    /// ([`profile_apply::button_action`]); `None` for [`ActionKind::Other`].
+    pub fn to_action(self) -> Option<ButtonAction> {
+        self.to_assignment(1, Mode::Normal)
+            .as_ref()
+            .and_then(profile_apply::button_action)
     }
 }
 
@@ -617,12 +648,7 @@ pub fn validate(new: &Setting, device: Option<&Device>, opts: WriteOpts) -> Resu
         Setting::Sleep(_) => {}
         Setting::Button(a) => {
             if !opts.restore {
-                if PRIMARY_BUTTONS.contains(&a.button) && !opts.allow_primary {
-                    return Err(format!(
-                        "{} is protected; tick \"allow editing left/right click\" first",
-                        button_name(a.button)
-                    ));
-                }
+                primary_guard(a.button, opts.allow_primary)?;
                 check_action(a)?;
             }
         }
@@ -647,6 +673,18 @@ pub fn validate(new: &Setting, device: Option<&Device>, opts: WriteOpts) -> Resu
                 ));
             }
         }
+    }
+    Ok(())
+}
+
+/// Left/right click ([`PRIMARY_BUTTONS`]) may only change when the user ticked
+/// "allow editing left/right click".
+pub fn primary_guard(button: u8, allow_primary: bool) -> Result<(), String> {
+    if PRIMARY_BUTTONS.contains(&button) && !allow_primary {
+        return Err(format!(
+            "{} is protected; tick \"allow editing left/right click\" first",
+            button_name(button)
+        ));
     }
     Ok(())
 }

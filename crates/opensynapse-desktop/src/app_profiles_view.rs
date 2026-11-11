@@ -1,7 +1,8 @@
 //! Per-app profiles editor (`vault/Decisions/ADR-0007 Per-app profiles.md`): a
 //! window that lists the rules of `app-profiles.toml` (application → profile
-//! file), edits them and the settings of the profile a rule applies, saves both
-//! files atomically and asks a running agent to reload them.
+//! file), edits them and the settings of the profile a rule applies (button
+//! assignments in `buttons.rs`), saves both files atomically and asks a running
+//! agent to reload them.
 //!
 //! The file formats and their checks belong to `opensynapse-core` (`AppProfiles`,
 //! `Profile`); this module edits values and does the file and IPC I/O. It never
@@ -25,6 +26,9 @@ use opensynapse_device::profile_apply::limits_for;
 use opensynapse_device_registry::{Device, RAZER_VID, Registry};
 use opensynapse_ipc::Client;
 use opensynapse_ipc::msg::{AppProfilesInfo, Reply, Request};
+
+pub(crate) mod buttons;
+use buttons::{ButtonsForm, KeyLists};
 
 /// Sleep timer range offered by the editor (same as the main window).
 const SLEEP_RANGE: std::ops::RangeInclusive<u16> = 1..=3600;
@@ -210,8 +214,7 @@ fn limits(pid: u16) -> DeviceLimits {
     limits_for(registry_device(pid))
 }
 
-/// The settings of one profile file as the editor shows them. Sections the
-/// editor does not edit (button assignments) are kept as read.
+/// The settings of one profile file as the editor shows them.
 #[derive(Clone, Debug, PartialEq, Eq)]
 struct ProfileForm {
     /// `[device] pid` as typed (four hex digits).
@@ -224,8 +227,8 @@ struct ProfileForm {
     hz: u32,
     sleep_on: bool,
     sleep_seconds: u16,
-    /// Buttons and HyperShift buttons from the file, written back unchanged.
-    kept: Profile,
+    /// `[buttons]` and `[hypershift.buttons]`.
+    buttons: ButtonsForm,
 }
 
 impl ProfileForm {
@@ -239,7 +242,7 @@ impl ProfileForm {
             hz: 1000,
             sleep_on: false,
             sleep_seconds: 300,
-            kept: Profile::default(),
+            buttons: ButtonsForm::default(),
         }
     }
 
@@ -258,11 +261,7 @@ impl ProfileForm {
             f.sleep_on = true;
             f.sleep_seconds = pw.sleep_seconds;
         }
-        f.kept = Profile {
-            buttons: p.buttons.clone(),
-            hypershift: p.hypershift.clone(),
-            ..Profile::default()
-        };
+        f.buttons = ButtonsForm::from_profile(p);
         f
     }
 
@@ -273,15 +272,13 @@ impl ProfileForm {
         Pid::try_from(self.pid.trim().to_owned()).map(|p| p.0)
     }
 
-    fn buttons_kept(&self) -> usize {
-        self.kept.all_buttons().count()
-    }
-
     /// The profile to write, checked by `Profile::validate` against the
-    /// registry limits of its PID. All problems at once.
-    fn to_profile(&self) -> Result<Profile, Vec<String>> {
+    /// registry limits of its PID, plus the left/right-click guard of the main
+    /// panel (`allow_primary`: the user ticked the opt-in). All problems at once.
+    fn to_profile(&self, allow_primary: bool) -> Result<Profile, Vec<String>> {
         let pid = self.pid().map_err(|e| vec![format!("device.pid: {e}")])?;
-        let mut p = self.kept.clone();
+        let mut p = Profile::default();
+        self.buttons.apply_to(&mut p);
         p.device = Some(DeviceSection { pid: Pid(pid) });
         p.dpi = self.dpi_on.then(|| DpiSection {
             stages: self.stages.clone(),
@@ -292,9 +289,11 @@ impl ProfileForm {
             sleep_seconds: self.sleep_seconds,
         });
         let mut errs = Vec::new();
-        if p.dpi.is_none() && p.polling.is_none() && p.power.is_none() && self.buttons_kept() == 0 {
-            errs.push("the profile sets nothing; tick at least one setting".to_owned());
+        if p.dpi.is_none() && p.polling.is_none() && p.power.is_none() && self.buttons.count() == 0
+        {
+            errs.push("the profile sets nothing; tick or assign at least one setting".to_owned());
         }
+        errs.extend(self.buttons.guard(allow_primary));
         if let Err(v) = p.validate(&limits(pid)) {
             errs.extend(v.0.iter().map(ToString::to_string));
         }
@@ -323,9 +322,15 @@ struct Editor {
     new_file: bool,
     /// The file could not be read or parsed; Save refuses until "Start new".
     blocked: Option<String>,
+    /// "Allow editing left/right click" is ticked for this profile.
+    allow_primary: bool,
 }
 
 impl Editor {
+    fn profile(&self) -> Result<Profile, Vec<String>> {
+        self.form.to_profile(self.allow_primary)
+    }
+
     fn dirty(&self, path: &Path) -> bool {
         self.form != self.orig || self.new_file || path != self.loaded_from
     }
@@ -363,6 +368,9 @@ pub struct AppProfilesView {
     editor: Option<Editor>,
     /// Result of the last save (plus the agent's answer).
     status: Option<Result<String, String>>,
+    /// Button IDs of the device selected in the main window (empty: not read).
+    device_buttons: Vec<u8>,
+    key_lists: KeyLists,
 }
 
 impl Default for AppProfilesView {
@@ -379,6 +387,8 @@ impl Default for AppProfilesView {
             saved: AppProfiles::default(),
             editor: None,
             status: None,
+            device_buttons: Vec::new(),
+            key_lists: KeyLists::default(),
         }
     }
 }
@@ -396,8 +406,14 @@ impl AppProfilesView {
     }
 
     /// Draw the window if it is open. `pid_hint`: PID of the device selected in
-    /// the main window, used to prefill new profiles.
-    pub fn window(&mut self, ctx: &egui::Context, pid_hint: Option<u16>) {
+    /// the main window, used to prefill new profiles; `snap`: what was read from
+    /// it (its button list is offered for profiles with that PID).
+    pub fn window(
+        &mut self,
+        ctx: &egui::Context,
+        pid_hint: Option<u16>,
+        snap: Option<&opensynapse_device::Snapshot>,
+    ) {
         self.drain();
         if !self.open {
             // Read again on the next open unless there are unsaved edits.
@@ -409,6 +425,9 @@ impl AppProfilesView {
         if !self.loaded {
             self.loaded = true;
             self.reload_from_disk(ctx);
+        }
+        if self.editor.is_some() {
+            self.device_buttons = buttons::device_button_ids(snap);
         }
         let mut open = self.open;
         egui::Window::new("Per-app profiles")
@@ -561,6 +580,7 @@ impl AppProfilesView {
             loaded_from: path,
             new_file,
             blocked,
+            allow_primary: false,
         });
     }
 
@@ -623,7 +643,7 @@ impl AppProfilesView {
                     "The profile file could not be read; start a new one or close it.".into(),
                 );
             }
-            if e.form.to_profile().is_err() {
+            if e.profile().is_err() {
                 return Some("Fix the marked profile settings to save.".into());
             }
         }
@@ -648,7 +668,7 @@ impl AppProfilesView {
             let path = self.profile_path(t).ok_or("the open profile has no file")?;
             let ed = self.editor.as_mut().ok_or("no editor")?;
             if ed.dirty(&path) {
-                let profile = ed.form.to_profile().map_err(|e| e.join("; "))?;
+                let profile = ed.profile().map_err(|e| e.join("; "))?;
                 let text = profile.to_toml().map_err(|e| e.to_string())?;
                 write_atomic(&path, &text)
                     .map_err(|e| format!("cannot write {}: {e}", path.display()))?;
@@ -835,7 +855,12 @@ impl AppProfilesView {
             let path = self.profile_path(t);
             let mut close = false;
             if let Some(ed) = &mut self.editor {
-                close = editor_ui(ui, ed, &label, path.as_deref(), pid_hint);
+                let cx = EditorCtx {
+                    pid_hint,
+                    device_buttons: &self.device_buttons,
+                    key_lists: &self.key_lists,
+                };
+                close = editor_ui(ui, ed, &label, path.as_deref(), &cx);
             }
             if close {
                 self.editor = None;
@@ -880,14 +905,24 @@ impl AppProfilesView {
     }
 }
 
+/// What the profile editor needs from outside the profile.
+struct EditorCtx<'a> {
+    /// PID of the device selected in the main window.
+    pid_hint: Option<u16>,
+    /// Button IDs read from that device (empty: not read).
+    device_buttons: &'a [u8],
+    key_lists: &'a KeyLists,
+}
+
 /// The settings editor for one profile file. Returns `true` when "Close" was clicked.
 fn editor_ui(
     ui: &mut Ui,
     ed: &mut Editor,
     label: &str,
     path: Option<&Path>,
-    pid_hint: Option<u16>,
+    cx: &EditorCtx<'_>,
 ) -> bool {
+    let pid_hint = cx.pid_hint;
     let err = ui.visuals().error_fg_color;
     let warn = ui.visuals().warn_fg_color;
     let mut close = false;
@@ -924,6 +959,7 @@ fn editor_ui(
             ed.blocked = None;
             ed.form = ProfileForm::new(pid_hint);
             ed.new_file = true;
+            ed.allow_primary = false;
         }
         return close;
     }
@@ -1014,13 +1050,21 @@ fn editor_ui(
             );
         }
     });
-    let kept = f.buttons_kept();
-    if kept > 0 {
-        ui.label(format!(
-            "{kept} button assignment(s) in this file are kept unchanged (edit them in the TOML file)."
-        ));
-    }
-    if let Err(errs) = f.to_profile() {
+    ui.add_space(4.0);
+    // The selected device's list only when it is the device this profile is for.
+    let device: &[u8] = if pid.as_ref().ok().copied() == pid_hint {
+        cx.device_buttons
+    } else {
+        &[]
+    };
+    buttons::buttons_ui(
+        ui,
+        &mut f.buttons,
+        &mut ed.allow_primary,
+        device,
+        cx.key_lists,
+    );
+    if let Err(errs) = ed.profile() {
         for e in errs {
             ui.colored_label(err, format!("    {e}"));
         }
