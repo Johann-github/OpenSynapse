@@ -1778,6 +1778,7 @@ name = "opensynapse-desktop"
 version = "0.1.0"
 dependencies = [
  "eframe",
+ "opensynapse-core",
  "opensynapse-device",
  "opensynapse-device-registry",
  "opensynapse-hid",

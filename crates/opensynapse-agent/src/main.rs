@@ -26,6 +26,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::channel;
 use std::time::Duration;
 
+use opensynapse_core::app_profiles::default_path;
 use opensynapse_device_registry::RAZER_VID;
 use opensynapse_ipc::codec::{decode_server, encode_client};
 use opensynapse_ipc::frame::{read_frame, write_frame};
@@ -40,8 +41,6 @@ const USAGE: &str = "usage: opensynapse-agent [--pipe <name>] [--no-events] [--a
      --no-events            do not listen for device hardware events (also OPENSYNAPSE_AGENT_NO_EVENTS=1)\n  \
      --app-profiles <file>  per-app rules file (default %APPDATA%\\OpenSynapse\\app-profiles.toml)\n  \
      --allow-elevated       run even as administrator (only for systems without UAC)";
-/// Rules file name inside `%APPDATA%\OpenSynapse` (ADR-0007).
-const APP_PROFILES_FILE: &str = "app-profiles.toml";
 /// Environment switch equivalent to `--no-events`.
 const NO_EVENTS_ENV: &str = "OPENSYNAPSE_AGENT_NO_EVENTS";
 /// Exit codes shared with the CLI and GUI (`opensynapse_sys::agent_exit`).
@@ -81,16 +80,6 @@ fn parse_args(mut it: impl Iterator<Item = String>) -> Result<Args, String> {
         }
     }
     Ok(a)
-}
-
-/// `%APPDATA%\OpenSynapse\app-profiles.toml`, from the `APPDATA` value.
-fn default_app_profiles(appdata: Option<&str>) -> Option<PathBuf> {
-    let dir = appdata.filter(|d| !d.trim().is_empty())?;
-    Some(
-        PathBuf::from(dir)
-            .join("OpenSynapse")
-            .join(APP_PROFILES_FILE),
-    )
 }
 
 /// `1`, `true`, `yes`, `on` (any case) switch an environment flag on.
@@ -216,7 +205,7 @@ fn main() -> ExitCode {
     // Per-app profiles: rules from the file, foreground changes from the OS.
     let rules = args
         .app_profiles
-        .or_else(|| default_app_profiles(std::env::var("APPDATA").ok().as_deref()));
+        .or_else(|| default_path(std::env::var("APPDATA").ok().as_deref()));
     core.set_app_profiles_file(rules);
     core.load_app_profiles();
     let foreground = {
@@ -296,15 +285,15 @@ mod tests {
     #[test]
     fn app_profiles_default_location() {
         assert_eq!(
-            default_app_profiles(Some(r"C:\Users\u\AppData\Roaming")),
+            default_path(Some(r"C:\Users\u\AppData\Roaming")),
             Some(
                 PathBuf::from(r"C:\Users\u\AppData\Roaming")
                     .join("OpenSynapse")
                     .join("app-profiles.toml")
             )
         );
-        assert_eq!(default_app_profiles(Some("  ")), None);
-        assert_eq!(default_app_profiles(None), None);
+        assert_eq!(default_path(Some("  ")), None);
+        assert_eq!(default_path(None), None);
     }
 
     #[test]

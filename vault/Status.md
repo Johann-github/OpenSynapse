@@ -44,7 +44,11 @@ Next tasks, in order:
 4c. ✅ Per-app profiles (2026-11-11): `%APPDATA%\OpenSynapse\app-profiles.toml`, WinEvent foreground hook,
    `agent app-profiles [reload]`, IPC v2. Hardware-tested on the Viper (switch ~112 ms, restore verified).
    → [[Decisions/ADR-0007 Per-app profiles]], [[RE-Log/2026-11-11 Per-app profile hardware test]]
-   Open: GUI view/editor for app profiles; apply to a device plugged in while an app profile is active;
+   ✅ GUI editor (2026-11-11, **user check pending**): top-bar "Per-app profiles" window lists rules
+   (exe → profile file), add/edit/remove/reorder, default profile, settings of the rule's profile
+   (PID, DPI stages, polling, sleep; buttons kept), inline errors, atomic save, then `ReloadAppProfiles`
+   if the agent runs. Writer `AppProfiles::to_toml` in core (round-trip tests). GUI 5.05 MB.
+   Open: apply to a device plugged in while an app profile is active;
    ✅ GUI "Start agent" click (2026-11-11, user-checked): switches to "Backend: agent".
 5. Captures for "off" and "DPI down"; power-cycle test for button assignments.
 6. Mouse asleep → friendlier error ("move the mouse to wake it").
@@ -87,7 +91,7 @@ Before every commit: `cargo fmt --all --check && cargo clippy --workspace --all-
 |---|---|---|---|
 | CLI binary (release) | < 5 MB | 1.16 MB | ✅ |
 | `opensynapse list` | < 200 ms | 75–84 ms | ✅ |
-| GUI binary (release) | < 10 MB (own target) | 4.4 MB | ✅ |
+| GUI binary (release) | < 10 MB (own target) | 5.05 MB (2026-11-11, with app-profile editor) | ✅ |
 | Agent RAM idle | < 15 MB | 9.2 MB WS / 2.0 MB private | ✅ |
 | Agent CPU idle | ~0 % | 0 s over 169 s | ✅ |
 | device command (`dpi get`) | — | 133–162 ms | |

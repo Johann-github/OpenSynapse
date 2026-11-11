@@ -78,6 +78,8 @@ pub struct App {
     stage_values: Vec<u16>,
     stage_active: usize,
     stage_persistent: bool,
+    /// "Per-app profiles" window (`src/app_profiles_view.rs`).
+    app_profiles: crate::app_profiles_view::AppProfilesView,
 }
 
 impl App {
@@ -113,6 +115,7 @@ impl App {
             stage_values: Vec::new(),
             stage_active: 0,
             stage_persistent: false,
+            app_profiles: Default::default(),
         };
         app.send(Job::Connect);
         app.send(Job::Scan { reselect: true });
@@ -296,6 +299,7 @@ impl App {
             {
                 self.send(Job::Scan { reselect: true });
             }
+            self.app_profiles.button(ui);
             ui.separator();
             match &self.backend {
                 None => {
@@ -813,6 +817,8 @@ impl eframe::App for App {
             .default_size(230.0)
             .show(ui, |ui| self.device_list(ui));
         egui::CentralPanel::default().show(ui, |ui| self.settings(ui));
+        let pid = self.selected_row().map(|d| d.pid);
+        self.app_profiles.window(ui.ctx(), pid);
     }
 }
 

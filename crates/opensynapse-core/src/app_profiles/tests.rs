@@ -155,3 +155,81 @@ fn fill_missing_keeps_first_values() {
     .unwrap();
     assert_eq!(first, want);
 }
+
+#[test]
+fn writer_round_trips() {
+    for text in [RULES, "", "default = 'd.toml'\n"] {
+        let p = AppProfiles::from_toml(text).unwrap();
+        let out = p.to_toml().unwrap();
+        assert!(out.starts_with("# OpenSynapse per-app profiles."), "{out}");
+        assert_eq!(AppProfiles::from_toml(&out).unwrap(), p, "{out}");
+        // Writing the read-back value gives the same text.
+        assert_eq!(
+            AppProfiles::from_toml(&out).unwrap().to_toml().unwrap(),
+            out
+        );
+    }
+    // Awkward strings survive: quotes, backslashes, non-ASCII.
+    let p = AppProfiles {
+        default: None,
+        apps: vec![AppRule {
+            exe: r#"C:\Spiele\"Ä"\game.exe"#.into(),
+            profile: r"profiles\it's.toml".into(),
+        }],
+    };
+    assert_eq!(AppProfiles::from_toml(&p.to_toml().unwrap()).unwrap(), p);
+}
+
+#[test]
+fn writer_refuses_invalid_rules() {
+    let p = AppProfiles {
+        default: Some(" ".into()),
+        apps: vec![],
+    };
+    assert!(matches!(p.to_toml(), Err(AppProfilesError::EmptyDefault)));
+    let p = AppProfiles {
+        default: None,
+        apps: vec![AppRule {
+            exe: "a.exe".into(),
+            profile: String::new(),
+        }],
+    };
+    assert!(matches!(
+        p.to_toml(),
+        Err(AppProfilesError::Rule { index: 1, .. })
+    ));
+}
+
+#[test]
+fn shadowed_rules() {
+    let rule = |exe: &str| AppRule {
+        exe: exe.into(),
+        profile: "p.toml".into(),
+    };
+    let p = AppProfiles {
+        default: None,
+        apps: vec![
+            rule("cs2.exe"),
+            rule("C:/Games/x.exe"),
+            rule(" CS2.EXE "),
+            rule(r"c:\games\X.exe"),
+            rule("other.exe"),
+        ],
+    };
+    assert_eq!(p.shadowed(), vec![(2, 0), (3, 1)]);
+    assert!(AppProfiles::default().shadowed().is_empty());
+}
+
+#[test]
+fn default_location() {
+    assert_eq!(
+        super::default_path(Some(r"C:\Users\u\AppData\Roaming")),
+        Some(
+            PathBuf::from(r"C:\Users\u\AppData\Roaming")
+                .join("OpenSynapse")
+                .join("app-profiles.toml")
+        )
+    );
+    assert_eq!(super::default_path(Some("  ")), None);
+    assert_eq!(super::default_path(None), None);
+}

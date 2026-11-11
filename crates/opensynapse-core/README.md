@@ -52,6 +52,11 @@ command variant (period or HyperPolling).
 [[Decisions/ADR-0007 Per-app profiles]]); `profile_for(exe)` returns the first matching
 rule's profile, else `default`; `resolve_profile_path` resolves it against the rules file's
 folder. `Profile::fill_missing_from` merges restore profiles (first value wins).
+For the GUI editor: `to_toml()` writes the rules back (checked first, with a header
+comment; `from_toml` reads it back unchanged, earlier comments are not kept),
+`validate()` runs the same checks as parsing, `shadowed()` lists rules hidden by an earlier
+rule with the same `exe`, and `app_profiles::default_path(APPDATA)` is the one place that
+knows `%APPDATA%\OpenSynapse\app-profiles.toml` (agent and GUI).
 
 ```toml
 # profile paths relative to this file's folder or absolute

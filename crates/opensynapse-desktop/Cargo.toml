@@ -11,6 +11,7 @@ description = "Optional native desktop GUI for OpenSynapse (egui/eframe)."
 workspace = true
 
 [dependencies]
+opensynapse-core.workspace = true
 opensynapse-hid.workspace = true
 opensynapse-protocol.workspace = true
 opensynapse-device-registry.workspace = true

@@ -52,4 +52,25 @@ wgpu, no persistence, no clipboard/links, no network, no telemetry. No continuou
 repaint: the window redraws on input, and the HID thread blocks on its job channel and
 requests one repaint per finished job.
 
-Release exe (Windows, 2026-11-11): 4.6 MB (with IPC client and agent controls).
+- Per-app profiles (`src/app_profiles_view.rs`, [[Decisions/ADR-0007 Per-app profiles]]):
+  the top-bar button "Per-app profiles" opens a window. On open it asks the agent
+  (`AppProfiles` request, own short-lived connection on a thread) which rules file it
+  reads; without an agent it uses `%APPDATA%\OpenSynapse\app-profiles.toml`
+  (`opensynapse_core::app_profiles::default_path`). It lists the rules in match order
+  (application `exe` → profile file), with Add rule, Up/Down, Remove and an optional
+  default profile. A new rule's profile path is suggested as `profiles/<exe>.toml`.
+  "Settings" opens the profile file of that rule: device PID (prefilled from the device
+  selected in the main window), DPI stages + active stage (registry limits of that PID),
+  polling rate, sleep timer; button assignments in the file are kept unchanged. Problems
+  show inline in red as you type (core checks: empty fields, rules hidden by an earlier
+  rule with the same exe, `Profile::validate` with registry limits); Save stays disabled
+  until they are fixed. Save writes the changed profile and the rules file atomically
+  (temp file next to it, flush, rename; folders created), serialised by
+  `opensynapse-core` (`Profile::to_toml`, `AppProfiles::to_toml`; comments are not
+  kept), then sends `ReloadAppProfiles` if the agent runs and shows its answer. An
+  unreadable or invalid rules/profile file is never overwritten silently: editing is off
+  until "Start with an empty list" / "Start a new profile here". The GUI itself never
+  writes to the device here; the agent applies profiles when the app in front changes.
+
+Release exe (Windows, 2026-11-11): 5.05 MB (4.82 MiB; with IPC client, agent controls and
+the app-profile editor).
