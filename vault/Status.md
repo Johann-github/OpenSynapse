@@ -45,7 +45,7 @@ Next tasks, in order:
    `agent app-profiles [reload]`, IPC v2. Hardware-tested on the Viper (switch ~112 ms, restore verified).
    → [[Decisions/ADR-0007 Per-app profiles]], [[RE-Log/2026-11-11 Per-app profile hardware test]]
    Open: GUI view/editor for app profiles; apply to a device plugged in while an app profile is active;
-   user check: GUI "Start agent" click.
+   ✅ GUI "Start agent" click (2026-11-11, user-checked): switches to "Backend: agent".
 5. Captures for "off" and "DPI down"; power-cycle test for button assignments.
 6. Mouse asleep → friendlier error ("move the mouse to wake it").
 
