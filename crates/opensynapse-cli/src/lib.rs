@@ -13,6 +13,7 @@ use std::path::PathBuf;
 
 mod agent;
 mod hid_probe;
+mod lifecycle;
 mod profile;
 
 pub use agent::AgentAction;

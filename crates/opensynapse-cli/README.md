@@ -1,7 +1,7 @@
 # opensynapse-cli
 
 CLI dispatch: `list`, `info`, `battery`, `dpi get|set`, `dpi-stages [get|set]`,
-`polling get|set`, `sleep get|set`, `buttons get|set|list`, `profile export|apply`, `agent ping|devices|snapshot|watch|stop`. Global
+`polling get|set`, `sleep get|set`, `buttons get|set|list`, `profile export|apply`, `agent ping|devices|snapshot|watch|stop|start|autostart`. Global
 `--pid <hex>` and `-v` (log every report).
 
 Writes are dry runs unless `--apply`; they read the old value first, write, read back,
@@ -125,6 +125,8 @@ Agent (talks to a running `opensynapse-agent` over the per-user named pipe, see
     opensynapse [--pid HEX] agent snapshot [--pid HEX | --path P]
     opensynapse agent watch
     opensynapse agent stop
+    opensynapse agent start
+    opensynapse agent autostart [on|off]
     opensynapse [--pid HEX] agent apply FILE [--path P] [--all] [--apply] [--force]
 
 These commands never open HID themselves (they are dispatched before the HID
@@ -135,7 +137,13 @@ HyperShift mode); a value that could not be read prints as `n/a (reason)`. Witho
 `--pid`/`--path` it uses the only connected device. `watch` blocks on the event
 subscription and prints one line per event (no timers) until the agent shuts down.
 `stop` asks the agent to exit. If the agent's pipe does not exist the CLI prints
-"OpenSynapse agent is not running (start opensynapse-agent)".
+"OpenSynapse agent is not running (start it with `opensynapse agent start`)".
+
+`start` launches `opensynapse-agent.exe` from the CLI's folder detached (no window) and
+waits up to 3 s for it to answer; exit code 3 from the agent means it refused to run
+elevated. `autostart` shows, adds or removes the per-user Run-key entry
+([[Decisions/ADR-0006 Agent autostart]]); it reports when the entry points at another
+binary. `off` does not stop a running agent.
 
 `agent apply` runs the same engine as `profile apply` (`opensynapse_device::profile_apply`)
 inside the agent: same checks, skip-unchanged, read-back, same lines (DPI stages always

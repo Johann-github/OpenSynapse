@@ -11,6 +11,7 @@ members = [
     "crates/opensynapse-device",
     "crates/opensynapse-ipc",
     "crates/opensynapse-agent",
+    "crates/opensynapse-sys",
 ]
 default-members = ["crates/opensynapse"]
 
@@ -30,6 +31,7 @@ opensynapse-hid = { path = "crates/opensynapse-hid" }
 opensynapse-cli = { path = "crates/opensynapse-cli" }
 opensynapse-device = { path = "crates/opensynapse-device" }
 opensynapse-ipc = { path = "crates/opensynapse-ipc" }
+opensynapse-sys = { path = "crates/opensynapse-sys" }
 # Linux/macOS only; Windows uses windows-sys directly (ADR-0003).
 hidapi = "2"
 windows-sys = { version = "0.61", features = [
@@ -39,9 +41,11 @@ windows-sys = { version = "0.61", features = [
     "Win32_Security",
     "Win32_Security_Authorization",
     "Win32_Storage_FileSystem",
+    "Win32_System_Console",
     "Win32_System_Diagnostics_ToolHelp",
     "Win32_System_IO",
     "Win32_System_Pipes",
+    "Win32_System_Registry",
     "Win32_System_Threading",
 ] }
 serde = { version = "1", features = ["derive"] }

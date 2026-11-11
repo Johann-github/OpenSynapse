@@ -18,6 +18,8 @@ opensynapse-device-registry.workspace = true
 opensynapse-protocol.workspace = true
 # Profile parsing for ApplyProfile (pure, no I/O).
 opensynapse-core.workspace = true
+# Elevation check and parent-console attach (ADR-0006).
+opensynapse-sys.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
 

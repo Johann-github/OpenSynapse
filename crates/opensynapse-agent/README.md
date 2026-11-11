@@ -1,12 +1,13 @@
 # opensynapse-agent
 
 Background agent: owns the HID devices and serves the CLI and GUI over a per-user
-named pipe. Decision: [[Decisions/ADR-0005 Agent IPC]]; lean rules:
+named pipe. Decisions: [[Decisions/ADR-0005 Agent IPC]], [[Decisions/ADR-0006 Agent autostart]]
+(GUI subsystem, no console window; refuses to run elevated); lean rules:
 [[Decisions/ADR-0002 Lean by design]].
 
 | File | Role |
 |---|---|
-| `main.rs` | args (`--pipe <name>`, `-v`), bind (single instance, exit 2 if running), hotplug, start |
+| `main.rs` | args (`--pipe <name>`, `--no-events`, `--allow-elevated`, `-v`), console attach, elevation refusal (exit 3), bind (single instance, exit 2 if running), hotplug, start |
 | `core.rs` | core actor on the main thread: the only owner of HID sessions; requests, rescans, events |
 | `hardware.rs` | `Hardware` trait (enumerate/open/conflict); `RealHardware`; `FakeHardware` in tests |
 | `server.rs` | accept thread, one 64 KiB thread per connection; Control and Subscribe roles |

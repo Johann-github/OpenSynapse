@@ -35,6 +35,10 @@ binary codec, max 1 MiB (`opensynapse-ipc`).
 ## Budgets
 Idle CPU ~0 % (no polling, no timers), < 15 MB RAM idle, IPC uses only std + `windows-sys`.
 
+## Lifecycle
+GUI-subsystem binary (no window), refuses an elevated token, started at login by the per-user
+Run key or by `opensynapse agent start`. → [[Decisions/ADR-0006 Agent autostart]]
+
 ## Clients
-- CLI: `opensynapse agent ping|devices|snapshot|watch|stop` (`crates/opensynapse-cli/src/agent.rs`).
+- CLI: `opensynapse agent ping|devices|snapshot|watch|stop|start|autostart` (`crates/opensynapse-cli/src/agent.rs`).
 - GUI: same `opensynapse-ipc::Client` (slice 3).

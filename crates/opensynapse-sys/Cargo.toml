@@ -1,0 +1,16 @@
+[package]
+name = "opensynapse-sys"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "OS integration for OpenSynapse: login autostart, elevation check, console attach."
+
+[lints]
+workspace = true
+
+[dependencies]
+
+[target.'cfg(windows)'.dependencies]
+windows-sys.workspace = true

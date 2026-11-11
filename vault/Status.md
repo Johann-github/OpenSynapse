@@ -1,6 +1,6 @@
 ---
 tags: [moc, status]
-updated: 2026-11-10
+updated: 2026-11-11
 ---
 # Project status & handoff
 
@@ -33,7 +33,12 @@ Next tasks, in order:
    Open: battery/charging events (plug the cable in during `hid listen`). → [[RE-Log/2026-11-10 Hardware events capture]]
 2. ✅ ApplyProfile in the agent (`opensynapse agent apply`), shared engine in `opensynapse-device`; hardware-tested.
 3. ✅ GUI over IPC (agent if running, else direct HID; live events). User-checked: "Backend: agent", DPI button press updates the GUI live.
-4. Autostart (HKCU Run, `windows_subsystem`), refuse elevated start; then per-app profiles.
+4. ✅ Autostart (2026-11-11): `opensynapse agent start` + `agent autostart [on|off]` (HKCU Run), agent is
+   `windows_subsystem` with console attach, refuses elevated start (exit 3). New crate `opensynapse-sys`.
+   Tested: start 141 ms, no window, 8.4 MB WS. **Open:** user runs `agent autostart on` + re-login check
+   (Run-key write is blocked for Claude), elevated-refusal check from an admin terminal.
+   → [[Decisions/ADR-0006 Agent autostart]]
+4b. Per-app profiles; GUI toggle for autostart.
 5. Captures for "off" and "DPI down"; power-cycle test for button assignments.
 6. Mouse asleep → friendlier error ("move the mouse to wake it").
 

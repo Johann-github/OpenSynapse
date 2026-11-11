@@ -4,6 +4,12 @@
 //! Threads: the core actor on the main thread (owns every HID session), one
 //! accept thread, one thread per connection. Hotplug comes from the OS; nothing
 //! runs on a timer, so the idle agent uses no CPU.
+//!
+//! On Windows it is a GUI-subsystem binary, so the login autostart opens no
+//! console window; started from a terminal it attaches to that console for its
+//! logs. It refuses to run elevated (`vault/Decisions/ADR-0006 Agent autostart.md`).
+
+#![cfg_attr(windows, windows_subsystem = "windows")]
 
 mod convert;
 mod core;
@@ -34,6 +40,8 @@ const USAGE: &str = "usage: opensynapse-agent [--pipe <name>] [--no-events] [-v 
 const NO_EVENTS_ENV: &str = "OPENSYNAPSE_AGENT_NO_EVENTS";
 /// Exit code when another agent already serves the pipe.
 const EXIT_RUNNING: u8 = 2;
+/// Exit code when started elevated without `--allow-elevated`.
+const EXIT_ELEVATED: u8 = 3;
 /// How long shutdown waits for the `ShuttingDown` reply to be written.
 const FLUSH_WAIT: Duration = Duration::from_secs(1);
 
@@ -45,6 +53,8 @@ struct Args {
     /// the Viper V3 HyperSpeed sends report 5 on MI_01 COL06 (observed,
     /// `vault/RE-Log/2026-11-10 Hardware events capture.md`).
     no_events: bool,
+    /// Skip the elevation refusal.
+    allow_elevated: bool,
 }
 
 fn parse_args(mut it: impl Iterator<Item = String>) -> Result<Args, String> {
@@ -53,6 +63,7 @@ fn parse_args(mut it: impl Iterator<Item = String>) -> Result<Args, String> {
         match arg.as_str() {
             "--pipe" => a.pipe = Some(it.next().ok_or("--pipe needs a name")?),
             "--no-events" => a.no_events = true,
+            "--allow-elevated" => a.allow_elevated = true,
             "-v" | "--verbose" => a.verbose += 1,
             "-vv" => a.verbose += 2,
             "-h" | "--help" => return Err(USAGE.into()),
@@ -101,6 +112,8 @@ fn running_agent_pid(name: &str) -> io::Result<u32> {
 }
 
 fn main() -> ExitCode {
+    // Before anything prints: a GUI-subsystem process has no stderr otherwise.
+    opensynapse_sys::attach_parent_console();
     let args = match parse_args(std::env::args().skip(1)) {
         Ok(a) => a,
         Err(msg) => {
@@ -109,6 +122,15 @@ fn main() -> ExitCode {
         }
     };
     init_tracing(args.verbose);
+
+    // An elevated agent would serve unelevated clients with admin rights, and the
+    // Run-key autostart never starts it elevated anyway.
+    if !args.allow_elevated && opensynapse_sys::is_elevated().unwrap_or(false) {
+        eprintln!(
+            "opensynapse-agent: refusing to run as administrator; start it from a normal              (non-elevated) session, or pass --allow-elevated on systems without UAC"
+        );
+        return ExitCode::from(EXIT_ELEVATED);
+    }
 
     let name = match args.pipe {
         Some(n) => n,
@@ -211,7 +233,8 @@ mod tests {
             Args {
                 pipe: Some("x".into()),
                 verbose: 1,
-                no_events: false
+                no_events: false,
+                allow_elevated: false,
             }
         );
         assert_eq!(parse(&["-vv"]).unwrap().verbose, 2);
@@ -220,6 +243,7 @@ mod tests {
         assert!(parse(&["--help"]).is_err());
         assert!(parse(&["--no-events"]).unwrap().no_events);
         assert!(parse(&["--events"]).is_err());
+        assert!(parse(&["--allow-elevated"]).unwrap().allow_elevated);
     }
 
     #[test]

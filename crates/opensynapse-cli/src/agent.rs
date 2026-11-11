@@ -57,12 +57,22 @@ pub enum AgentAction {
     Watch,
     /// Ask the agent to shut down.
     Stop,
+    /// Start the agent in the background (no window) and wait until it answers.
+    Start,
+    /// Show the login autostart, or turn it on/off (per-user Run key, no admin rights).
+    Autostart {
+        /// `on` or `off`; without it, show the current state.
+        #[arg(value_enum)]
+        state: Option<crate::lifecycle::Toggle>,
+    },
 }
 
 /// Run one agent command. `pid` is the global `--pid`.
 pub fn run(action: AgentAction, pid: Option<u16>) -> Result<()> {
     match action {
         AgentAction::Watch => watch(),
+        AgentAction::Start => crate::lifecycle::start(),
+        AgentAction::Autostart { state } => crate::lifecycle::autostart(state),
         AgentAction::Ping => {
             let r = call(&mut connect()?, Request::Ping)?;
             println!("{}", render_reply(&r));
@@ -251,7 +261,7 @@ pub(crate) fn pick_device(list: &[DeviceInfo]) -> Result<DeviceRef, String> {
 /// Message for a transport error; a missing pipe means the agent is not running.
 pub(crate) fn render_io_error(e: &io::Error) -> String {
     if e.kind() == io::ErrorKind::NotFound {
-        "OpenSynapse agent is not running (start opensynapse-agent)".into()
+        "OpenSynapse agent is not running (start it with `opensynapse agent start`)".into()
     } else {
         format!("agent connection failed: {e}")
     }
@@ -489,6 +499,18 @@ mod tests {
         assert_eq!(parse(&["os", "agent", "devices"]).0, AgentAction::Devices);
         assert_eq!(parse(&["os", "agent", "watch"]).0, AgentAction::Watch);
         assert_eq!(parse(&["os", "agent", "stop"]).0, AgentAction::Stop);
+        assert_eq!(parse(&["os", "agent", "start"]).0, AgentAction::Start);
+        assert_eq!(
+            parse(&["os", "agent", "autostart"]).0,
+            AgentAction::Autostart { state: None }
+        );
+        assert_eq!(
+            parse(&["os", "agent", "autostart", "on"]).0,
+            AgentAction::Autostart {
+                state: Some(crate::lifecycle::Toggle::On)
+            }
+        );
+        assert!(Cli::try_parse_from(["os", "agent", "autostart", "maybe"]).is_err());
         assert_eq!(
             parse(&["os", "agent", "snapshot"]),
             (AgentAction::Snapshot { path: None }, None)
@@ -554,7 +576,7 @@ mod tests {
         let e = io::Error::from(io::ErrorKind::NotFound);
         assert_eq!(
             render_io_error(&e),
-            "OpenSynapse agent is not running (start opensynapse-agent)"
+            "OpenSynapse agent is not running (start it with `opensynapse agent start`)"
         );
         let e = io::Error::from(io::ErrorKind::PermissionDenied);
         assert!(render_io_error(&e).starts_with("agent connection failed:"));
