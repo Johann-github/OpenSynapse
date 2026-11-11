@@ -19,7 +19,7 @@ updated: 2026-11-11
 Mouse state at end of day: DPI 800 (stages 400/800, active 2), 1000 Hz, sleep 300 s, button 4 = mouse
 button 4, wake hint off, `app-profiles.toml` with 0 rules, agent running from `target\release`
 (autostart on, Run key points at `target\release\opensynapse-agent.exe`). Synapse autostart is off.
-Everything is pushed except today's last commits (push on request).
+`main` is pushed (c4ef50f). The install WIP branch is local only.
 
 **Next, in order:**
 1. **Finish install (ADR-0009, unfinished).** Branch `worktree-agent-ab0f6c4238b63f425`, WIP commit
