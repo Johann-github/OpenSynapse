@@ -8,11 +8,8 @@ use std::time::{Duration, Instant};
 
 use anyhow::{Context, Result, bail};
 use opensynapse_ipc::Client;
-use opensynapse_sys::autostart;
+use opensynapse_sys::{agent_exit, autostart};
 
-/// Agent exit codes (see `opensynapse-agent`'s `main.rs`).
-const EXIT_RUNNING: i32 = 2;
-const EXIT_ELEVATED: i32 = 3;
 /// How long `start` waits for the new agent to answer. Startup only, not idle.
 const START_WAIT: Duration = Duration::from_secs(3);
 const START_STEP: Duration = Duration::from_millis(50);
@@ -35,7 +32,7 @@ pub fn start() -> Result<()> {
     let deadline = Instant::now() + START_WAIT;
     loop {
         if let Some(status) = child.try_wait()? {
-            if status.code() == Some(EXIT_RUNNING) {
+            if status.code() == Some(agent_exit::ALREADY_RUNNING) {
                 println!("OpenSynapse agent is already running.");
                 return Ok(());
             }
@@ -55,7 +52,7 @@ pub fn start() -> Result<()> {
 /// Why a freshly started agent exited.
 pub(crate) fn render_exit(status: ExitStatus) -> String {
     match status.code() {
-        Some(EXIT_ELEVATED) => "the agent refuses to run as administrator; \
+        Some(agent_exit::ELEVATED) => "the agent refuses to run as administrator; \
              run this command from a normal (non-elevated) terminal"
             .into(),
         _ => format!("the agent exited right away ({status}); run opensynapse-agent -v to see why"),
