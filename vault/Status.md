@@ -40,7 +40,7 @@ Next tasks, in order:
    → [[Decisions/ADR-0006 Agent autostart]]
 4b. ✅ GUI agent controls (2026-11-11): "Start agent at login" checkbox (+ Fix when it points elsewhere),
    "Start agent" button in direct-HID mode; shared `opensynapse_sys::spawn_agent_detached`. User: autostart on via CLI.
-4c. ✅ Per-app profiles (2026-11-11): `%APPDATA%\OpenSynapsepp-profiles.toml`, WinEvent foreground hook,
+4c. ✅ Per-app profiles (2026-11-11): `%APPDATA%\OpenSynapse\app-profiles.toml`, WinEvent foreground hook,
    `agent app-profiles [reload]`, IPC v2. Hardware-tested on the Viper (switch ~112 ms, restore verified).
    → [[Decisions/ADR-0007 Per-app profiles]], [[RE-Log/2026-11-11 Per-app profile hardware test]]
    Open: GUI view/editor for app profiles; apply to a device plugged in while an app profile is active;
