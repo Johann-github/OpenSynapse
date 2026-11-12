@@ -32,8 +32,10 @@ button 4, wake hint off, `app-profiles.toml` with 0 rules. Agent installed and r
    3 files "Updated", Start-menu shortcut written, autostart already correct, agent restarted):
    Start-menu shortcut for the GUI (own `.lnk` encoder), piped `install`/`agent start` no longer
    hang, flash-wear warning in the editor. ✅ User: "OpenSynapse" in the Start menu starts the GUI.
-2. **User check: buttons in the per-app profile editor** (merged, unit-tested): open a rule's
-   Settings → Buttons, set Side button 4 = DPI down, Save, check the TOML and the switch. Reset DPI to 800 after.
+2. ✅ **Buttons in the per-app profile editor** (user-checked 2026-11-12 after rebuild + install):
+   notepad rule, Side button 4 = DPI down, Save → `profiles/notepad.toml` has `[buttons.4]
+   action = "dpi-down"`; in notepad DPI goes down, elsewhere button 4 = browser back. Afterwards
+   slot 0 and slot 1 both mouse button 4 (slot 1 never written). DPI reset to 800 / stage 2.
    2026-11-12 user: "cannot reassign a button". Cause: the installed GUI was built 18:49, before the
    editor (20:00); `cargo build --release` had rebuilt only the CLI. Editor code works (headless egui
    click tests). `install` now notes stale binaries. Needs `cargo build --release --workspace` +
@@ -41,7 +43,7 @@ button 4, wake hint off, `app-profiles.toml` with 0 rules. Agent installed and r
 3. **Flash wear**: ✅ hardware test 2026-11-12: 02/0C profile byte 0 is **volatile** (acts at once,
    gone after power-off, slot 1 untouched) → [[RE-Log/2026-11-11 Button write storage]].
    ✅ Done 2026-11-12 (unit-tested): per-app switches write buttons to slot 0, editor shows a
-   plain "temporary" hint instead of the flash warning. Hardware check together with item 2.
+   plain "temporary" hint instead of the flash warning. ✅ Hardware-checked with item 2.
 4. Then pick from [[Backlog]].
 
 Rules for hardware tests: after any DPI-changing test, reset to DPI 800 / stage 2 (volatile + persistent).
