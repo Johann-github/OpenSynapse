@@ -97,6 +97,9 @@ Which polling command the Viper supports is chosen by the per-product UI (not ca
   defaults are identical in both modes. Reply byte 2 is **not** a mode echo: its meaning is unknown
   (1 on never-written buttons, 0 after a mode-0 write; inferred: the mode of the last SET for that button).
   → [[RE-Log/2026-11-10 Button capture key and DPI]]
+- **profile byte of 02/0C · 02/8C (observed on hardware, 2026-11-12):** 0 = volatile (acts at once, lost
+  on power-off, flash untouched), 1 = onboard slot (persistent). Same meaning as the DPI storage byte.
+  Synapse calls it `obmId` and used 1 on the Viper. → [[RE-Log/2026-11-11 Button write storage]]
 - 02/8E reply: `[profile, mode, idOffset, data…]` (observed in code). Data = 8-byte records
   `[buttonId, functionId, dataLen, data×5]` (inferred from hardware), mode honoured (observed).
 - 02/A5 · 02/25: meaning of "mode" unknown (parser labels `[buttonId, mode]`, no enum).

@@ -97,8 +97,10 @@ the core actor ([[Architecture/Agent]]), no writes while Razer software runs, li
   cycle, [[RE-Log/2026-11-11 Button capture off and DPI down]]), so a profile with buttons writes
   the mouse's flash on every switch to and away from its app (skip-unchanged avoids writes only
   when the value is already equal). Endurance unknown. For now the editor shows a warning while a
-  profile sets buttons (`FLASH_NOTE`); DPI stages stay volatile. Open: whether 02/0C has a volatile
-  variant (unknown; Synapse always used the stored one in captures).
+  profile sets buttons (`FLASH_NOTE`); DPI stages stay volatile. ~~Open: whether 02/0C has a volatile
+  variant.~~ Resolved 2026-11-12 (observed): profile byte 0 is volatile
+  ([[RE-Log/2026-11-11 Button write storage]]). **Planned:** per-app switches write buttons to
+  slot 0, then drop `FLASH_NOTE`.
 
 **Flash wear (what a switch writes persistently):**
 | Setting | Storage on switch |
