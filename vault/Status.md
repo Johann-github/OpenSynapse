@@ -1,6 +1,6 @@
 ---
 tags: [moc, status]
-updated: 2026-11-11
+updated: 2026-11-12
 ---
 # Project status & handoff
 
@@ -13,14 +13,29 @@ updated: 2026-11-11
 | 1 Reverse engineering (protocol, transport, device DB) | ✅ done (open questions below, rest in [[Backlog]]) |
 | 2 Implementation (protocol, registry, hid, CLI) | ✅ done 2026-11-09 |
 | 3 Hardware test on Viper V3 HyperSpeed + USB capture | ✅ done 2026-11-11 (all button functions incl. off / DPI down, power cycle) |
-| 4 Agent (background service) + GUI | 🔄 **in progress**: agent, autostart, per-app profiles, GUI editor done; install pending |
+| 4 Agent (background service) + GUI | ✅ done 2026-11-12: agent, autostart, per-app profiles + GUI editor (incl. buttons, volatile), install |
 
-## ▶ Resume here (handoff 2026-11-11 → next session)
-Mouse state at end of day: DPI 800 (stages 400/800, active 2), 1000 Hz, sleep 300 s, button 4 = mouse
-button 4, wake hint off, `app-profiles.toml` with 0 rules. Agent installed and running from
-`%LOCALAPPDATA%\Programs\OpenSynapse` (autostart points there). Synapse autostart is off.
+## ▶ Resume here (handoff 2026-11-12 → next session)
+**Nothing open in the old "next" list; phase 4 is done. Start by picking from [[Backlog]]**
+(proposed to the user 2026-11-12, ranked):
+1. Battery-level events (07/xx, report 5): leave `opensynapse hid listen` running for a longer
+   session (~10 min setup + waiting, no user action needed).
+2. Linux / macOS (second platform goal; several sessions).
+3. Start-menu shortcut: LinkTargetIDList so Properties shows the target (cosmetic, ~30 min).
 
-**Next, in order:**
+Mouse state at end of day 2026-11-12: DPI 800 (stages 400/800, active 2, volatile + persistent),
+1000 Hz, sleep 300 s, button 4 = mouse button 4 in slot 0 and slot 1, wake hint off.
+`app-profiles.toml` has **1 rule from the user test: `notepad.exe` → `profiles/notepad.toml`
+(button 4 = DPI down)**; remove it in the GUI if unwanted. Agent installed and running from
+`%LOCALAPPDATA%\Programs\OpenSynapse` (autostart points there), all 3 exes current (built
+2026-11-12 from `be85d93`). Synapse autostart is off.
+
+Build + update: stop nothing (the installed agent runs from its own folder), then
+`cargo build --release --workspace` and `target\release\opensynapse.exe install`.
+A plain `cargo build --release` builds only the CLI (`default-members`); `install` now prints a
+note when the agent/GUI exe is older than the CLI.
+
+## Done 2026-11-12
 1. ✅ **Install (ADR-0009)** done 2026-11-11: `opensynapse install|uninstall`, location
    `%LOCALAPPDATA%\Programs\OpenSynapse`, agent/autostart/GUI prefer the installed agent. Tested
    end-to-end with `--dir` + `--no-autostart`. ✅ User ran the real install (2026-11-11): 3 files
@@ -38,16 +53,15 @@ button 4, wake hint off, `app-profiles.toml` with 0 rules. Agent installed and r
    slot 0 and slot 1 both mouse button 4 (slot 1 never written). DPI reset to 800 / stage 2.
    2026-11-12 user: "cannot reassign a button". Cause: the installed GUI was built 18:49, before the
    editor (20:00); `cargo build --release` had rebuilt only the CLI. Editor code works (headless egui
-   click tests). `install` now notes stale binaries. Needs `cargo build --release --workspace` +
-   `install`, then re-check.
+   click tests). `install` now notes stale binaries (commit `c3073a3`).
 3. **Flash wear**: ✅ hardware test 2026-11-12: 02/0C profile byte 0 is **volatile** (acts at once,
    gone after power-off, slot 1 untouched) → [[RE-Log/2026-11-11 Button write storage]].
    ✅ Done 2026-11-12 (unit-tested): per-app switches write buttons to slot 0, editor shows a
-   plain "temporary" hint instead of the flash warning. ✅ Hardware-checked with item 2.
-4. Then pick from [[Backlog]].
+   plain "temporary" hint instead of the flash warning (commit `be85d93`). ✅ Hardware-checked with item 2.
+   → [[Decisions/ADR-0007 Per-app profiles]], [[Protocol/Commands 2.5]]
 
 Rules for hardware tests: after any DPI-changing test, reset to DPI 800 / stage 2 (volatile + persistent).
-Stop the agent before `cargo build --release` (exe lock) or build with `--target-dir`.
+Stop the agent before building only if it runs from `target\release` (exe lock); the installed one does not lock the build.
 
 ## Done 2026-11-10 / 11
 1. ✅ Events found: MI_01 COL06, report 5 (DPI changed observed); agent listens by default.
