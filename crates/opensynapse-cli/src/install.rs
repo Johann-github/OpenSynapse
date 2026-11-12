@@ -102,6 +102,23 @@ fn stop(mut r: Running) -> Result<String> {
     }
 }
 
+/// Notes for binaries clearly older than the CLI they are installed with (the
+/// first copy is the CLI). Unreadable times give no note.
+fn stale_notes(plan: &install::CopyPlan) -> Vec<String> {
+    let built = |p: &Path| std::fs::metadata(p).and_then(|m| m.modified()).ok();
+    let Some(cli) = plan.copies.first().and_then(|(from, _)| built(from)) else {
+        return Vec::new();
+    };
+    plan.copies
+        .iter()
+        .skip(1)
+        .filter_map(|(from, _)| {
+            let name = from.file_name()?.to_string_lossy();
+            install::stale_note(&name, built(from)?, cli)
+        })
+        .collect()
+}
+
 fn describe(pid: u32, image: &Option<PathBuf>) -> String {
     match image {
         Some(i) => format!("pid {pid}, {}", i.display()),
@@ -116,6 +133,9 @@ pub fn install(dir: Option<PathBuf>, no_autostart: bool) -> Result<()> {
     let dst = target_dir(dir)?;
     let src = exe_dir()?;
     let plan = install::plan_copy(&src, &dst, Path::is_file).map_err(|e| anyhow!(e))?;
+    for note in stale_notes(&plan) {
+        println!("{note}");
+    }
     let pipe = crate::agent::pipe_name()?;
 
     let running = find_agent(&pipe)?;
