@@ -40,7 +40,8 @@ button 4, wake hint off, `app-profiles.toml` with 0 rules. Agent installed and r
    `install`, then re-check.
 3. **Flash wear**: ✅ hardware test 2026-11-12: 02/0C profile byte 0 is **volatile** (acts at once,
    gone after power-off, slot 1 untouched) → [[RE-Log/2026-11-11 Button write storage]].
-   Next: per-app switches write buttons to slot 0, then remove the editor's flash warning.
+   ✅ Done 2026-11-12 (unit-tested): per-app switches write buttons to slot 0, editor shows a
+   plain "temporary" hint instead of the flash warning. Hardware check together with item 2.
 4. Then pick from [[Backlog]].
 
 Rules for hardware tests: after any DPI-changing test, reset to DPI 800 / stage 2 (volatile + persistent).

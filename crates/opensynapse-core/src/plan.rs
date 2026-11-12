@@ -28,8 +28,11 @@ pub enum PollingVariant {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Target {
     pub limits: DeviceLimits,
-    /// Onboard profile slot that button (and HyperPolling) writes go to.
+    /// Onboard profile slot that HyperPolling writes go to.
     pub onboard_profile: u8,
+    /// Profile byte for button writes: 0 = volatile, 1 = onboard slot
+    /// (`buttons::profile_for`).
+    pub button_profile: u8,
     /// DPI storage byte; `Persistent` survives power-off (observed).
     pub dpi_storage: Storage,
     pub polling: PollingVariant,
@@ -40,6 +43,7 @@ impl Default for Target {
         Self {
             limits: DeviceLimits::default(),
             onboard_profile: 1,
+            button_profile: 1,
             dpi_storage: Storage::Persistent,
             polling: PollingVariant::Period,
         }
@@ -115,7 +119,7 @@ impl Profile {
         }
 
         for (mode, id, action) in self.all_buttons() {
-            let a = button_assignment(target.onboard_profile, mode, id, action)
+            let a = button_assignment(target.button_profile, mode, id, action)
                 .expect("validated key and modifier names");
             push(
                 Setting::Button { mode, button: id.0 },

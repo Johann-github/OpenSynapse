@@ -28,8 +28,9 @@ use opensynapse_protocol::dpi::Storage;
 use super::Core;
 use crate::hardware::Hardware;
 
-/// App switching never forces and keeps DPI stages in volatile storage (no flash
-/// write for DPI; a power cycle brings the stored stages back).
+/// App switching never forces and keeps DPI stages and button assignments in
+/// volatile storage (button profile byte 0): no flash write, a power cycle brings
+/// the stored values back.
 const SWITCH_OPTIONS: ApplyOptions = ApplyOptions {
     storage: Storage::Volatile,
     all: false,

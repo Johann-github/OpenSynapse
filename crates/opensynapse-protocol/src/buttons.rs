@@ -24,6 +24,13 @@ pub mod function {
     pub const DOUBLE_CLICK: u8 = 11;
 }
 
+/// Profile byte for 02/0C · 02/8C that matches DPI `storage`: 0 = volatile (acts at
+/// once, lost on power-off, flash untouched), 1 = onboard slot (persistent). Observed
+/// on the Viper V3 HyperSpeed, `vault/RE-Log/2026-11-11 Button write storage.md`.
+pub fn profile_for(storage: crate::dpi::Storage) -> u8 {
+    storage as u8
+}
+
 /// Assign a plain mouse button (`1` left … `8`) to `button`.
 pub fn mouse_button(profile: u8, button: u8, mode: Mode, target: u8) -> ButtonAssignment {
     ButtonAssignment {

@@ -399,6 +399,8 @@ pub struct ReadSpec {
     pub polling: bool,
     pub sleep: bool,
     pub buttons: Vec<(Mode, u8)>,
+    /// Profile byte the buttons are read from (0 = volatile/active, 1 = onboard slot).
+    pub button_profile: u8,
 }
 
 impl ReadSpec {
@@ -413,16 +415,19 @@ impl ReadSpec {
                 .iter()
                 .flat_map(|&m| ids.iter().map(move |&b| (m, b)))
                 .collect(),
+            button_profile: ONBOARD_PROFILE,
         }
     }
 
-    /// Exactly what applying `p` overwrites.
+    /// Exactly what applying `p` with `storage` overwrites (DPI stages and buttons in
+    /// that storage).
     pub fn for_profile(p: &Profile, storage: dpi::Storage) -> Self {
         Self {
             dpi: p.dpi.as_ref().map(|_| storage),
             polling: p.polling.is_some(),
             sleep: p.power.is_some(),
             buttons: p.all_buttons().map(|(l, id, _)| (l, id.0)).collect(),
+            button_profile: buttons::profile_for(storage),
         }
     }
 }
@@ -458,12 +463,13 @@ fn read_polling_at<D: FeatureIo>(
 
 fn read_button<D: FeatureIo>(
     s: &mut Session<D>,
+    profile: u8,
     button: u8,
     mode: Mode,
 ) -> Result<buttons::ButtonReply, HidError> {
     query(
         s,
-        &buttons::get_button_assignment(ONBOARD_PROFILE, button, mode),
+        &buttons::get_button_assignment(profile, button, mode),
         |args| buttons::parse_button_assignment(args, mode),
     )
 }
@@ -500,7 +506,7 @@ pub fn read_state<D: FeatureIo>(
         state.sleep = soft(&mut notes, lenient, "sleep time".into(), r)?;
     }
     for &(mode, b) in &spec.buttons {
-        let r = read_button(s, b, mode);
+        let r = read_button(s, spec.button_profile, b, mode);
         if let Some(r) = soft(&mut notes, lenient, format!("button {b} ({mode} mode)"), r)? {
             state.buttons.push(r.assignment);
         }
@@ -544,7 +550,8 @@ pub fn export<D: FeatureIo>(
 /// How to apply.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ApplyOptions {
-    /// Where DPI stages go.
+    /// Where DPI stages and button assignments go (`Volatile`: button profile byte
+    /// 0, no flash write; `Persistent`: onboard slot 1).
     pub storage: dpi::Storage,
     /// Also write settings that already have the profile's value.
     pub all: bool,
@@ -683,6 +690,7 @@ pub fn plan_apply<D: FeatureIo>(
     let target = Target {
         limits,
         onboard_profile: ONBOARD_PROFILE,
+        button_profile: buttons::profile_for(opts.storage),
         dpi_storage: opts.storage,
         polling: variant.unwrap_or_default(),
     };
@@ -791,9 +799,7 @@ fn read_back<D: FeatureIo>(
         Setting::Button { mode, button } => {
             // Rebuilt with the requested mode (the slot that was read); reply byte 2
             // is not the mode.
-            let r = query(s, &buttons::get_button_assignment(p, button, mode), |a| {
-                buttons::parse_button_assignment(a, mode)
-            })?;
+            let r = read_button(s, target.button_profile, button, mode)?;
             (
                 r.to_string(),
                 buttons::set_button_assignment(&r.assignment)?,

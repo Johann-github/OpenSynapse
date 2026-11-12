@@ -294,6 +294,7 @@ fn plan_honours_target() {
     .unwrap();
     let target = Target {
         onboard_profile: 2,
+        button_profile: 0,
         dpi_storage: Storage::Volatile,
         polling: PollingVariant::Hyper,
         ..Target::default()
@@ -315,7 +316,7 @@ fn plan_honours_target() {
             )
             .unwrap(),
             polling::set_hyper_polling(2, 500).unwrap(),
-            buttons::set_button_assignment(&buttons::double_click(2, 3, Mode::Normal, 1)).unwrap(),
+            buttons::set_button_assignment(&buttons::double_click(0, 3, Mode::Normal, 1)).unwrap(),
         ]
     );
 }

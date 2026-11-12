@@ -19,6 +19,7 @@ const A: &str = r"\\?\hid#vid_1532&pid_00b8&mi_00#a";
 const CS2: &str = "[device]\npid = \"00B8\"\n[polling]\nhz = 500\n";
 const DESK: &str = "[device]\npid = \"00B8\"\n[power]\nsleep_seconds = 120\n";
 const STAGES: &str = "[device]\npid = \"00B8\"\n[dpi]\nstages = [1600, 3200]\nactive_stage = 2\n";
+const BUTTONS: &str = "[device]\npid = \"00B8\"\n[buttons.4]\naction = \"dpi-down\"\n";
 const OTHER_PID: &str = "[device]\npid = \"00C0\"\n[polling]\nhz = 500\n";
 const NO_PID: &str = "[polling]\nhz = 500\n";
 
@@ -34,6 +35,7 @@ fn setup(test: &str, rules: &str) -> PathBuf {
         ("cs2", CS2),
         ("desk", DESK),
         ("stages", STAGES),
+        ("buttons", BUTTONS),
         ("other-pid", OTHER_PID),
         ("no-pid", NO_PID),
     ] {
@@ -255,6 +257,22 @@ fn dpi_stages_go_to_volatile_storage() {
     assert_eq!(persistent, default_stages(), "flash copy untouched");
     t.focus("y.exe");
     assert_eq!(t.mouse.state().stages[0], default_stages());
+}
+
+#[test]
+fn buttons_go_to_volatile_profile_byte() {
+    let rules = "[[app]]\nexe = \"x.exe\"\nprofile = \"profiles/buttons.toml\"\n";
+    let mut t = start("buttons", rules);
+    t.focus("x.exe");
+    assert_eq!(t.mouse.state().slots[&(0, 4)], (6, vec![2]), "DPI down");
+    t.focus("y.exe");
+    assert_eq!(t.mouse.state().slots[&(0, 4)], (1, vec![4]), "restored");
+    let profiles = t.mouse.state().button_profiles.clone();
+    assert!(!profiles.is_empty());
+    assert!(
+        profiles.iter().all(|&p| p == 0),
+        "only profile byte 0 (volatile), got {profiles:?}"
+    );
 }
 
 #[test]

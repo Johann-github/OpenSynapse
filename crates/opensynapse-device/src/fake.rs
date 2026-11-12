@@ -38,6 +38,8 @@ pub struct State {
     pub slots: BTreeMap<(u8, u8), (u8, Vec<u8>)>,
     /// Stage lists by storage byte.
     pub stages: [dpi::DpiStages; 2],
+    /// Profile byte of every button assignment GET/SET (02/8C, 02/0C) answered.
+    pub button_profiles: Vec<u8>,
 }
 
 impl Default for State {
@@ -60,6 +62,7 @@ impl Default for State {
                 })
                 .collect(),
             stages: [default_stages(), default_stages()],
+            button_profiles: Vec::new(),
         }
     }
 }
@@ -203,6 +206,7 @@ fn answer(st: &mut State, req: &Report) -> (u8, Vec<u8>) {
         ok(vec![])
     } else if is(command::GET_BUTTON_ASSIGNMENT) {
         let (p, b, m) = (req.args()[0], req.args()[1], req.args()[2]);
+        st.button_profiles.push(p);
         match st.slots.get(&(m, b)) {
             Some((function, data)) => {
                 // Reply byte 2 is not the mode (observed); the fake sends 1.
@@ -215,6 +219,7 @@ fn answer(st: &mut State, req: &Report) -> (u8, Vec<u8>) {
     } else if is(command::SET_BUTTON_ASSIGNMENT) {
         let a = req.args();
         let (b, m, len) = (a[1], a[2], usize::from(a[4]));
+        st.button_profiles.push(a[0]);
         if !st.ignore_writes && st.slots.contains_key(&(m, b)) {
             st.slots.insert((m, b), (a[3], a[5..5 + len].to_vec()));
         }

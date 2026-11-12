@@ -99,8 +99,12 @@ the core actor ([[Architecture/Agent]]), no writes while Razer software runs, li
   when the value is already equal). Endurance unknown. For now the editor shows a warning while a
   profile sets buttons (`FLASH_NOTE`); DPI stages stay volatile. ~~Open: whether 02/0C has a volatile
   variant.~~ Resolved 2026-11-12 (observed): profile byte 0 is volatile
-  ([[RE-Log/2026-11-11 Button write storage]]). **Planned:** per-app switches write buttons to
-  slot 0, then drop `FLASH_NOTE`.
+  ([[RE-Log/2026-11-11 Button write storage]]). **Done 2026-11-12:** `ApplyOptions.storage`
+  now also picks the button profile byte (`buttons::profile_for`: volatile → 0, persistent → 1),
+  so app switches (`SWITCH_OPTIONS`, volatile) read and write buttons in slot 0: no flash write.
+  `FLASH_NOTE` replaced by a plain hint (`VOLATILE_NOTE`: a power cycle while the app is in
+  front drops the buttons until the next switch). CLI `profile apply` keeps slot 1 unless
+  volatile storage is chosen. Test: `core::apps::tests::buttons_go_to_volatile_profile_byte`.
 
 **Flash wear (what a switch writes persistently):**
 | Setting | Storage on switch |
@@ -108,7 +112,7 @@ the core actor ([[Architecture/Agent]]), no writes while Razer software runs, li
 | DPI stages + active stage | **volatile** (storage byte 0, observed: [[RE-Log/2026-11-10 Button capture key and DPI]]); no flash write, a power cycle brings the stored stages back |
 | Polling rate | persistent (no volatile variant known) |
 | Sleep time | persistent (no volatile variant known) |
-| Button assignments | persistent (onboard profile 1) |
+| Button assignments | **volatile** since 2026-11-12 (profile byte 0, observed: [[RE-Log/2026-11-11 Button write storage]]) |
 
 Only settings whose value differs are written (skip-unchanged), and only on a change of the
 target profile. Profiles that only set DPI stages therefore never touch flash. Users who switch
