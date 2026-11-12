@@ -45,6 +45,11 @@ no installer framework, no MSI, no new dependencies.
 **Consequences:** rebuilding `target\release` no longer touches the running agent once installed.
 The user installs once and re-runs `install` after each build they want to use. Writing the Run
 key is a user step (blocked for Claude by the permission settings).
+Build with `cargo build --release --workspace`: the workspace's `default-members` is only the CLI,
+so a plain `cargo build --release` leaves an old agent and GUI in `target\release`, and install
+copies them (2026-11-12: the installed GUI was from 18:49, before the per-app button editor, so the
+user saw no Buttons section). `install` now prints a note for a binary more than 2 min older than
+the CLI (`install::stale_note`).
 
 **Evidence:** unit tests in `opensynapse-sys` (`install::tests`: paths, copy plan, autostart
 plans, uninstall file list, refusal, leftovers; `agent_exe_prefers_installed`). End-to-end

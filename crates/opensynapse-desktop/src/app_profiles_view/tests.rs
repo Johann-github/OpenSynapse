@@ -442,3 +442,122 @@ fn left_and_right_click_need_the_opt_in() {
     v.editor.as_mut().unwrap().allow_primary = true;
     assert!(v.save_blocker(&rule_issues(&v.rules), None).is_none());
 }
+
+// ---------------------------------------------------------------------------
+// Buttons, driven through the real UI (headless egui, simulated mouse)
+
+/// Headless frames of the per-app window's contents, the profile editor open.
+struct Harness {
+    ctx: eframe::egui::Context,
+    view: AppProfilesView,
+    /// Events for the next frame.
+    events: Vec<eframe::egui::Event>,
+    /// Text shapes of the last frame: (text, centre).
+    texts: Vec<(String, eframe::egui::Pos2)>,
+}
+
+impl Harness {
+    fn new(form: ProfileForm) -> Self {
+        let mut view = view_with(vec![rule("cs2.exe", "profiles/cs2.toml")], 0);
+        let ed = view.editor.as_mut().unwrap();
+        ed.orig = form.clone();
+        ed.form = form;
+        let mut h = Self {
+            ctx: eframe::egui::Context::default(),
+            view,
+            events: Vec::new(),
+            texts: Vec::new(),
+        };
+        h.frame();
+        h.frame();
+        h
+    }
+
+    fn form(&self) -> &buttons::ButtonsForm {
+        &self.view.editor.as_ref().unwrap().form.buttons
+    }
+
+    fn frame(&mut self) {
+        use eframe::egui::{self, epaint::Shape, pos2, vec2};
+        let raw = egui::RawInput {
+            screen_rect: Some(egui::Rect::from_min_size(
+                pos2(0.0, 0.0),
+                vec2(1000.0, 2000.0),
+            )),
+            events: std::mem::take(&mut self.events),
+            ..Default::default()
+        };
+        let view = &mut self.view;
+        let out = self.ctx.run_ui(raw, |ui| {
+            egui::Window::new("Per-app profiles")
+                .default_width(700.0)
+                .default_height(1800.0)
+                .vscroll(true)
+                .show(ui.ctx(), |ui| view.contents(ui, Some(0x00B8)));
+        });
+        let shapes = out.shapes.clone();
+        out.drop_without_applying_deltas();
+        self.texts = shapes
+            .iter()
+            .filter_map(|c| match &c.shape {
+                Shape::Text(t) => Some((
+                    t.galley.text().to_owned(),
+                    t.visual_bounding_rect().center(),
+                )),
+                _ => None,
+            })
+            .collect();
+    }
+
+    /// Centre of the `n`-th text shape equal to `text`.
+    fn find(&self, text: &str, n: usize) -> eframe::egui::Pos2 {
+        self.texts
+            .iter()
+            .filter(|(t, _)| t == text)
+            .nth(n)
+            .unwrap_or_else(|| panic!("no {n}. {text:?} in {:?}", self.texts))
+            .1
+    }
+
+    /// Press and release at `pos`, one frame each, then one more frame.
+    fn click(&mut self, pos: eframe::egui::Pos2) {
+        use eframe::egui::{Event, Modifiers, PointerButton};
+        let button = |pressed| Event::PointerButton {
+            pos,
+            button: PointerButton::Primary,
+            pressed,
+            modifiers: Modifiers::NONE,
+        };
+        self.events.push(Event::PointerMoved(pos));
+        self.frame();
+        self.events.push(button(true));
+        self.frame();
+        self.events.push(button(false));
+        self.frame();
+        self.frame();
+    }
+}
+
+#[test]
+fn ui_assigns_an_unchanged_button() {
+    let mut h = Harness::new(ProfileForm::new(Some(0x00B8)));
+    // Rows: left, right (locked), wheel click, side 4, ...; side 4 is the 4th combo.
+    h.click(h.find(buttons::UNCHANGED, 3));
+    h.click(h.find("DPI up", 0));
+    assert_eq!(
+        h.form().slot(Mode::Normal, 4),
+        Slot::Set(ActionEdit::new(ActionKind::DpiUp))
+    );
+}
+
+#[test]
+fn ui_reassigns_a_button_from_the_file() {
+    let mut h = Harness::new(with_buttons());
+    // Side button 4 is "DPI down" in the file.
+    h.click(h.find("DPI down", 0));
+    h.click(h.find("Middle click", 0));
+    assert_eq!(
+        h.form().slot(Mode::Normal, 4),
+        Slot::Set(ActionEdit::new(ActionKind::Mouse(3)))
+    );
+}

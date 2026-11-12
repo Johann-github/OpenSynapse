@@ -25,7 +25,8 @@ button 4, wake hint off, `app-profiles.toml` with 0 rules. Agent installed and r
    `%LOCALAPPDATA%\Programs\OpenSynapse`, agent/autostart/GUI prefer the installed agent. Tested
    end-to-end with `--dir` + `--no-autostart`. ✅ User ran the real install (2026-11-11): 3 files
    copied, Run key moved from `target\release` to the installed agent, installed agent running
-   (ping OK). After a rebuild, run `target\release\opensynapse.exe install` again to update.
+   (ping OK). After a rebuild (`cargo build --release --workspace`; plain `--release` builds only
+   the CLI), run `target\release\opensynapse.exe install` again to update.
    → [[Decisions/ADR-0009 Install location]]
    Later 2026-11-11, installed by the user (update over the running installed agent: stopped,
    3 files "Updated", Start-menu shortcut written, autostart already correct, agent restarted):
@@ -33,6 +34,9 @@ button 4, wake hint off, `app-profiles.toml` with 0 rules. Agent installed and r
    hang, flash-wear warning in the editor. ✅ User: "OpenSynapse" in the Start menu starts the GUI.
 2. **User check: buttons in the per-app profile editor** (merged, unit-tested): open a rule's
    Settings → Buttons, set Side button 4 = DPI down, Save, check the TOML and the switch. Reset DPI to 800 after.
+   2026-11-12 user: "cannot reassign a button". Cause: the installed GUI was built 18:49, before the
+   editor (20:00); `cargo build --release` had rebuilt only the CLI. Editor code works (headless egui
+   click tests). Needs `cargo build --release --workspace` + `install`, then re-check.
 3. **Flash wear** (open decision for the user): 02/0C button writes are stored onboard, so an app
    profile with buttons writes flash on every switch. Done: skip-unchanged + a warning in the editor
    while a profile sets buttons. Next: hardware test whether slot (`obmId`) 0 is volatile, plan in

@@ -10,6 +10,7 @@
 
 use std::io;
 use std::path::{Path, PathBuf};
+use std::time::{Duration, SystemTime};
 
 use crate::{AGENT_EXE, CLI_EXE, GUI_EXE, autostart};
 
@@ -122,7 +123,7 @@ pub fn plan_copy(
             plan.copies.push((from, dst.join(b.name)));
         } else if b.required {
             return Err(format!(
-                "{} not found; build it first (cargo build --release)",
+                "{} not found; build it first ({BUILD_ALL})",
                 from.display()
             ));
         } else {
@@ -130,6 +131,29 @@ pub fn plan_copy(
         }
     }
     Ok(plan)
+}
+
+/// Builds every shipped binary. A plain `cargo build --release` builds only the
+/// CLI (`default-members`), leaving an old agent and GUI in `target\release`.
+pub const BUILD_ALL: &str = "cargo build --release --workspace";
+
+/// Slack before a binary counts as older than the CLI it is installed with (one
+/// build links its binaries a few seconds apart).
+const STALE_AFTER: Duration = Duration::from_secs(120);
+
+/// A note when `name` (built at `built`) is clearly older than the CLI doing the
+/// install (`cli_built`): most likely only the CLI was rebuilt, so install would
+/// copy an old agent or GUI. A binary whose crate did not change is also older;
+/// hence a note, not an error.
+pub fn stale_note(name: &str, built: SystemTime, cli_built: SystemTime) -> Option<String> {
+    let age = cli_built.duration_since(built).ok()?;
+    (age > STALE_AFTER).then(|| {
+        format!(
+            "Note: {name} is {} min older than {CLI_EXE}. If it should contain newer \
+             changes, build all binaries ({BUILD_ALL}) and install again.",
+            age.as_secs() / 60
+        )
+    })
 }
 
 /// What install does with the login autostart.
@@ -321,8 +345,22 @@ mod tests {
         let (src, dst) = (p(r"C:\repo\target\release"), p(r"C:\inst"));
         let e = plan_copy(&src, &dst, |f| !f.ends_with(AGENT_EXE)).unwrap_err();
         assert!(e.contains(AGENT_EXE), "{e}");
+        assert!(e.contains("--workspace"), "{e}");
         let e = plan_copy(&dst, &dst, |_| true).unwrap_err();
         assert!(e.contains("already runs from"), "{e}");
+    }
+
+    #[test]
+    fn stale_binaries_get_a_note() {
+        let cli = SystemTime::UNIX_EPOCH + Duration::from_secs(1_000_000);
+        let min = |m: u64| Duration::from_secs(m * 60);
+        // 2026-11-11: GUI 18:49, CLI 20:30 (only the CLI was rebuilt).
+        let n = stale_note(GUI_EXE, cli - min(101), cli).unwrap();
+        assert!(n.contains(GUI_EXE) && n.contains("101 min"), "{n}");
+        assert!(n.contains(BUILD_ALL), "{n}");
+        // Same build (linked seconds apart) or newer: no note.
+        assert_eq!(stale_note(GUI_EXE, cli - min(1), cli), None);
+        assert_eq!(stale_note(GUI_EXE, cli + min(5), cli), None);
     }
 
     #[cfg(windows)]
