@@ -129,12 +129,13 @@ fn rules_file_prefers_the_agents() {
         config: Some(r"D:\x\rules.toml".into()),
         ..AppProfilesInfo::default()
     };
+    let dir = || Some(PathBuf::from(r"C:\AppData").join("OpenSynapse"));
     assert_eq!(
-        rules_file(&AgentState::Info(info), Some(r"C:\AppData")),
+        rules_file(&AgentState::Info(info), dir()),
         Some(PathBuf::from(r"D:\x\rules.toml"))
     );
     assert_eq!(
-        rules_file(&AgentState::NotRunning, Some(r"C:\AppData")),
+        rules_file(&AgentState::NotRunning, dir()),
         Some(
             PathBuf::from(r"C:\AppData")
                 .join("OpenSynapse")

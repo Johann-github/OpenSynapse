@@ -61,13 +61,14 @@ fn ask_agent(req: Request) -> AgentState {
 }
 
 /// The file the agent reads (it may run with `--app-profiles`), else the default
-/// location under `APPDATA`.
-fn rules_file(agent: &AgentState, appdata: Option<&str>) -> Option<PathBuf> {
+/// file in the per-user config folder `config_dir` (`opensynapse_sys::config::dir`:
+/// `%APPDATA%\OpenSynapse` on Windows, `~/.config/OpenSynapse` elsewhere).
+fn rules_file(agent: &AgentState, config_dir: Option<PathBuf>) -> Option<PathBuf> {
     match agent {
         AgentState::Info(AppProfilesInfo {
             config: Some(c), ..
         }) => Some(PathBuf::from(c)),
-        _ => opensynapse_sys::config::app_profiles_path_from(appdata),
+        _ => config_dir.map(|d| d.join(opensynapse_sys::config::APP_PROFILES_FILE)),
     }
 }
 
@@ -459,7 +460,7 @@ impl AppProfilesView {
         self.rx = None;
         match msg {
             Msg::Probed(a) => {
-                self.file = rules_file(&a, std::env::var("APPDATA").ok().as_deref());
+                self.file = rules_file(&a, opensynapse_sys::config::dir());
                 self.agent = a;
                 self.load_rules();
             }
@@ -509,8 +510,10 @@ impl AppProfilesView {
         self.note = None;
         self.rules = AppProfiles::default();
         let Some(file) = &self.file else {
-            self.load_error =
-                Some("No rules file location: the APPDATA variable is not set.".into());
+            self.load_error = Some(
+                "No rules file location: no per-user config folder (APPDATA / HOME not set)."
+                    .into(),
+            );
             self.saved = self.rules.clone();
             return;
         };

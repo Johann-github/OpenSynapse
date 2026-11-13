@@ -40,7 +40,7 @@ const SWITCH_OPTIONS: ApplyOptions = ApplyOptions {
 /// Per-app profile state, owned by the core.
 #[derive(Default)]
 pub struct AppState {
-    /// `app-profiles.toml`; `None` when no location is known (no `APPDATA`).
+    /// `app-profiles.toml`; `None` when no location is known (no config folder).
     file: Option<PathBuf>,
     /// Loaded rules; `None` = feature off (file missing or invalid).
     rules: Option<AppProfiles>,
@@ -70,7 +70,9 @@ impl<H: Hardware> Core<H> {
         a.rules = None;
         a.error = None;
         let Some(file) = &a.file else {
-            tracing::info!("no APPDATA folder; per-app profiles off");
+            tracing::info!(
+                "no config folder (APPDATA / XDG_CONFIG_HOME / HOME); per-app profiles off"
+            );
             return;
         };
         match std::fs::read_to_string(file) {

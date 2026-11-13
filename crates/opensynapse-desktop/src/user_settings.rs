@@ -40,7 +40,7 @@ impl UserSettings {
     /// The checkbox row. Disabled when the file cannot be used.
     pub fn ui(&mut self, ui: &mut Ui, bad: Color32) {
         let blocked = match (&self.path, &self.load_error) {
-            (None, _) => Some("No per-user config folder (APPDATA is not set)".to_owned()),
+            (None, _) => Some("No per-user config folder (APPDATA / HOME not set)".to_owned()),
             (_, Some(e)) => Some(format!("{e}; fix or delete the file")),
             _ => None,
         };

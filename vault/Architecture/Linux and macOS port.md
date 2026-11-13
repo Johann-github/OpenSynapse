@@ -18,7 +18,7 @@ below is checked by GitHub Actions until a hardware test is possible.
 | Autostart | HKCU Run ([[Decisions/ADR-0006 Agent autostart]]) | Linux: XDG autostart entry `~/.config/autostart/opensynapse-agent.desktop` ([[Decisions/ADR-0011 Linux autostart and install]], inferred); macOS: LaunchAgent `~/Library/LaunchAgents/io.github.johann-github.opensynapse.agent.plist` (ADR-0012, inferred) |
 | Install location | `%LOCALAPPDATA%\Programs` ([[Decisions/ADR-0009 Install location]]) | Linux: `~/.local/bin` + app-menu launcher `~/.local/share/applications/opensynapse.desktop` (ADR-0011, inferred); macOS: `~/.local/bin`, no GUI launcher yet (`.app` bundle open; ADR-0012, inferred) |
 | Refuse elevated agent | `TokenElevation` | Linux euid from `/proc/self/status`; macOS `geteuid` (own declaration, no `libc`; ADR-0012) |
-| Per-app foreground watch | WinEvent hook ([[Decisions/ADR-0007 Per-app profiles]]) | `Unsupported` (feature inactive) |
+| Per-app foreground watch | WinEvent hook ([[Decisions/ADR-0007 Per-app profiles]]) | Linux X11: `_NET_ACTIVE_WINDOW` `PropertyNotify` via `x11rb` ([[Decisions/ADR-0013 Foreground watch on Linux and macOS]], inferred); Wayland/headless and macOS `Unsupported` (macOS decided, pending) |
 | GUI | eframe/glow | eframe has `x11` + `wayland` features for Linux |
 
 ## Stages
@@ -87,6 +87,17 @@ below is checked by GitHub Actions until a hardware test is possible.
    still Windows-only.
 6. **Per-app profiles off Windows** (optional): X11 `_NET_ACTIVE_WINDOW`; Wayland has no
    generic API (stay `Unsupported`); macOS `NSWorkspace` activation notifications.
+   - ✅ **Linux X11** (2026-11-13, **inferred**, pure parts unit-tested on Windows, Linux code
+     type-checked + clippy-clean for `x86_64-unknown-linux-gnu`, no X11 session tested):
+     `x11rb` (pure-Rust connection, no features, already locked through eframe/winit, no new
+     package) selects `PropertyChangeMask` on the root; `PropertyNotify(_NET_ACTIVE_WINDOW)` →
+     `_NET_WM_PID` → `/proc/<pid>/exe`. One thread in `poll([X socket, eventfd], -1)`, drop
+     stops + joins. Wayland (`WAYLAND_DISPLAY` / `XDG_SESSION_TYPE=wayland`, even with
+     XWayland) and headless → `Unsupported`. Default rules file off Windows now
+     `$XDG_CONFIG_HOME/OpenSynapse/app-profiles.toml`. →
+     [[Decisions/ADR-0013 Foreground watch on Linux and macOS]].
+   - **macOS: decided, pending** (objc2 + `NSWorkspaceDidActivateApplicationNotification`):
+     whether the notification reaches a non-main-thread run loop is unknown without a Mac.
 7. **Hardware test** on a real Linux/macOS machine with the Viper (or WSL2 + usbipd): same
    checklist as phase 3 ([[RE-Log/2026-11-09 Hardware read test]]).
 

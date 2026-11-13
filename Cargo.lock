@@ -1734,6 +1734,7 @@ dependencies = [
 name = "opensynapse-agent"
 version = "0.1.0"
 dependencies = [
+ "libc",
  "opensynapse-core",
  "opensynapse-device",
  "opensynapse-device-registry",
@@ -1744,6 +1745,7 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "windows-sys 0.61.2",
+ "x11rb",
 ]
 
 [[package]]

@@ -38,7 +38,8 @@ use crate::hardware::RealHardware;
 
 const USAGE: &str = "usage: opensynapse-agent [--pipe <name>] [--no-events] [--app-profiles <file>] [--allow-elevated] [-v | -vv]\n  \
      --no-events            do not listen for device hardware events (also OPENSYNAPSE_AGENT_NO_EVENTS=1)\n  \
-     --app-profiles <file>  per-app rules file (default %APPDATA%\\OpenSynapse\\app-profiles.toml)\n  \
+     --app-profiles <file>  per-app rules file (default %APPDATA%\\OpenSynapse\\app-profiles.toml;\n                         \
+     elsewhere $XDG_CONFIG_HOME/OpenSynapse/app-profiles.toml or ~/.config/...)\n  \
      --allow-elevated       run even as administrator / root (Windows: only for systems without UAC)";
 /// Environment switch equivalent to `--no-events`.
 const NO_EVENTS_ENV: &str = "OPENSYNAPSE_AGENT_NO_EVENTS";
@@ -58,7 +59,7 @@ struct Args {
     no_events: bool,
     /// Skip the elevation refusal.
     allow_elevated: bool,
-    /// Per-app rules file instead of the default under `APPDATA`.
+    /// Per-app rules file instead of the default in the per-user config folder.
     app_profiles: Option<PathBuf>,
 }
 
@@ -81,9 +82,11 @@ fn parse_args(mut it: impl Iterator<Item = String>) -> Result<Args, String> {
     Ok(a)
 }
 
-/// `%APPDATA%\OpenSynapse\app-profiles.toml`, from the `APPDATA` value.
-fn default_app_profiles(appdata: Option<&str>) -> Option<PathBuf> {
-    opensynapse_sys::config::app_profiles_path_from(appdata)
+/// `app-profiles.toml` in the per-user config folder (`opensynapse_sys::config::dir`):
+/// `%APPDATA%\OpenSynapse` on Windows, `$XDG_CONFIG_HOME/OpenSynapse` (or
+/// `~/.config/OpenSynapse`) elsewhere, so the Linux foreground watch (ADR-0013) has rules.
+fn default_app_profiles() -> Option<PathBuf> {
+    opensynapse_sys::config::dir().map(|d| d.join(opensynapse_sys::config::APP_PROFILES_FILE))
 }
 
 /// `1`, `true`, `yes`, `on` (any case) switch an environment flag on.
@@ -215,9 +218,7 @@ fn main() -> ExitCode {
     core.rescan();
 
     // Per-app profiles: rules from the file, foreground changes from the OS.
-    let rules = args
-        .app_profiles
-        .or_else(|| default_app_profiles(std::env::var("APPDATA").ok().as_deref()));
+    let rules = args.app_profiles.or_else(default_app_profiles);
     core.set_app_profiles_file(rules);
     core.load_app_profiles();
     let foreground = {
@@ -300,17 +301,11 @@ mod tests {
     }
 
     #[test]
-    fn app_profiles_default_location() {
-        assert_eq!(
-            default_app_profiles(Some(r"C:\Users\u\AppData\Roaming")),
-            Some(
-                PathBuf::from(r"C:\Users\u\AppData\Roaming")
-                    .join("OpenSynapse")
-                    .join("app-profiles.toml")
-            )
-        );
-        assert_eq!(default_app_profiles(Some("  ")), None);
-        assert_eq!(default_app_profiles(None), None);
+    fn app_profiles_default_location_is_in_the_config_folder() {
+        // The folder itself (APPDATA / XDG / HOME) is unit-tested in `opensynapse-sys`.
+        if let Some(p) = default_app_profiles() {
+            assert!(p.ends_with(PathBuf::from("OpenSynapse").join("app-profiles.toml")));
+        }
     }
 
     #[test]
