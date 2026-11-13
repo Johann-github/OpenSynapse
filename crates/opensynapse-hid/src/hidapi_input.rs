@@ -1,5 +1,6 @@
-//! Linux/macOS input-report reader on hidapi: one thread per collection, moving
-//! the `HidDevice` into it.
+//! macOS input-report reader on hidapi: one thread per collection, moving the
+//! `HidDevice` into it. (Linux reads the hidraw node directly without any wakeup,
+//! `linux_input.rs`; this file serves every non-Windows, non-Linux target.)
 //!
 //! Stop mechanism (trade-off, read this before changing it): hidapi has no way
 //! to unblock a pending read from another thread. `HidDevice` is `Send` but not
@@ -10,9 +11,9 @@
 //! per second, looks at one flag and blocks again. That is a timed wakeup, not
 //! polling the device (no I/O is issued for it, the kernel read stays the
 //! waiting mechanism), but it is not the zero-wakeup idle of the Windows reader
-//! either. `stop` therefore takes up to `STOP_CHECK_MS`. A fully blocking reader
-//! would need the raw hidraw fd + `poll` on a self-pipe (Linux) or a CFRunLoop
-//! source (macOS) outside hidapi; not worth it until measured.
+//! either. `stop` therefore takes up to `STOP_CHECK_MS`. Open item: a fully
+//! blocking macOS reader would need an IOHIDDevice input callback on a CFRunLoop
+//! outside hidapi (stopped with `CFRunLoopStop`); not worth it until measured.
 
 use std::io;
 use std::sync::Arc;

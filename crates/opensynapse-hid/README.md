@@ -15,13 +15,18 @@ HID transport and device sessions. Windows: native SetupAPI + hid.dll (`src/wind
 - `input::spawn` reads input reports (hardware events, [[Protocol/Hardware Events]]) on one
   thread per collection; the callback gets byte 0 = report ID (0 if unnumbered) on every
   platform. Windows: overlapped `ReadFile`, no timeouts (`src/windows_input.rs`).
-  Linux/macOS: hidapi `read_timeout` (`src/hidapi_input.rs`); hidapi cannot unblock a read
-  from another thread, so the thread wakes once per second without a report to check its
-  stop flag (no device I/O for that), and `stop` takes up to 1 s. Report-ID handling comes
-  from the report descriptor; read buffer 1 KiB (hidapi gives no input length, so
-  `input_len` stays `None` there). On Linux a hidraw node is a whole interface: the callback
-  also sees the other collections' reports. macOS opens non-exclusively. Untested on
-  hardware ([[Architecture/Linux and macOS port]], stage 3).
+  Linux: the hidraw node (`/dev/hidrawN`, hidapi's path) opened read-only, one thread
+  sleeping in `poll` on it plus an eventfd that `stop`/Drop write, then join; no timeouts,
+  no idle wakeups (`src/linux_input.rs`, same pattern as hotplug). Unplug (POLLHUP/POLLERR
+  or a read error such as ENODEV/EIO) ends the reader with an error. Report-ID handling
+  comes from the report descriptor in sysfs (`/sys/class/hidraw/hidrawN/device/report_descriptor`).
+  macOS: hidapi `read_timeout` (`src/hidapi_input.rs`); hidapi cannot unblock a read from
+  another thread, so the thread wakes once per second without a report to check its stop
+  flag (no device I/O for that), and `stop` takes up to 1 s. Open item: the one platform
+  with an idle wakeup. Read buffer 1 KiB on both (no input length is known, so `input_len`
+  stays `None` there). On Linux a hidraw node is a whole interface: the callback
+  also sees the other collections' reports. macOS opens non-exclusively. Confidence
+  inferred, untested on hardware ([[Architecture/Linux and macOS port]], stage 3).
 - Enumeration keeps collections that share a path (hidapi lists each top-level collection
   of a hidraw node under one path).
 - `conflicting_process()` warns when `RazerAppEngine.exe` runs (ToolHelp snapshot).

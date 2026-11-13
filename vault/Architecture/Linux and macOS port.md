@@ -13,7 +13,7 @@ below is checked by GitHub Actions until a hardware test is possible.
 |---|---|---|
 | HID feature reports | own SetupAPI backend ([[Decisions/ADR-0003 Own Windows HID backend]]) | `hidapi_backend.rs` (CI-compiled, untested on hardware) |
 | Hotplug | `windows_hotplug.rs` | Linux: udev netlink ([[Decisions/ADR-0010 Linux hotplug]]); macOS `Unsupported` |
-| HID input reports (events) | `windows_input.rs` | `hidapi_input.rs` (stage 3 part 2, untested on hardware) |
+| HID input reports (events) | `windows_input.rs` | Linux `linux_input.rs` (hidraw + `poll`/eventfd); macOS `hidapi_input.rs` (stage 3 part 2, untested on hardware) |
 | IPC | named pipe | `transport/unix.rs`, socket in `$XDG_RUNTIME_DIR` (compile-only; macOS has no `XDG_RUNTIME_DIR`) |
 | Autostart | HKCU Run ([[Decisions/ADR-0006 Agent autostart]]) | `Unsupported` |
 | Install location | `%LOCALAPPDATA%\Programs` ([[Decisions/ADR-0009 Install location]]) | none |
@@ -41,18 +41,26 @@ below is checked by GitHub Actions until a hardware test is possible.
      type-checked + clippy-clean locally (`--target x86_64-unknown-linux-gnu`), CI pending.
      Confidence **inferred** (no hardware test yet).
    - Part 2 ✅ **input reports** (2026-11-13, **inferred**, compile/clippy-checked for Linux
-     locally, untested on hardware): `hidapi_input.rs`, one reader thread per collection with
-     hidapi `read_timeout(1000 ms)`. hidapi cannot unblock a read from another thread
-     (`HidDevice` is not `Sync`; closing under a blocked read is unsafe), so the thread wakes
-     once per second without a report to check a stop flag: no device I/O, but not the
-     zero-wakeup idle of Windows; `stop` takes ≤ 1 s. Byte 0 = report ID like Windows
-     (unnumbered reports get a 0 in front, decided from the report descriptor). Buffer 1 KiB;
-     hidapi gives no input report length (`input_len` = `None`). Enumeration now keeps
-     collections that share a hidraw path (dedup key includes usage page/usage). macOS opens
-     non-exclusively (`set_open_exclusive(false)`, hidapi's default is exclusive).
-     Open: on Linux the hidraw node carries all collections of the interface, so readers see
-     every report of it (agent filters on byte 0); fully blocking reader via raw fd + `poll`
-     only if the 1 s wakeup ever matters.
+     locally, untested on hardware). One reader thread per collection; byte 0 = report ID like
+     Windows (unnumbered reports get a 0 in front, decided from the report descriptor); buffer
+     1 KiB, no input report length known (`input_len` = `None`).
+     **Linux: blocking `poll` + eventfd, no wakeups** (`linux_input.rs`, 2026-11-13): the hidraw
+     node (`/dev/hidrawN`, the path hidapi enumerates) opened read-only with `std::fs`, the
+     thread sleeps in `poll([hidraw, eventfd], -1)` and `read`s one report per POLLIN; `stop`/Drop
+     write the eventfd and join, so `stop` returns at once. POLLHUP/POLLERR or a read error
+     (ENODEV/EIO, device unplugged) ends the reader with an error, like the hidapi read error
+     did. Descriptor from sysfs `/sys/class/hidraw/hidrawN/device/report_descriptor` (same
+     bytes as `HIDIOCGRDESC`); unreadable → assume numbered. Same pattern as
+     [[Decisions/ADR-0010 Linux hotplug]], no new dependency (`libc`).
+     **macOS: still 1 s wakeup** (open item): `hidapi_input.rs`, hidapi `read_timeout(1000 ms)`.
+     hidapi cannot unblock a read from another thread (`HidDevice` is not `Sync`; closing under
+     a blocked read is unsafe), so the thread wakes once per second without a report to check a
+     stop flag: no device I/O, but not zero-wakeup idle; `stop` takes ≤ 1 s. A blocking version
+     would need an IOHIDDevice input callback on a CFRunLoop outside hidapi.
+     Enumeration keeps collections that share a hidraw path (dedup key includes usage
+     page/usage). macOS opens non-exclusively (`set_open_exclusive(false)`, hidapi's default is
+     exclusive). Open: on Linux the hidraw node carries all collections of the interface, so
+     readers see every report of it (agent filters on byte 0).
 4. **Linux agent**: autostart as an XDG autostart `.desktop` file or a systemd user unit (ADR),
    install to `~/.local/bin`, socket as today.
 5. **macOS**: hidapi IOKit (check: non-exclusive open, so the OS keeps the mouse), socket path

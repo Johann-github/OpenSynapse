@@ -4,15 +4,19 @@
 //! Used for hardware events (`vault/Protocol/Hardware Events.md`).
 //! - Windows (`windows_input.rs`): overlapped `ReadFile`; the thread waits on
 //!   "a report arrived" or "stop requested". No timeouts at all.
-//! - Linux/macOS (`hidapi_input.rs`): hidapi `read_timeout`; without a report the
+//! - Linux (`linux_input.rs`): raw hidraw fd; the thread sleeps in `poll` on the
+//!   fd and an eventfd that `stop` writes. No timeouts at all.
+//! - macOS (`hidapi_input.rs`): hidapi `read_timeout`; without a report the
 //!   thread wakes once per [`STOP_CHECK_MS`] only to see whether `stop` was asked
-//!   for (hidapi cannot unblock a read from another thread). Stage 3 of
-//!   `vault/Architecture/Linux and macOS port.md`.
+//!   for (hidapi cannot unblock a read from another thread). Open item: the one
+//!   platform with an idle wakeup. Stage 3 of `vault/Architecture/Linux and macOS port.md`.
 
 use crate::HidError;
 
-#[cfg(not(windows))]
+#[cfg(all(not(windows), not(target_os = "linux")))]
 use crate::hidapi_input::Reader;
+#[cfg(target_os = "linux")]
+use crate::linux_input::Reader;
 #[cfg(windows)]
 use crate::windows_input::Reader;
 
@@ -20,12 +24,12 @@ use crate::windows_input::Reader;
 /// 0 for a collection without numbered reports). Return `false` to stop reading.
 pub type OnReport = Box<dyn FnMut(&[u8]) -> bool + Send>;
 
-/// Linux/macOS: longest wait in one hidapi read before the reader thread checks
-/// its stop flag. Bounds how long [`ReaderHandle::stop`] may take.
-#[cfg_attr(windows, allow(dead_code))]
+/// macOS (hidapi reader): longest wait in one hidapi read before the reader
+/// thread checks its stop flag. Bounds how long [`ReaderHandle::stop`] may take.
+#[cfg_attr(any(windows, target_os = "linux"), allow(dead_code))]
 pub(crate) const STOP_CHECK_MS: i32 = 1000;
 
-/// Linux/macOS: read buffer size. hidapi does not tell the input report length
+/// Linux/macOS: read buffer size. hidraw/hidapi do not tell the input report length
 /// (Windows takes it from the collection's caps); a longer report would be cut
 /// to this length. Razer event reports are short and a full-speed interrupt
 /// packet is at most 64 bytes, so 1 KiB leaves ample room.
@@ -57,8 +61,21 @@ pub(crate) fn uses_report_ids(desc: &[u8]) -> bool {
     false
 }
 
-/// Where in the read buffer hidapi should write, so that byte 0 ends up as the
-/// report ID like on Windows. hidapi includes the ID for numbered reports
+/// Linux: sysfs file with the report descriptor of hidraw node `dev_path`
+/// (`/dev/hidrawN` → `/sys/class/hidraw/hidrawN/device/report_descriptor`).
+/// `None` if the path is not a hidraw node.
+#[cfg_attr(not(target_os = "linux"), allow(dead_code))]
+pub(crate) fn hidraw_descriptor_path(dev_path: &str) -> Option<String> {
+    let name = dev_path.strip_prefix("/dev/")?;
+    let n = name.strip_prefix("hidraw")?;
+    if n.is_empty() || !n.bytes().all(|b| b.is_ascii_digit()) {
+        return None;
+    }
+    Some(format!("/sys/class/hidraw/{name}/device/report_descriptor"))
+}
+
+/// Where in the read buffer the reader should write, so that byte 0 ends up as the
+/// report ID like on Windows. hidraw/hidapi include the ID for numbered reports
 /// (offset 0); for unnumbered ones it delivers data only, while Windows puts a
 /// 0 in front, so byte 0 stays zero (offset 1).
 #[cfg_attr(windows, allow(dead_code))]
@@ -74,8 +91,8 @@ pub struct ReaderHandle {
 
 impl ReaderHandle {
     /// Stop reading and wait for the thread. `Err` if the reader had already
-    /// ended with an error (e.g. the device was unplugged). Windows returns at
-    /// once; Linux/macOS may take up to [`STOP_CHECK_MS`].
+    /// ended with an error (e.g. the device was unplugged). Windows and Linux
+    /// return at once; macOS may take up to [`STOP_CHECK_MS`].
     pub fn stop(mut self) -> Result<(), HidError> {
         self.stop_inner()
     }
@@ -173,6 +190,29 @@ mod tests {
         assert_eq!(report_id_offset(true), 0);
         // Unnumbered: data goes after a zero byte, like Windows' [0, …].
         assert_eq!(report_id_offset(false), 1);
+    }
+
+    #[test]
+    fn hidraw_sysfs_descriptor() {
+        assert_eq!(
+            hidraw_descriptor_path("/dev/hidraw3").as_deref(),
+            Some("/sys/class/hidraw/hidraw3/device/report_descriptor")
+        );
+        assert_eq!(
+            hidraw_descriptor_path("/dev/hidraw12").as_deref(),
+            Some("/sys/class/hidraw/hidraw12/device/report_descriptor")
+        );
+        // Not a hidraw node, or an attempt to escape sysfs.
+        for p in [
+            "/dev/hidraw",
+            "/dev/hidraw1/../x",
+            "/dev/input/event3",
+            "hidraw0",
+            "/dev/hidrawX",
+            "",
+        ] {
+            assert_eq!(hidraw_descriptor_path(p), None, "{p}");
+        }
     }
 
     #[test]
