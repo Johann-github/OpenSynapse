@@ -29,6 +29,9 @@ updated: 2026-11-12
 - ✅ Start-menu shortcut now has a LinkTargetIDList → [[Decisions/ADR-0009 Install location]].
   ✅ User-checked 2026-11-13 after rebuild + install: Properties shows the target.
   Installed exes built 2026-11-13 from `a2b2bab`.
+- 🔄 Linux/macOS port started: plan [[Architecture/Linux and macOS port]] (user: CI first,
+  hardware later). Stage 1: `.github/workflows/ci.yml` (Windows/Ubuntu/macOS: fmt, clippy,
+  test). **Next:** push (user approval), read the CI result, then stage 2 (compile clean).
 
 Mouse state at end of day 2026-11-12: DPI 800 (stages 400/800, active 2, volatile + persistent),
 1000 Hz, sleep 300 s, button 4 = mouse button 4 in slot 0 and slot 1, wake hint off.

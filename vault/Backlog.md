@@ -17,8 +17,8 @@ Parked items, ranked. Pick from here when [[Status]] "Resume here" is empty.
 - Viper: does the USB cable carry data (own PID)? Unit/range of the low-power threshold.
 
 ## Platforms
-- **Linux / macOS** (goal: second). Missing there: HID transport (hidapi path exists, untested on
-  hardware), autostart, foreground watch for per-app profiles (returns `Unsupported`), install location.
+- **Linux / macOS** (goal: second). 🔄 Started 2026-11-13, plan and stages in
+  [[Architecture/Linux and macOS port]] (CI first, hardware later).
 
 ## Ideas, declined for now
 - Windows toast when an automatic write (app-profile switch) fails because the mouse sleeps.
