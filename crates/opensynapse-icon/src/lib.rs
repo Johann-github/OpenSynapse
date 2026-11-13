@@ -16,11 +16,22 @@ pub use encode::{ico, png, windows_res};
 /// Sizes embedded in the `.ico` / `.res` (Explorer, taskbar, Start menu, Alt-Tab).
 pub const ICO_SIZES: [u32; 7] = [16, 20, 24, 32, 48, 64, 256];
 
-/// Background gradient (top → bottom) and accent gradient (top-left → bottom-right).
+/// The OpenSynapse accent green (user 2026-11-13: always green as accent). Single
+/// owner: the GUI's selection/link colour reads it from here.
+pub const ACCENT: [u8; 3] = [0x2E, 0xA0, 0x43];
+/// Lighter end of the icon's accent gradient.
+pub const ACCENT_LIGHT: [u8; 3] = [0x6B, 0xE3, 0x7F];
+
+/// Background gradient (top → bottom).
 const BG_TOP: [f32; 3] = [0x1c as f32, 0x26 as f32, 0x33 as f32];
 const BG_BOTTOM: [f32; 3] = [0x0d as f32, 0x12 as f32, 0x19 as f32];
-const ACCENT_A: [f32; 3] = [0x3d as f32, 0xe8 as f32, 0xc8 as f32];
-const ACCENT_B: [f32; 3] = [0x2a as f32, 0x8c as f32, 0xff as f32];
+/// Accent gradient, top-left (light) → bottom-right ([`ACCENT`]).
+const ACCENT_A: [f32; 3] = [
+    ACCENT_LIGHT[0] as f32,
+    ACCENT_LIGHT[1] as f32,
+    ACCENT_LIGHT[2] as f32,
+];
+const ACCENT_B: [f32; 3] = [ACCENT[0] as f32, ACCENT[1] as f32, ACCENT[2] as f32];
 
 /// Supersamples per axis.
 const SS: u32 = 4;
