@@ -172,13 +172,13 @@ fn report_timing() -> Timing {
     }
 }
 
-/// Reads are 2.5 GET commands and go to 2.5 PIDs only. `unknown` means "do not
-/// talk to it yet" (`vault/Devices/Device Registry.md`, detection recipe);
-/// 3.0/4.0 PIDs wait for their transports. The collection table still shows
-/// whether such a PID has a 2.5-shaped control collection.
+/// Reads go only to protocols OpenSynapse implements (one owner:
+/// `Protocol::is_supported`, today 2.5 and 4.0; the session picks the framing).
+/// `unknown` means "do not talk to it yet" (`vault/Devices/Device Registry.md`,
+/// detection recipe). The collection table is shown either way.
 fn skip_reads(protocol: Protocol) -> Option<String> {
     match protocol {
-        Protocol::V25 => None,
+        p if p.is_supported() => None,
         Protocol::Unknown => Some("protocol unknown; OpenSynapse does not talk to it yet".into()),
         p => Some(format!("protocol {p} is not implemented yet")),
     }
@@ -597,14 +597,14 @@ mod tests {
     }
 
     #[test]
-    fn reads_only_for_25() {
+    fn reads_only_for_supported_protocols() {
         assert_eq!(skip_reads(Protocol::V25), None);
+        assert_eq!(skip_reads(Protocol::V40), None);
         assert!(skip_reads(Protocol::Unknown).is_some());
         assert_eq!(
             skip_reads(Protocol::V30).as_deref(),
             Some("protocol 3.0 is not implemented yet")
         );
-        assert!(skip_reads(Protocol::V40).is_some());
     }
 
     #[test]
