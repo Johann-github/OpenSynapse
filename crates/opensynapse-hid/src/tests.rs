@@ -206,3 +206,144 @@ fn control_entry_filter() {
     };
     assert!(!short_feature.is_control(0));
 }
+
+#[test]
+fn v25_wire_bytes_unchanged() {
+    // Regression guard for the hardware-tested 2.5 path (Viper V3 HyperSpeed).
+    let m = Mock::with(&[Reply::Status(0x02)]);
+    let mut s = Session::new(&m, fast());
+    assert_eq!(s.framing(), Framing::V25);
+    s.execute(&get_firmware_version()).unwrap();
+    let want = get_firmware_version().encode(0).to_feature_report();
+    assert_eq!(m.sent.borrow()[0], want.to_vec());
+}
+
+/// Fake protocol 4.0 device: 64-byte feature reports with report ID 2.
+#[derive(Default)]
+struct Mock40 {
+    sent: RefCell<Vec<Vec<u8>>>,
+    statuses: RefCell<VecDeque<u8>>,
+}
+
+impl Mock40 {
+    fn with(statuses: &[u8]) -> Self {
+        Self {
+            statuses: RefCell::new(statuses.iter().copied().collect()),
+            ..Default::default()
+        }
+    }
+}
+
+impl FeatureIo for &Mock40 {
+    fn send_feature(&self, buf: &[u8]) -> Result<(), HidError> {
+        assert_eq!(buf.len(), 64);
+        assert_eq!(buf[0], 2, "report ID");
+        self.sent.borrow_mut().push(buf.to_vec());
+        Ok(())
+    }
+
+    fn get_feature(&self, buf: &mut [u8]) -> Result<usize, HidError> {
+        assert_eq!(buf.len(), 64);
+        assert_eq!(buf[0], 2, "report ID on entry");
+        let last = self.sent.borrow().last().cloned().expect("GET before SET");
+        buf.copy_from_slice(&last);
+        buf[1] = self
+            .statuses
+            .borrow_mut()
+            .pop_front()
+            .expect("unexpected GET");
+        buf[9] = 1;
+        buf[10] = 4;
+        Ok(64)
+    }
+}
+
+fn v40() -> Framing {
+    Framing::V40(opensynapse_protocol::report40::Target::Mouse)
+}
+
+#[test]
+fn v40_session_exact_bytes_and_reply() {
+    let m = Mock40::with(&[0x01, 0x02]);
+    let mut s = Session::with_framing(&m, fast(), v40());
+    let r = s.execute(&get_firmware_version()).unwrap();
+    assert_eq!(&r.args()[..2], &[1, 4]);
+    let sent = m.sent.borrow();
+    assert_eq!(sent.len(), 1, "busy is polled, not resent");
+    let mut want = vec![0u8; 64];
+    want[..9].copy_from_slice(&[0x02, 0x00, 0x01, 0x00, 0x00, 0x00, 0x02, 0x00, 0x81]);
+    want[62] = 0x83;
+    assert_eq!(sent[0], want);
+}
+
+#[test]
+fn v40_failure_resends_and_unsupported_is_permanent() {
+    let m = Mock40::with(&[0x03, 0x05]);
+    let mut s = Session::with_framing(&m, fast(), v40());
+    assert!(matches!(
+        s.execute(&get_firmware_version()),
+        Err(HidError::Status(Status::NotSupported))
+    ));
+    assert_eq!(m.sent.borrow().len(), 2);
+}
+
+#[test]
+fn v40_transaction_counter_starts_at_1() {
+    let m = Mock40::with(&[0x02, 0x02]);
+    let mut s = Session::with_framing(&m, fast(), v40());
+    s.execute(&get_firmware_version()).unwrap();
+    s.execute(&get_firmware_version()).unwrap();
+    let sent = m.sent.borrow();
+    assert_eq!((sent[0][2], sent[1][2]), (1, 2));
+}
+
+#[test]
+fn v40_oversized_request_is_a_protocol_error() {
+    let m = Mock40::default();
+    let mut s = Session::with_framing(&m, fast(), v40());
+    let cmd = opensynapse_protocol::Command::new(0x0F, 0x03, 60);
+    let req = Request::new(cmd, &[]).unwrap();
+    assert!(matches!(s.execute(&req), Err(HidError::Protocol(_))));
+    assert!(m.sent.borrow().is_empty());
+}
+
+#[test]
+fn v40_control_entry_filter() {
+    let e = HidEntry {
+        vid: 0x1532,
+        pid: 0x0F00,
+        interface: 0,
+        usage_page: 0xFF00,
+        usage: 1,
+        feature_len: Some(64),
+        input_len: None,
+        output_len: None,
+        path: "x".into(),
+    };
+    assert!(e.is_control_for(v40(), 0));
+    assert!(!e.is_control_for(v40(), 1));
+    assert!(!e.is_control_for(Framing::V25, 0));
+    let viper = HidEntry {
+        pid: 0x00B8,
+        usage_page: 1,
+        usage: 2,
+        feature_len: Some(91),
+        ..e.clone()
+    };
+    assert!(!viper.is_control_for(v40(), 0));
+    assert!(viper.is_control_for(Framing::V25, 0));
+    // Unknown length (hidapi): 4.0 falls back to the mouse usage pair.
+    let no_len = HidEntry {
+        feature_len: None,
+        ..viper.clone()
+    };
+    assert!(no_len.is_control_for(v40(), 0));
+    assert!(!HidEntry { usage: 6, ..no_len }.is_control_for(v40(), 0));
+}
+
+#[test]
+fn registry_picks_framing() {
+    assert_eq!(framing_for_pid(0x00B8), Framing::V25);
+    // Not in the registry: the 2.5 shape, as before 4.0 support.
+    assert_eq!(framing_for_pid(0xFFFF), Framing::V25);
+}

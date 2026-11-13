@@ -29,6 +29,11 @@ Next candidates (ask the user):
 3. Battery event granularity (longer capture), low-battery warning.
 
 ### 2026-11-13
+- ✅ Protocol 4.0 framing (report ID 2, 64 bytes) in `opensynapse-protocol` (`report40`,
+  `framing`) + `opensynapse-hid` (framing from the registry); `Protocol::is_supported()` is
+  the one gate (CLI, agent, GUI). **Inferred, no hardware; no registry device is 4.0 yet.**
+  3.0 (BLE GATT) planned only → [[Decisions/ADR-0015 Protocol 4.0 and 3.0 support]],
+  [[RE-Log/2026-11-13 Protocol 4.0 frame and device search]].
 - ✅ Release prep: user README, untested-device write warning (registry `tested = true` only for the
   Viper; CLI stderr line, GUI label, `info` shows "Tested with OpenSynapse"), CI on `main`
   (Windows only until the port merge), release workflow, release notes.

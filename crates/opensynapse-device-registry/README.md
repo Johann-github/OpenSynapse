@@ -8,4 +8,8 @@ variant PIDs, then receiver PIDs.
 product with real hardware" (`tested = true` in the TOML; only the Viper V3 HyperSpeed so
 far). The CLI and the desktop GUI use it to warn before writes; nobody hard-codes PIDs.
 
+`Protocol::framing()` / `Protocol::is_supported()` are the single owner of "which protocol
+families OpenSynapse speaks" (2.5 tested, 4.0 inferred; 3.0 and unknown not).
+[[Decisions/ADR-0015 Protocol 4.0 and 3.0 support]]
+
 Schema: `data/devices/SCHEMA.md`. Vault: [[Devices/Device Registry]], [[Architecture/Crates]]

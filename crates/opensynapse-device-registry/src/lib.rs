@@ -3,6 +3,8 @@
 //! The TOML files in `data/devices/` are embedded at compile time and parsed on
 //! first use. Schema: `data/devices/SCHEMA.md`.
 
+use opensynapse_protocol::Framing;
+use opensynapse_protocol::report40::Target;
 use serde::Deserialize;
 use std::sync::OnceLock;
 
@@ -59,6 +61,27 @@ pub enum Protocol {
     V40,
     #[serde(rename = "unknown")]
     Unknown,
+}
+
+impl Protocol {
+    /// Wire framing OpenSynapse implements for this family, `None` if it has none.
+    /// 2.5 is hardware-tested; 4.0 is implemented from Synapse code only (inferred,
+    /// no hardware) and addresses the base class's default target, the mouse.
+    /// 3.0 is Bluetooth LE GATT, not HID, and stays unsupported.
+    /// See `vault/Decisions/ADR-0015 Protocol 4.0 and 3.0 support.md`.
+    pub fn framing(self) -> Option<Framing> {
+        match self {
+            Self::V25 => Some(Framing::V25),
+            Self::V40 => Some(Framing::V40(Target::Mouse)),
+            Self::V30 | Self::Unknown => None,
+        }
+    }
+
+    /// True if OpenSynapse can talk to a PID of this family. The one owner of
+    /// the "supported protocol" decision; CLI, agent and GUI ask here.
+    pub fn is_supported(self) -> bool {
+        self.framing().is_some()
+    }
 }
 
 impl std::fmt::Display for Protocol {
@@ -325,6 +348,38 @@ mod tests {
     }
 
     #[test]
+    fn supported_protocols_and_framing() {
+        assert_eq!(Protocol::V25.framing(), Some(Framing::V25));
+        assert_eq!(Protocol::V40.framing(), Some(Framing::V40(Target::Mouse)));
+        assert_eq!(Protocol::V30.framing(), None);
+        assert_eq!(Protocol::Unknown.framing(), None);
+        assert!(Protocol::V25.is_supported() && Protocol::V40.is_supported());
+        assert!(!Protocol::V30.is_supported() && !Protocol::Unknown.is_supported());
+    }
+
+    #[test]
+    fn untested_4_0_device_parses_and_is_flagged_untested() {
+        let r = Registry::parse(
+            "test",
+            r#"
+            [[device]]
+            name = "Test 4.0 Mouse"
+            vid = 0x1532
+            pid = 0x0F00
+            kind = "mouse"
+            protocol = "4.0"
+            synapse_class = "rzDevice40"
+            evidence = "inferred"
+            "#,
+        )
+        .unwrap();
+        let m = r.lookup(RAZER_VID, 0x0F00).unwrap();
+        assert_eq!(m.protocol(), Protocol::V40);
+        assert!(m.protocol().is_supported());
+        assert!(!m.device().hardware_tested());
+    }
+
+    #[test]
     fn variant_and_dongle_lookup() {
         let r = Registry::embedded();
         let with_variant = r.devices().iter().find(|d| !d.variants.is_empty()).unwrap();
@@ -361,6 +416,7 @@ mod tests {
         let m = r.lookup(RAZER_VID, 0x0A79).unwrap();
         assert!(matches!(m, Match::Dongle(d) if d.pid == 0x0500));
         assert_eq!(m.protocol(), Protocol::Unknown);
+        assert!(!m.protocol().is_supported());
         assert_eq!(
             r.devices()[0].lighting,
             Some(Lighting::Matrix {

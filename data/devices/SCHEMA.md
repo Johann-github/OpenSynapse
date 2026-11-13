@@ -59,6 +59,10 @@ Per alternate PID (receiver or Bluetooth) of the same product:
 - `protocol` mapping from `synapse_class`: `rzDevice25*` → `2.5`, `rzDevice30*` → `3.0`,
   `rzDevice40*` → `4.0`. Audio/camera/IoT classes (`Audio*`, `rzCam*`, `rzDeviceIoT`, …) use
   vendor-specific transports → `unknown`.
+- Supported by OpenSynapse: `2.5` (hardware-tested on one device) and `4.0` (from Synapse
+  code only, no hardware). `3.0` (Bluetooth LE GATT) and `unknown` are listed but not
+  driven. Set `4.0` only with evidence (manifest class / event-parser type, or a hardware
+  probe); see `vault/Decisions/ADR-0015 Protocol 4.0 and 3.0 support.md`.
 - `transaction_id`: Synapse 4 itself uses a rolling counter in the 2.5 transaction byte
   (see `vault/Protocol/Report Format 2.5.md`); the per-device fixed value is OpenRazer's.
 - PIDs are unique across all files (primary `pid`s); alternate PIDs appear only in `variants`.

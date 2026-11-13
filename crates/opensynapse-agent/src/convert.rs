@@ -126,9 +126,9 @@ pub fn registry_device(pid: u16) -> Option<&'static Device> {
         .map(|m| m.device())
 }
 
-/// Only protocol 2.5 is implemented.
+/// Protocols OpenSynapse implements (owner: [`Protocol::is_supported`]).
 pub fn is_supported(protocol: Protocol) -> bool {
-    protocol == Protocol::V25
+    protocol.is_supported()
 }
 
 pub fn device_info(e: &HidEntry) -> DeviceInfo {

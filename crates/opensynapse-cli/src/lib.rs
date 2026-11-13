@@ -1049,9 +1049,9 @@ impl Target {
         };
         let m = reg.lookup(RAZER_VID, entry.pid);
         let protocol = m.map_or(Protocol::Unknown, |m| m.protocol());
-        if protocol != Protocol::V25 {
+        if !protocol.is_supported() {
             bail!(
-                "{:04X} speaks protocol {protocol}; only 2.5 is implemented",
+                "{:04X} speaks protocol {protocol}; only 2.5 and 4.0 are implemented",
                 entry.pid
             );
         }

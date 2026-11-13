@@ -41,6 +41,10 @@ LED matrix size on 206, non-Chroma flag on 87, OpenRazer transaction id on 205.
 
 No product in the data uses protocol 4.0 yet (unknown). No fetched manifest names an
 `rzDevice40*` class, although Synapse ships those classes; see [[Protocol/Protocol 3.0 and 4.0]].
+Re-checked 2026-11-13 (no PROTOCOL40 event-parser type either). OpenSynapse can speak 4.0
+(inferred, [[Decisions/ADR-0015 Protocol 4.0 and 3.0 support]]); a PID becomes `4.0` only
+with evidence: its manifest or a read-only hardware probe. The same ADR lists what is
+needed to classify the `unknown` entries.
 
 ## How Synapse maps product id, PID and protocol
 
