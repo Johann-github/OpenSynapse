@@ -26,8 +26,10 @@ mod windows_input;
 
 #[cfg(not(windows))]
 mod hidapi_backend;
-#[cfg(not(windows))]
+#[cfg(all(not(windows), not(target_os = "linux")))]
 mod hidapi_input;
+#[cfg(target_os = "linux")]
+mod linux_input;
 #[cfg(not(windows))]
 use hidapi_backend as backend;
 #[cfg(windows)]
