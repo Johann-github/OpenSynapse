@@ -10,7 +10,7 @@ use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
 use opensynapse_hid::{FeatureIo, HidError};
 use opensynapse_protocol::command::{self, Command};
-use opensynapse_protocol::{FEATURE_REPORT_LEN, Report, Request, dpi, polling, power};
+use opensynapse_protocol::{FEATURE_REPORT_LEN, Report, Request, dpi, lighting, polling, power};
 
 pub use crate::VIPER_BUTTONS;
 use crate::{HYPER_PROFILE, stages_from};
@@ -40,6 +40,9 @@ pub struct State {
     pub stages: [dpi::DpiStages; 2],
     /// Profile byte of every button assignment GET/SET (02/8C, 02/0C) answered.
     pub button_profiles: Vec<u8>,
+    /// Extended lighting by (storage byte, zone): effect and raw brightness. Empty
+    /// (the Viper has no lighting): 0F commands answer "not supported".
+    pub lighting: BTreeMap<(u8, u8), (lighting::Effect, u8)>,
 }
 
 impl Default for State {
@@ -63,6 +66,7 @@ impl Default for State {
                 .collect(),
             stages: [default_stages(), default_stages()],
             button_profiles: Vec::new(),
+            lighting: BTreeMap::new(),
         }
     }
 }
@@ -235,9 +239,46 @@ fn answer(st: &mut State, req: &Report) -> (u8, Vec<u8>) {
             args.extend_from_slice(&rec);
         }
         ok(args)
+    } else if let Some(r) = answer_lighting(st, req) {
+        r
     } else {
         (5, vec![])
     }
+}
+
+/// 0F/82, 0F/02, 0F/84, 0F/04 for zones present in `st.lighting`.
+fn answer_lighting(st: &mut State, req: &Report) -> Option<(u8, Vec<u8>)> {
+    let is = |c: Command| c.class == req.class() && c.id == req.command_id();
+    let lit = [
+        command::GET_EFFECT,
+        command::SET_EFFECT,
+        command::GET_BRIGHTNESS,
+        command::SET_BRIGHTNESS,
+    ];
+    if !lit.into_iter().any(is) {
+        return None;
+    }
+    let key = (req.args()[0], req.args()[1]);
+    let Some((effect, brightness)) = st.lighting.get_mut(&key) else {
+        return Some((5, vec![]));
+    };
+    let write = !st.ignore_writes;
+    let args = if is(command::GET_EFFECT) {
+        args_of(lighting::set_effect(effect).unwrap())
+    } else if is(command::SET_EFFECT) {
+        if write {
+            *effect = lighting::parse_effect(req.args()).unwrap();
+        }
+        vec![]
+    } else if is(command::GET_BRIGHTNESS) {
+        vec![key.0, key.1, *brightness]
+    } else {
+        if write {
+            *brightness = req.args()[2];
+        }
+        vec![]
+    };
+    Some((2, args))
 }
 
 impl FeatureIo for FakeMouse {

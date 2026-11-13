@@ -23,6 +23,11 @@ Pure encode/decode of Razer protocol 2.5 reports. No I/O, fully unit-tested.
   `parse_button_assignment_list` return the raw reply; `ButtonAssignmentList::records()`
   splits it into `(button_id, function, data)` using 8-byte records
   `[buttonId, function, dataLen, data×5]`, ending at button ID 0 (layout inferred).
+- `lighting` — `Mode` (off, static, breathing 1/2 colours, spectrum, wave) encoded for the
+  extended family (`set_mode`, 0F/02; `Effect::mode()` decodes 0F/82) and the standard
+  family (`standard::set_mode`, 03/0A); brightness in both families with Synapse's
+  percent rounding; `Rgb` parses/prints `00ff00`; `region` names zone IDs. Implements
+  [[Protocol/Lighting 2.5]]. Untested on hardware (inferred).
 - `hid_usage` — key names ↔ USB-HID keyboard usage IDs and modifier bits (public HID spec).
 - `event` — hardware-event decoder (records 5/9). Implements [[Protocol/Hardware Events]].
 

@@ -287,7 +287,7 @@ synapse_product_id = 3873
 kind = "dock"
 protocol = "2.5"
 connection = ["usb"]
-lighting = { matrix = [4, 8], leds = 12, regions = 1 }
+lighting = { matrix = [4, 8], leds = 12, regions = 1, zones = [5] }
 synapse_class = "rzDevice25"
 evidence = "synapse-manifest"
 
@@ -312,7 +312,7 @@ synapse_product_id = 3922
 kind = "dock"
 protocol = "2.5"
 connection = ["usb"]
-lighting = { matrix = [5, 10], leds = 18, regions = 1 }
+lighting = { matrix = [5, 10], leds = 18, regions = 1, zones = [5] }
 synapse_class = "rzDevice25"
 evidence = "synapse-manifest"
 
@@ -498,7 +498,7 @@ kind = "other"
 protocol = "unknown"
 connection = ["usb"]
 battery = true
-lighting = { matrix = [1, 1], leds = 1, regions = 1 }
+lighting = { matrix = [1, 1], leds = 1, regions = 1, zones = [5] }
 synapse_class = "rzDeviceIoT"
 evidence = "synapse-manifest"
 
@@ -511,7 +511,7 @@ kind = "other"
 protocol = "unknown"
 connection = ["usb"]
 battery = true
-lighting = { matrix = [10, 8], leds = 80, regions = 1 }
+lighting = { matrix = [10, 8], leds = 80, regions = 1, zones = [5] }
 synapse_class = "rzDeviceIoT"
 evidence = "synapse-manifest"
 
@@ -524,7 +524,7 @@ kind = "other"
 protocol = "unknown"
 connection = ["usb"]
 battery = true
-lighting = { matrix = [1, 1], leds = 1, regions = 1 }
+lighting = { matrix = [1, 1], leds = 1, regions = 1, zones = [5] }
 synapse_class = "rzDeviceIoT"
 evidence = "synapse-manifest"
 
@@ -537,7 +537,7 @@ kind = "other"
 protocol = "unknown"
 connection = ["usb"]
 battery = true
-lighting = { matrix = [1, 1], leds = 1, regions = 1 }
+lighting = { matrix = [1, 1], leds = 1, regions = 1, zones = [5] }
 synapse_class = "rzDeviceIoT"
 evidence = "synapse-manifest"
 
@@ -551,7 +551,7 @@ protocol = "unknown"
 connection = ["usb"]
 polling_rates = [125, 500, 1000]
 battery = true
-lighting = { matrix = [1, 240], leds = 240, regions = 1 }
+lighting = { matrix = [1, 240], leds = 240, regions = 1, zones = [26] }
 synapse_class = "rzDeviceIoT"
 evidence = "synapse-manifest"
 
@@ -565,7 +565,7 @@ protocol = "unknown"
 connection = ["usb"]
 polling_rates = [125, 500, 1000]
 battery = true
-lighting = { matrix = [1, 50], leds = 40, regions = 1 }
+lighting = { matrix = [1, 50], leds = 40, regions = 1, zones = [0] }
 synapse_class = "rzDeviceIoT"
 evidence = "synapse-manifest"
 
@@ -578,7 +578,7 @@ kind = "other"
 protocol = "unknown"
 connection = ["usb"]
 battery = true
-lighting = { matrix = [30, 2], leds = 60, regions = 2 }
+lighting = { matrix = [30, 2], leds = 60, regions = 2, zones = [16, 17] }
 synapse_class = "rzDeviceIoT"
 evidence = "synapse-manifest"
 
@@ -906,7 +906,7 @@ synapse_product_id = 3859
 kind = "other"
 protocol = "2.5"
 connection = ["usb"]
-lighting = { matrix = [24, 3], leds = 64, regions = 2 }
+lighting = { matrix = [24, 3], leds = 64, regions = 2, zones = [16, 17] }
 synapse_class = "rzDevice25"
 evidence = "synapse-manifest"
 
@@ -918,7 +918,7 @@ synapse_product_id = 3863
 kind = "other"
 protocol = "2.5"
 connection = ["usb"]
-lighting = { matrix = [24, 2], leds = 40, regions = 2 }
+lighting = { matrix = [24, 2], leds = 40, regions = 2, zones = [16, 17] }
 synapse_class = "rzDevice25"
 evidence = "synapse-manifest"
 
@@ -965,7 +965,7 @@ synapse_product_id = 3871
 kind = "other"
 protocol = "2.5"
 connection = ["usb"]
-lighting = { matrix = [6, 160], leds = 480, regions = 6 }
+lighting = { matrix = [6, 160], leds = 480, regions = 6, zones = [26, 27, 28, 29, 30, 31] }
 synapse_class = "rzDevice25Glitter"
 evidence = "synapse-manifest"
 
@@ -989,7 +989,7 @@ synapse_product_id = 3879
 kind = "other"
 protocol = "2.5"
 connection = ["usb"]
-lighting = { matrix = [24, 2], leds = 48, regions = 1 }
+lighting = { matrix = [24, 2], leds = 48, regions = 1, zones = [5] }
 synapse_class = "rzDevice25"
 evidence = "synapse-manifest"
 
@@ -1026,7 +1026,7 @@ kind = "other"
 protocol = "2.5"
 connection = ["dongle", "bluetooth"]
 bluetooth_pid = 0x0F2D
-lighting = { matrix = [3, 120], leds = 360, regions = 3 }
+lighting = { matrix = [3, 120], leds = 360, regions = 3, zones = [26, 27, 28] }
 synapse_class = "rzDevice25GlitterWireless"
 evidence = "synapse-manifest"
 [[device.variants]]
@@ -1044,7 +1044,7 @@ synapse_product_id = 3893
 kind = "other"
 protocol = "unknown"
 connection = ["usb"]
-lighting = { matrix = [13, 35], leds = 52, regions = 4 }
+lighting = { matrix = [13, 35], leds = 52, regions = 4, zones = [4] }
 synapse_class = "rzDeviceElsa"
 evidence = "synapse-manifest"
 

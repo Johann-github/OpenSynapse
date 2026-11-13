@@ -13,6 +13,8 @@ value types only.
   per enum variant that is never reused. The decoder must consume the whole body.
   A layout change bumps `PROTOCOL_VERSION`. Version 3 added `ErrorKind::NoResponse` (tag 7:
   the device did not answer, e.g. a sleeping mouse; [[Decisions/ADR-0008 User settings and wake hint]]).
+  Version 4 added `WireSetting::Lighting` (tag 5: raw 0x0F effect `profile, region,
+  effect, flags, rate, colour list` + optional brightness; [[Decisions/ADR-0014 Lighting]]).
 - `frame`: `u32` LE length + body, at most 1 MiB. Clean close → `UnexpectedEof`,
   oversize → `InvalidData`.
 - `transport`: Windows named pipe `\\.\pipe\opensynapse-agent-<user SID>` with a

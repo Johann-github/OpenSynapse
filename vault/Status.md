@@ -34,6 +34,12 @@ Next candidates (ask the user):
   the one gate (CLI, agent, GUI). **Inferred, no hardware; no registry device is 4.0 yet.**
   3.0 (BLE GATT) planned only → [[Decisions/ADR-0015 Protocol 4.0 and 3.0 support]],
   [[RE-Log/2026-11-13 Protocol 4.0 frame and device search]].
+- ✅ Lighting / RGB for protocol 2.5 (**untested on hardware**, no RGB device here) →
+  [[Protocol/Lighting 2.5]], [[Decisions/ADR-0014 Lighting]]: extended (0x0F) vs standard (03/0A)
+  family from the Synapse driver class, manifest zone IDs in `data/devices` (99 products),
+  `opensynapse lighting get|set` (off/static/breathing/spectrum/wave, brightness, zones), GUI
+  Lighting section (extended only, accent green default), IPC v4 `WireSetting::Lighting`.
+  Profiles `[lighting]` parked in [[Backlog]].
 - ✅ Release prep: user README, untested-device write warning (registry `tested = true` only for the
   Viper; CLI stderr line, GUI label, `info` shows "Tested with OpenSynapse"), CI on `main`
   (Windows only until the port merge), release workflow, release notes.

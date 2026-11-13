@@ -87,6 +87,8 @@ pub struct App {
     user_settings: UserSettings,
     /// "Per-app profiles" window (`src/app_profiles_view.rs`).
     app_profiles: crate::app_profiles_view::AppProfilesView,
+    /// Lighting editor (`src/lighting_view.rs`); starts at static accent green.
+    lighting: crate::lighting_view::LightingEdit,
 }
 
 impl App {
@@ -124,6 +126,7 @@ impl App {
             stage_persistent: false,
             user_settings: UserSettings::load(),
             app_profiles: Default::default(),
+            lighting: Default::default(),
         };
         app.send(Job::Connect);
         app.send(Job::Scan { reselect: true });
@@ -509,6 +512,12 @@ impl App {
             self.dpi_section(ui, &row, &snap);
             self.polling_section(ui, &row, &snap);
             self.power_section(ui, &snap);
+            if let Some(d) = row.device {
+                let may_write = self.may_write();
+                if let Some(setting) = self.lighting.show(ui, d, may_write) {
+                    self.write(setting);
+                }
+            }
             self.buttons_section(ui, &snap);
         });
     }
@@ -827,7 +836,7 @@ impl eframe::App for App {
     }
 }
 
-fn section(ui: &mut Ui, title: &str, add: impl FnOnce(&mut Ui)) {
+pub(crate) fn section(ui: &mut Ui, title: &str, add: impl FnOnce(&mut Ui)) {
     ui.add_space(6.0);
     ui.group(|ui| {
         ui.set_width(ui.available_width());

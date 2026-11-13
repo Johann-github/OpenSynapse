@@ -14,12 +14,12 @@ use std::fmt;
 use std::ops::RangeInclusive;
 
 use opensynapse_core::{ButtonAction, ButtonId};
-use opensynapse_device_registry::Device;
+use opensynapse_device_registry::{Device, LightingFamily};
 use opensynapse_hid::{FeatureIo, HidError, Session};
 use opensynapse_protocol::buttons::{self, ButtonAssignment, Known, Mode};
 use opensynapse_protocol::device::{self, DeviceMode, FirmwareVersion};
 use opensynapse_protocol::power::{self, BatteryLevel, ChargingStatus};
-use opensynapse_protocol::{ProtocolError, Request, Status, dpi, hid_usage, polling};
+use opensynapse_protocol::{ProtocolError, Request, Status, dpi, hid_usage, lighting, polling};
 
 /// Profile byte for the HyperPolling variant (same default as the CLI; meaning
 /// unconfirmed).
@@ -100,6 +100,40 @@ pub enum Setting {
         storage: dpi::Storage,
         stages: dpi::DpiStages,
     },
+    /// Extended-family (class 0x0F) lighting of one zone: the effect (byte 0 = storage,
+    /// `region` = zone, in [`lighting::Effect::canonical`] form) and optionally the raw
+    /// brightness 0-255. Untested on hardware ([[Decisions/ADR-0014 Lighting]]).
+    Lighting {
+        effect: lighting::Effect,
+        brightness: Option<u8>,
+    },
+}
+
+/// Lighting setting for the GUI's choices (canonical effect form).
+pub fn lighting_setting(
+    storage: lighting::Storage,
+    zone: u8,
+    mode: lighting::Mode,
+    brightness_percent: Option<u8>,
+) -> Setting {
+    Setting::Lighting {
+        effect: lighting::Effect::from_mode(storage, zone, mode),
+        brightness: brightness_percent.map(lighting::percent_to_raw),
+    }
+}
+
+/// `static 00ff00`, or the raw effect bytes when it is not a [`lighting::Mode`].
+pub fn effect_text(e: &lighting::Effect) -> String {
+    match e.mode() {
+        Some(m) => m.to_string(),
+        None => format!(
+            "other (effect {}, flags {}, rate {}, {} colours)",
+            e.effect,
+            e.flags,
+            e.rate,
+            e.colors.len()
+        ),
+    }
 }
 
 /// `mouse button 4`, or the raw function and data when the layout is unknown.
@@ -162,26 +196,54 @@ impl fmt::Display for Setting {
                 stages_text(stages),
                 storage_text(*storage)
             ),
+            Self::Lighting { effect, brightness } => {
+                write!(
+                    f,
+                    "lighting ({}): {}",
+                    lighting::region::name(effect.region),
+                    effect_text(effect)
+                )?;
+                if let Some(raw) = brightness {
+                    write!(f, ", brightness {}%", lighting::raw_to_percent(*raw))?;
+                }
+                if effect.profile == dpi::Storage::Persistent as u8 {
+                    f.write_str(" (saved)")?;
+                }
+                Ok(())
+            }
         }
     }
 }
 
 impl Setting {
-    fn write_request(&self) -> Result<Request, ProtocolError> {
-        match self {
-            Self::Dpi(d) => Ok(dpi::set_dpi(dpi::Storage::Volatile, *d)),
+    /// The reports that write this setting, in order.
+    fn write_requests(&self) -> Result<Vec<Request>, ProtocolError> {
+        let one = match self {
+            Self::Lighting { effect, brightness } => {
+                let mut v = vec![lighting::set_effect(effect)?];
+                if let Some(raw) = brightness {
+                    v.push(lighting::set_brightness(
+                        effect.profile,
+                        effect.region,
+                        *raw,
+                    ));
+                }
+                return Ok(v);
+            }
+            Self::Dpi(d) => dpi::set_dpi(dpi::Storage::Volatile, *d),
             Self::Polling {
                 hz,
                 variant: PollingVariant::Period,
-            } => polling::set_polling_rate(*hz),
+            } => polling::set_polling_rate(*hz)?,
             Self::Polling {
                 hz,
                 variant: PollingVariant::Hyper,
-            } => polling::set_hyper_polling(HYPER_PROFILE, *hz),
-            Self::Sleep(v) => Ok(power::set_sleep_time(*v)),
-            Self::Button(a) => buttons::set_button_assignment(a),
-            Self::DpiStages { storage, stages } => dpi::set_dpi_stages(*storage, stages),
-        }
+            } => polling::set_hyper_polling(HYPER_PROFILE, *hz)?,
+            Self::Sleep(v) => power::set_sleep_time(*v),
+            Self::Button(a) => buttons::set_button_assignment(a)?,
+            Self::DpiStages { storage, stages } => dpi::set_dpi_stages(*storage, stages)?,
+        };
+        Ok(vec![one])
     }
 
     /// Read the current value of the same setting (same polling variant, same
@@ -211,6 +273,25 @@ impl Setting {
                 storage: *storage,
                 stages: query(s, &dpi::get_dpi_stages(*storage), dpi::parse_dpi_stages)?,
             },
+            Self::Lighting { effect, brightness } => {
+                let (p, z) = (effect.profile, effect.region);
+                let mut now = query(s, &lighting::get_effect(p, z), lighting::parse_effect)?;
+                // Compare against the request's bytes 0/1, not the reply's echo.
+                now.profile = p;
+                now.region = z;
+                let bright = match brightness {
+                    Some(_) => Some(query(
+                        s,
+                        &lighting::get_brightness(p, z),
+                        lighting::parse_brightness,
+                    )?),
+                    None => None,
+                };
+                Self::Lighting {
+                    effect: now.canonical(),
+                    brightness: bright,
+                }
+            }
         })
     }
 }
@@ -652,6 +733,9 @@ pub fn validate(new: &Setting, device: Option<&Device>, opts: WriteOpts) -> Resu
                 check_action(a)?;
             }
         }
+        Setting::Lighting { effect, brightness } => {
+            validate_lighting(d, effect, *brightness, opts)?
+        }
         Setting::DpiStages { stages, .. } => {
             let n = stages.stages.len();
             if n == 0 || n > dpi::MAX_DPI_STAGES {
@@ -673,6 +757,46 @@ pub fn validate(new: &Setting, device: Option<&Device>, opts: WriteOpts) -> Resu
                 ));
             }
         }
+    }
+    Ok(())
+}
+
+/// Lighting writes: extended family only, a known zone and storage byte, brightness
+/// only where the class has it, and (except restores) only effects the GUI offers.
+fn validate_lighting(
+    d: &Device,
+    effect: &lighting::Effect,
+    brightness: Option<u8>,
+    opts: WriteOpts,
+) -> Result<(), String> {
+    match d.lighting_family() {
+        Some(LightingFamily::Extended) => {}
+        Some(LightingFamily::Standard) => {
+            return Err(format!(
+                "{} uses the 03/0A matrix effect, which cannot be read back; use the CLI                  (`opensynapse lighting set`)",
+                d.name
+            ));
+        }
+        None => return Err(format!("{} has no lighting OpenSynapse can set", d.name)),
+    }
+    if effect.profile > dpi::Storage::Persistent as u8 {
+        return Err(format!("storage byte {} is not 0 or 1", effect.profile));
+    }
+    let zones = d.lighting_zones();
+    if !zones.is_empty() && !zones.contains(&effect.region) {
+        return Err(format!(
+            "{} is not a lighting zone of this device",
+            lighting::region::name(effect.region)
+        ));
+    }
+    if brightness.is_some() && !d.lighting_brightness() {
+        return Err(format!("{} has no brightness command", d.name));
+    }
+    if !opts.restore && effect.mode().is_none() {
+        return Err(format!(
+            "{} is not an effect the GUI writes",
+            effect_text(effect)
+        ));
     }
     Ok(())
 }
@@ -738,8 +862,8 @@ pub fn guarded_write<D: FeatureIo>(
 ) -> Result<WriteOutcome, WriteFailure> {
     validate(&new, device, opts).map_err(WriteFailure::before_read)?;
     conflict_gate(conflict, opts.confirmed).map_err(WriteFailure::before_read)?;
-    let req = new
-        .write_request()
+    let reqs = new
+        .write_requests()
         .map_err(|e| WriteFailure::before_read(e.to_string()))?;
     let old = new
         .read_current(s)
@@ -748,7 +872,9 @@ pub fn guarded_write<D: FeatureIo>(
         old: Some(old.clone()),
         message: format!("{what}: {e}"),
     };
-    s.execute(&req).map_err(|e| fail("write failed", e))?;
+    for req in &reqs {
+        s.execute(req).map_err(|e| fail("write failed", e))?;
+    }
     let now = new
         .read_current(s)
         .map_err(|e| fail("read-back failed", e))?;

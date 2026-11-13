@@ -3,6 +3,7 @@ use std::io::{self, Cursor};
 use opensynapse_protocol::buttons::{ButtonAssignment, Mode};
 use opensynapse_protocol::device::{DeviceMode, FirmwareVersion};
 use opensynapse_protocol::dpi::{Dpi, DpiStage, DpiStages, Storage};
+use opensynapse_protocol::lighting::{Effect, Mode as LightMode, Rgb};
 use opensynapse_protocol::power::{BatteryLevel, ChargingStatus};
 
 use crate::codec::*;
@@ -62,7 +63,35 @@ fn settings() -> Vec<WireSetting> {
                 stages: vec![],
             },
         },
+        WireSetting::Lighting {
+            effect: Effect::from_mode(Storage::Volatile, 4, LightMode::Static(Rgb(0, 255, 0))),
+            brightness: Some(204),
+        },
+        WireSetting::Lighting {
+            effect: Effect::from_mode(
+                Storage::Persistent,
+                1,
+                LightMode::BreathingDual(Rgb(1, 2, 3), Rgb(4, 5, 6)),
+            ),
+            brightness: None,
+        },
     ]
+}
+
+#[test]
+fn lighting_setting_layout() {
+    let b = encode_client(&ClientFrame::Request {
+        id: 1,
+        req: Request::Write {
+            device: DeviceRef::Pid(0x00B8),
+            setting: settings()[8].clone(),
+            opts: WireWriteOpts::default(),
+        },
+    });
+    // tag 5, storage 0, zone 4, effect 1, flags 0, rate 0, 1 colour (u32 LE), RGB,
+    // Some(204).
+    let want = [5, 0, 4, 1, 0, 0, 1, 0, 0, 0, 0, 255, 0, 1, 204];
+    assert!(b.windows(want.len()).any(|w| w == want), "{b:?}");
 }
 
 fn device_refs() -> Vec<DeviceRef> {

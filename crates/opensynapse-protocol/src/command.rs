@@ -61,6 +61,10 @@ commands! {
     SET_LED_RGB = (0x03, 0x01, 5);
     GET_LED_BRIGHTNESS = (0x03, 0x83, 3);
     SET_LED_BRIGHTNESS = (0x03, 0x03, 3);
+    /// "Get LED ID List": reply `[count, ids…]`.
+    GET_LED_ID_LIST = (0x03, 0x89, 80);
+    /// Standard matrix effect; data_size depends on the effect (1–8). No GET exists.
+    SET_MATRIX_EFFECT = (0x03, 0x0A, 80);
 
     // DPI (class 0x04)
     GET_DPI = (0x04, 0x85, 7);
