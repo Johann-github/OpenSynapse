@@ -14,16 +14,24 @@ updated: 2026-11-12
 | 2 Implementation (protocol, registry, hid, CLI) | ✅ done 2026-11-09 |
 | 3 Hardware test on Viper V3 HyperSpeed + USB capture | ✅ done 2026-11-11 (all button functions incl. off / DPI down, power cycle) |
 | 4 Agent (background service) + GUI | ✅ done 2026-11-12: agent, autostart, per-app profiles + GUI editor (incl. buttons, volatile), install |
+| 5 First release | ✅ **v0.1.0 Windows preview published 2026-11-13** (pre-release) |
 
-## ▶ Resume here (handoff 2026-11-12 → next session)
-**Nothing open in the old "next" list; phase 4 is done. Start by picking from [[Backlog]]**
-(proposed to the user 2026-11-12, ranked):
-1. Battery-level events (07/xx, report 5): leave `opensynapse hid listen` running for a longer
-   session (~10 min setup + waiting, no user action needed).
-2. Linux / macOS (second platform goal; several sessions).
-3. ~~Start-menu shortcut: LinkTargetIDList~~ ✅ done 2026-11-13 (shell-verified, see below).
+## ▶ Resume here (handoff 2026-11-13 → next session)
+**v0.1.0 is out:** https://github.com/Johann-github/OpenSynapse/releases/tag/v0.1.0 (pre-release,
+zip + SHA-256, built by `.github/workflows/release.yml` from tag `v0.1.0` = `f433c8c`).
+Release flow: notes in `docs/release-notes/<tag>.md` → push tag `v*` → workflow makes a **draft**
+→ download + check → user clicks Publish. (Tag v0.1.0's workflow wrote the .sha256 with CRLF; fixed
+by hand in the release and in the workflow, `2bbc532`.)
+Next candidates (ask the user):
+1. Live check: GUI battery % updates from the event (leave GUI open a few hours).
+2. Linux/macOS hardware test (port branch `linux-macos-port`, stages 1–6 done, CI green), then
+   merge it into `main` and switch `main` CI back to all three OSes.
+3. Battery event granularity (longer capture), low-battery warning.
 
 ### 2026-11-13
+- ✅ Release prep: user README, untested-device write warning (registry `tested = true` only for the
+  Viper; CLI stderr line, GUI label, `info` shows "Tested with OpenSynapse"), CI on `main`
+  (Windows only until the port merge), release workflow, release notes.
 - ✅ Battery-level event observed: one `05 31 3E 00 00 01` (62/255 = 24 %) after ~2.5 h of
   `hid listen` (15:52–~18:20, ended by host memory pressure) → [[RE-Log/2026-11-13 Battery event capture]].
 - ✅ App icon drawn in code (`opensynapse-icon`), green accent shared with the GUI
