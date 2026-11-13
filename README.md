@@ -61,6 +61,17 @@ opensynapse agent autostart on|off
 Every write is a dry run unless you add `--apply`; after writing, OpenSynapse reads the value
 back and prints how to restore the old one. `opensynapse <command> --help` lists all options.
 
+## Your device isn't tested yet?
+Help us mark it as tested:
+1. Connect the device (wake a wireless mouse by moving it) and run
+   ```
+   opensynapse report
+   ```
+   It only reads (nothing is written to the device, nothing is sent anywhere) and prints a
+   Markdown block. Serial numbers are masked.
+2. Open a [Device report](https://github.com/Johann-github/OpenSynapse/issues/new?template=device-report.yml)
+   issue, paste the output and tick what you tried and what worked.
+
 ## Privacy and footprint
 No network access at all, no login, no telemetry, no background updater. Config lives in
 `%APPDATA%\OpenSynapse` as TOML. Budgets: CLI < 5 MB, agent < 15 MB RAM idle,

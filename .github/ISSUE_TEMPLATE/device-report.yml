@@ -1,0 +1,56 @@
+name: Device report
+description: Tell us whether OpenSynapse works with your Razer device.
+title: "Device report: "
+labels: ["device-report"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for testing! Reports like this let us mark devices as tested.
+        Please run `opensynapse report` first (read-only, writes nothing, no network)
+        and paste its output below. Serial numbers in it are masked.
+  - type: input
+    id: device
+    attributes:
+      label: Device name
+      description: As printed on the box or by `opensynapse list`.
+      placeholder: Razer Basilisk V3 X HyperSpeed
+    validations:
+      required: true
+  - type: checkboxes
+    id: tried
+    attributes:
+      label: What did you try?
+      options:
+        - label: list / info
+        - label: DPI and DPI stages
+        - label: Polling rate
+        - label: Sleep timer
+        - label: Button assignments
+        - label: Per-app profiles
+        - label: Lighting
+  - type: textarea
+    id: worked
+    attributes:
+      label: What worked
+      placeholder: "dpi set 1600 --apply: worked, read back 1600"
+  - type: textarea
+    id: failed
+    attributes:
+      label: What didn't work
+      description: Commands and the exact error messages, if any.
+  - type: textarea
+    id: report
+    attributes:
+      label: Output of `opensynapse report`
+      description: Run it with the device connected and awake (move the mouse first).
+      render: markdown
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: Windows 11 24H2
+    validations:
+      required: true

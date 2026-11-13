@@ -16,6 +16,7 @@ mod hid_probe;
 mod install;
 mod lifecycle;
 mod profile;
+mod report;
 mod settings;
 
 pub use agent::AgentAction;
@@ -93,6 +94,9 @@ pub enum Command {
         #[command(subcommand)]
         action: HidAction,
     },
+    /// Read-only Markdown report of the connected Razer devices, to paste into a
+    /// "Device report" issue. Never writes; serials are masked.
+    Report,
     /// User settings of the CLI and GUI (`settings.toml`).
     Settings {
         #[command(subcommand)]
@@ -348,7 +352,7 @@ pub(crate) fn untested_warning(device: Option<&Device>) -> Option<String> {
         Some(d) if d.hardware_tested() => None,
         d => Some(format!(
             "Warning: {} has not been tested with OpenSynapse yet; writes may not work as \
-             expected. Reads are safe.",
+             expected. Reads are safe. Please report: opensynapse report",
             d.map_or("this device", |d| d.name.as_str())
         )),
     }
@@ -375,6 +379,9 @@ pub fn run(cli: Cli) -> Result<()> {
     if let Command::Hid { action } = cli.command {
         return hid_probe::run(action, cli.pid);
     }
+    if let Command::Report = cli.command {
+        return report::run(cli.pid);
+    }
     if let Command::Settings { action } = cli.command {
         return settings::run(action);
     }
@@ -397,6 +404,7 @@ pub fn run(cli: Cli) -> Result<()> {
         Command::List
         | Command::Agent { .. }
         | Command::Hid { .. }
+        | Command::Report
         | Command::Settings { .. }
         | Command::Install { .. }
         | Command::Uninstall { .. } => {
@@ -1125,7 +1133,8 @@ mod tests {
             untested_warning(Some(other)).as_deref(),
             Some(
                 "Warning: Razer Basilisk V3 X HyperSpeed has not been tested with OpenSynapse \
-                 yet; writes may not work as expected. Reads are safe."
+                 yet; writes may not work as expected. Reads are safe. Please \
+                 report: opensynapse report"
             )
         );
         assert!(

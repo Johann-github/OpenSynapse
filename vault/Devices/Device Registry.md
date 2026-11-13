@@ -78,6 +78,24 @@ No product in the data uses protocol 4.0 yet (unknown). No fetched manifest name
 `(vid, pid)` → look up primary `pid` or any `variants.pid`. Take the protocol from that
 exact PID (variant overrides device). Use `unknown` to mean "do not talk to it yet".
 
+## Community device reports (how `tested` gets set)
+`tested = true` needs hardware evidence. For devices the maintainer does not own, that
+evidence comes from users:
+1. The user runs `opensynapse report` (read-only: GET commands to protocol 2.5 PIDs only,
+   no writes, no network; serials masked, raw HID paths left out; see
+   `crates/opensynapse-cli/README.md`) and opens a "Device report" issue
+   (`.github/ISSUE_TEMPLATE/device-report.yml`) with the output, what they tried and what
+   worked.
+2. The maintainer reviews it: the PID matches the entry, the control collection opened, the
+   reads returned plausible values (firmware, DPI within the registry range, stages, polling),
+   and the user confirms the writes they tried took effect.
+3. If so, the maintainer sets `tested = true` on that `[[device]]` and adds a TOML comment
+   citing the issue, e.g. `# tested: issue #42 (reporter, Windows 11), observed`. Confidence
+   is `observed` by the reporter, not by the maintainer. Only what the report covers counts:
+   a report without writes still leaves the write paths unverified; note that in the comment.
+4. Report details worth keeping (new collection layouts, failing commands, deviating ranges)
+   go into a device note under `vault/Devices/` or an RE-Log entry before code depends on them.
+
 ## Known gaps
 - 81 Synapse-4 products have no device manifest (mostly 2024+ mice, controllers, audio and
   cameras), so their protocol is `unknown` unless OpenRazer lists the PID. 59 variant PIDs
