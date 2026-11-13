@@ -206,3 +206,37 @@ fn control_entry_filter() {
     };
     assert!(!short_feature.is_control(0));
 }
+
+#[test]
+fn dedup_keeps_collections_sharing_a_path() {
+    // hidapi on Linux lists every top-level collection of a hidraw node under
+    // the same path; the control collection must survive next to the others.
+    let e = |usage_page: u16, usage: u16, path: &str| HidEntry {
+        vid: 0x1532,
+        pid: 0x00B8,
+        interface: 0,
+        usage_page,
+        usage,
+        feature_len: None,
+        input_len: None,
+        output_len: None,
+        path: path.into(),
+    };
+    let mut v = vec![
+        e(0x0001, 0x0006, "/dev/hidraw0"),
+        e(0x0001, 0x0002, "/dev/hidraw0"),
+        e(0x0001, 0x0006, "/dev/hidraw0"),
+        e(0x0001, 0x0000, "/dev/hidraw1"),
+    ];
+    sort_dedup(&mut v);
+    let got: Vec<_> = v.iter().map(|e| (e.path.as_str(), e.usage)).collect();
+    assert_eq!(
+        got,
+        [
+            ("/dev/hidraw0", 2),
+            ("/dev/hidraw0", 6),
+            ("/dev/hidraw1", 0)
+        ]
+    );
+    assert_eq!(v.iter().filter(|e| e.is_control(0)).count(), 1);
+}

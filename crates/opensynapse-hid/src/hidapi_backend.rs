@@ -5,15 +5,21 @@ use std::io;
 
 use crate::{FeatureIo, HidEntry, HidError};
 
-fn io_err(e: hidapi::HidError) -> io::Error {
+pub(crate) fn io_err(e: hidapi::HidError) -> io::Error {
     io::Error::other(e.to_string())
 }
 
-pub struct Device(hidapi::HidDevice);
+/// An open collection; the input reader (`hidapi_input.rs`) takes the inner device.
+pub struct Device(pub(crate) hidapi::HidDevice);
 
 impl Device {
     pub fn open(path: &str) -> io::Result<Self> {
         let api = hidapi::HidApi::new().map_err(io_err)?;
+        // hidapi opens exclusively by default on macOS, which would take the
+        // mouse away from the OS (and fail if anything else holds it). Shared
+        // open, like Windows. inferred from hidapi docs; untested on hardware.
+        #[cfg(target_os = "macos")]
+        api.set_open_exclusive(false);
         let c = CString::new(path).map_err(io::Error::other)?;
         api.open_path(&c).map(Self).map_err(io_err)
     }
