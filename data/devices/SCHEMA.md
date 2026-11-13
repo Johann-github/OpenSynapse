@@ -34,9 +34,11 @@ Rule: only factual values. A field that is not known is **omitted** (never guess
 
 ### `lighting`
 - `{ chroma = false }` — Synapse flags the product as non-Chroma (no user lighting).
-- `{ matrix = [rows, cols], leds = N, regions = R }` — size of the LED matrix Synapse's
-  lighting engine addresses, total LED count over all regions, number of regions. Zone
-  names are not in the source data, so there is no `zones` field yet.
+- `{ matrix = [rows, cols], leds = N, regions = R, zones = [..] }` — size of the LED matrix
+  Synapse's lighting engine addresses, total LED count over all regions, number of regions,
+  and `zones`: the region IDs listed in the device manifest's `ledConfig` (only IDs 0–255;
+  names for the IDs: `vault/Protocol/Lighting 2.5.md`). `zones` is omitted when the
+  manifest lists none.
 
 ### `[[device.variants]]`
 Per alternate PID (receiver or Bluetooth) of the same product:

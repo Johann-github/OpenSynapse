@@ -82,7 +82,9 @@ exact PID (variant overrides device). Use `unknown` to mean "do not talk to it y
 - 81 Synapse-4 products have no device manifest (mostly 2024+ mice, controllers, audio and
   cameras), so their protocol is `unknown` unless OpenRazer lists the PID. 59 variant PIDs
   have no protocol for the same reason.
-- Lighting zone names are not in the data. Only the matrix size and LED count are recorded.
+- Lighting: matrix size, LED count and, for 99 products, the manifest zone IDs
+  (`zones`, added 2026-11-13, [[Protocol/Lighting 2.5]]). The lighting command family
+  comes from `synapse_class` ([[Decisions/ADR-0014 Lighting]]).
 - `transaction_id` comes from OpenRazer. Synapse uses a rolling counter (see
   [[Protocol/Report Format 2.5]]).
 - Kinds for legacy and OpenRazer-only entries are derived from the product name (inferred).

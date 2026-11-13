@@ -8,4 +8,10 @@ variant PIDs, then receiver PIDs.
 product with real hardware" (`tested = true` in the TOML; only the Viper V3 HyperSpeed so
 far). The CLI and the desktop GUI use it to warn before writes; nobody hard-codes PIDs.
 
+`Device::lighting_family()` is the single owner of "which lighting commands does this
+device answer" (extended 0x0F, standard 0x03, or none), picked from the Synapse driver
+class; `lighting_zones()` returns the manifest zone IDs and `lighting_brightness()` is
+false for the `*NoBrightness` classes. Implements [[Protocol/Lighting 2.5]],
+[[Decisions/ADR-0014 Lighting]].
+
 Schema: `data/devices/SCHEMA.md`. Vault: [[Devices/Device Registry]], [[Architecture/Crates]]

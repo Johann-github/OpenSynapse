@@ -159,7 +159,7 @@ kind = "keyboard"
 protocol = "2.5"
 connection = ["usb"]
 transaction_id = 0xFF
-lighting = { matrix = [7, 23], leds = 110, regions = 1 }
+lighting = { matrix = [7, 23], leds = 110, regions = 1, zones = [4] }
 synapse_class = "rzDevice25LedMatrix"
 evidence = "synapse-manifest"
 
@@ -204,7 +204,7 @@ kind = "keyboard"
 protocol = "2.5"
 connection = ["usb"]
 transaction_id = 0xFF
-lighting = { matrix = [7, 18], leds = 88, regions = 1 }
+lighting = { matrix = [7, 18], leds = 88, regions = 1, zones = [4] }
 synapse_class = "rzDevice25LedMatrix"
 evidence = "synapse-manifest"
 
@@ -259,7 +259,7 @@ kind = "keyboard"
 protocol = "2.5"
 connection = ["usb"]
 transaction_id = 0xFF
-lighting = { matrix = [7, 22], leds = 105, regions = 1 }
+lighting = { matrix = [7, 22], leds = 105, regions = 1, zones = [4] }
 synapse_class = "rzDevice25LedMatrix"
 evidence = "synapse-manifest"
 
@@ -283,7 +283,7 @@ kind = "keyboard"
 protocol = "2.5"
 connection = ["usb"]
 transaction_id = 0xFF
-lighting = { matrix = [7, 22], leds = 105, regions = 1 }
+lighting = { matrix = [7, 22], leds = 105, regions = 1, zones = [4] }
 synapse_class = "rzDevice25LedMatrix"
 evidence = "synapse-manifest"
 
@@ -348,7 +348,7 @@ kind = "keyboard"
 protocol = "2.5"
 connection = ["usb"]
 transaction_id = 0x3F
-lighting = { matrix = [7, 23], leds = 110, regions = 1 }
+lighting = { matrix = [7, 23], leds = 110, regions = 1, zones = [4] }
 synapse_class = "rzDevice25ChromaEffect"
 evidence = "synapse-manifest"
 
@@ -383,7 +383,7 @@ kind = "keyboard"
 protocol = "2.5"
 connection = ["usb"]
 transaction_id = 0x3F
-lighting = { matrix = [7, 23], leds = 110, regions = 1 }
+lighting = { matrix = [7, 23], leds = 110, regions = 1, zones = [4] }
 synapse_class = "rzDevice25LedMatrix"
 evidence = "synapse-manifest"
 
@@ -418,7 +418,7 @@ kind = "keyboard"
 protocol = "2.5"
 connection = ["usb"]
 transaction_id = 0x3F
-lighting = { matrix = [11, 24], leds = 166, regions = 2 }
+lighting = { matrix = [11, 24], leds = 166, regions = 2, zones = [10] }
 synapse_class = "rzDevice25"
 evidence = "synapse-manifest"
 
@@ -444,7 +444,7 @@ kind = "keyboard"
 protocol = "2.5"
 connection = ["usb"]
 transaction_id = 0x1F
-lighting = { matrix = [7, 22], leds = 109, regions = 2 }
+lighting = { matrix = [7, 22], leds = 109, regions = 2, zones = [4] }
 synapse_class = "rzDevice25"
 evidence = "synapse-manifest"
 
@@ -457,7 +457,7 @@ kind = "keyboard"
 protocol = "2.5"
 connection = ["usb"]
 transaction_id = 0x3F
-lighting = { matrix = [7, 22], leds = 105, regions = 1 }
+lighting = { matrix = [7, 22], leds = 105, regions = 1, zones = [4] }
 synapse_class = "rzDevice25"
 evidence = "synapse-manifest"
 
@@ -470,7 +470,7 @@ kind = "keyboard"
 protocol = "2.5"
 connection = ["usb"]
 transaction_id = 0x3F
-lighting = { matrix = [7, 24], leds = 127, regions = 2 }
+lighting = { matrix = [7, 24], leds = 127, regions = 2, zones = [4, 10] }
 synapse_class = "rzDevice25"
 evidence = "synapse-manifest"
 
@@ -631,7 +631,7 @@ kind = "keyboard"
 protocol = "2.5"
 connection = ["usb"]
 transaction_id = 0x3F
-lighting = { matrix = [1, 1], leds = 1, regions = 1 }
+lighting = { matrix = [1, 1], leds = 1, regions = 1, zones = [5] }
 synapse_class = "rzDevice25"
 evidence = "synapse-manifest"
 
@@ -658,7 +658,7 @@ kind = "keyboard"
 protocol = "2.5"
 connection = ["usb"]
 transaction_id = 0x3F
-lighting = { matrix = [7, 22], leds = 105, regions = 1 }
+lighting = { matrix = [7, 22], leds = 105, regions = 1, zones = [4] }
 synapse_class = "rzDevice25"
 evidence = "synapse-manifest"
 
@@ -787,7 +787,7 @@ kind = "keyboard"
 protocol = "2.5"
 connection = ["usb"]
 transaction_id = 0x3F
-lighting = { matrix = [7, 22], leds = 107, regions = 1 }
+lighting = { matrix = [7, 22], leds = 107, regions = 1, zones = [4] }
 synapse_class = "rzDevice25"
 evidence = "synapse-manifest"
 
@@ -948,7 +948,7 @@ connection = ["usb", "dongle", "bluetooth"]
 dongle_pid = 0x025C
 bluetooth_pid = 0x025B
 transaction_id = 0x3F
-lighting = { matrix = [7, 22], leds = 110, regions = 2 }
+lighting = { matrix = [7, 22], leds = 110, regions = 2, zones = [4] }
 synapse_class = "rzDevice25"
 evidence = "synapse-manifest"
 [[device.variants]]
@@ -999,7 +999,7 @@ kind = "keyboard"
 protocol = "2.5"
 connection = ["usb"]
 transaction_id = 0x1F
-lighting = { matrix = [10, 24], leds = 148, regions = 2 }
+lighting = { matrix = [10, 24], leds = 148, regions = 2, zones = [10] }
 synapse_class = "rzDevice25"
 evidence = "synapse-manifest"
 
@@ -1351,7 +1351,7 @@ kind = "keyboard"
 protocol = "2.5"
 connection = ["usb"]
 transaction_id = 0x1F
-lighting = { matrix = [1, 1], leds = 1, regions = 1 }
+lighting = { matrix = [1, 1], leds = 1, regions = 1, zones = [5] }
 synapse_class = "rzDevice25"
 evidence = "synapse-manifest"
 
@@ -1474,7 +1474,7 @@ kind = "keyboard"
 protocol = "2.5"
 connection = ["usb"]
 transaction_id = 0x1F
-lighting = { matrix = [1, 1], leds = 1, regions = 1 }
+lighting = { matrix = [1, 1], leds = 1, regions = 1, zones = [5] }
 synapse_class = "rzDevice25"
 evidence = "synapse-manifest"
 
@@ -1750,7 +1750,7 @@ connection = ["usb", "dongle", "bluetooth"]
 dongle_pid = 0x02DA
 bluetooth_pid = 0x02CE
 transaction_id = 0x1F
-lighting = { matrix = [1, 1], leds = 1, regions = 1 }
+lighting = { matrix = [1, 1], leds = 1, regions = 1, zones = [5] }
 synapse_class = "rzDevice25"
 evidence = "synapse-manifest"
 [[device.variants]]

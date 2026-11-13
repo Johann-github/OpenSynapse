@@ -10,7 +10,7 @@ Entry point. Repo root is the vault; code lives in `crates/`.
 - [[Backlog]] — parked items for later
 - [[Architecture/Crates]] — crate map, where code lives
 - [[Protocol/Overview]] — Razer HID protocol families (2.5 / 3.0 / 4.0)
-  - [[Protocol/Report Format 2.5]] · [[Protocol/Commands 2.5]] · [[Protocol/Protocol 3.0 and 4.0]] · [[Protocol/Hardware Events]] · [[Protocol/Windows Transport]]
+  - [[Protocol/Report Format 2.5]] · [[Protocol/Commands 2.5]] · [[Protocol/Protocol 3.0 and 4.0]] · [[Protocol/Lighting 2.5]] · [[Protocol/Hardware Events]] · [[Protocol/Windows Transport]]
 - [[Devices/Device Registry]] — supported devices, PIDs, capabilities
 - [[Architecture/Synapse 4 Anatomy]] — how Synapse 4 is built (RE target map)
 
@@ -22,5 +22,6 @@ Entry point. Repo root is the vault; code lives in `crates/`.
 - [[Decisions/ADR-0007 Per-app profiles]]
 - [[Decisions/ADR-0008 User settings and wake hint]]
 - [[Decisions/ADR-0009 Install location]]
-- RE-Log: [[RE-Log/2026-11-09 Target survey]] · [[RE-Log/2026-11-09 Protocol 2.5]] · [[RE-Log/2026-11-09 Protocol 3.0 4.0 and events]] · [[RE-Log/2026-11-09 Windows transport]] · [[RE-Log/2026-11-09 Device database]] · [[RE-Log/2026-11-09 Hardware read test]] · [[RE-Log/2026-11-09 Button remap capture]]
+- [[Decisions/ADR-0014 Lighting]]
+- RE-Log: [[RE-Log/2026-11-09 Target survey]] · [[RE-Log/2026-11-09 Protocol 2.5]] · [[RE-Log/2026-11-09 Protocol 3.0 4.0 and events]] · [[RE-Log/2026-11-09 Windows transport]] · [[RE-Log/2026-11-09 Device database]] · [[RE-Log/2026-11-09 Hardware read test]] · [[RE-Log/2026-11-09 Button remap capture]] · [[RE-Log/2026-11-13 Lighting]]
 - Templates: [[Templates/RE-Log]], [[Templates/Protocol Command]], [[Templates/Device]]
