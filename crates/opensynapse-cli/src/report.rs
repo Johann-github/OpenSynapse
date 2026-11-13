@@ -355,10 +355,12 @@ fn render_device(s: &mut String, d: &DeviceReport) {
         }
         None => s.push_str("- Registry: not listed\n"),
     }
+    // Error texts may quote a device path (e.g. hidapi "failed to open ..."): hide it.
+    let hide = |t: &str| hide_paths(t, d.collections.iter().map(|c| c.entry.path.as_str()));
     let control = match &d.control {
         Control::NotFound => "not found".to_string(),
         Control::Opened => "opened".to_string(),
-        Control::OpenFailed(e) => format!("open failed: {}", cell(e)),
+        Control::OpenFailed(e) => format!("open failed: {}", cell(&hide(e))),
     };
     let _ = writeln!(s, "- Control collection: {control}");
 
@@ -371,7 +373,7 @@ fn render_device(s: &mut String, d: &DeviceReport) {
             s,
             "| {} | {} | {:04X}/{:04X} | {} | {} | {} | {} |",
             e.interface,
-            cell(&hid_probe::short_path(&e.path)),
+            cell(&report_path(&e.path)),
             e.usage_page,
             e.usage,
             len(e.input_len),
@@ -382,14 +384,14 @@ fn render_device(s: &mut String, d: &DeviceReport) {
     }
 
     if let Some(why) = &d.reads_skipped {
-        let _ = writeln!(s, "\nReads: skipped ({})", cell(why));
+        let _ = writeln!(s, "\nReads: skipped ({})", cell(&hide(why)));
         return;
     }
     s.push_str("\nReads:\n\n| Setting | Result |\n|---|---|\n");
     for f in &d.reads {
         let value = match &f.value {
             Ok(v) => cell(v),
-            Err(e) => format!("error: {}", cell(e)),
+            Err(e) => format!("error: {}", cell(&hide(e))),
         };
         let _ = writeln!(s, "| {} | {value} |", cell(&f.label));
     }
@@ -404,8 +406,55 @@ fn render_device(s: &mut String, d: &DeviceReport) {
     }
 }
 
+/// Collection label for the report: `MI_xx COLyy`, or `-` when the path has no
+/// such parts. Never the raw path (instance IDs, Bluetooth addresses).
+fn report_path(path: &str) -> String {
+    hid_probe::path_parts(path).unwrap_or_else(|| "-".to_owned())
+}
+
+/// `text` with every occurrence of the given device paths (case-insensitive)
+/// replaced by `<path>`.
+fn hide_paths<'a>(text: &str, paths: impl Iterator<Item = &'a str>) -> String {
+    let mut out = text.to_owned();
+    for p in paths.filter(|p| !p.is_empty()) {
+        let (lower, needle) = (out.to_ascii_lowercase(), p.to_ascii_lowercase());
+        let mut s = String::with_capacity(out.len());
+        let mut last = 0;
+        for (i, _) in lower.match_indices(&needle) {
+            s.push_str(&out[last..i]);
+            s.push_str("<path>");
+            last = i + needle.len();
+        }
+        s.push_str(&out[last..]);
+        out = s;
+    }
+    out
+}
+
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn report_path_never_leaks_the_raw_path() {
+        use super::report_path;
+        assert_eq!(
+            report_path(r"\\?\hid#vid_1532&pid_00b8&mi_01&col05#9&2c261f7&0&0004#{guid}"),
+            "MI_01 COL05"
+        );
+        for raw in [
+            r"\\?\hid#vid_1532&pid_0099#7&1a2b3c4d&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}",
+            "/dev/hidraw3",
+            "IOService:/AppleACPIPlatformExpert/PCI0@0/XHC1@14/Razer@14200000",
+            r"\\?\hid#{00001124-0000-1000-8000-00805f9b34fb}_dev_vid&021532_pid&00b8#a1b2c3d4e5f6",
+        ] {
+            assert_eq!(report_path(raw), "-", "{raw}");
+        }
+        let e = "Failed to open a device with path '/DEV/hidraw3': Permission denied";
+        assert_eq!(
+            super::hide_paths(e, ["/dev/hidraw3"].into_iter()),
+            "Failed to open a device with path '<path>': Permission denied"
+        );
+    }
+
     use super::*;
     use opensynapse_hid::HidEntry;
 
