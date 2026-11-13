@@ -21,6 +21,7 @@
 - Battery / charging events: which event id, and when are they sent? ~~Plug in the charging cable during a listen.~~
   Not testable on the Viper V3 HyperSpeed: it runs on one AA battery and has no charging (user, 2026-11-11).
   Battery-level events may still come when the level changes; needs a long `hid listen` or another device.
+  ✅ Observed 2026-11-13: [[RE-Log/2026-11-13 Battery event capture]].
 - COL05/07/08 stay silent; maybe used by other event types or a second device.
 
 ## Next
