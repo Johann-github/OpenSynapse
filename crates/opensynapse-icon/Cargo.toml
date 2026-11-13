@@ -1,0 +1,13 @@
+[package]
+name = "opensynapse-icon"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "The OpenSynapse app icon, drawn in code: RGBA, PNG, ICO and a Windows .res for build scripts."
+
+[lints]
+workspace = true
+
+[dependencies]

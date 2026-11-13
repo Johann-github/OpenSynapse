@@ -20,6 +20,8 @@ opensynapse-sys.workspace = true
 # `Settings` (settings.toml, wake hint, ADR-0008) and `Profile`/`AppProfiles` for the
 # per-app editor (ADR-0007); adds serde + toml, already in the workspace.
 opensynapse-core.workspace = true
+# Window icon, drawn in code (no image decoder needed).
+opensynapse-icon.workspace = true
 # Lean (ADR-0002): no wgpu, no accesskit, no persistence/serde, no clipboard/links,
 # no system fonts. `glow` (OpenGL) is the smallest native renderer; `default_fonts`
 # is needed to draw any text.
@@ -32,3 +34,6 @@ eframe = { version = "0.37", default-features = false, features = ["glow", "defa
 [[bin]]
 name = "opensynapse-desktop"
 path = "src/main.rs"
+
+[build-dependencies]
+opensynapse-icon.workspace = true

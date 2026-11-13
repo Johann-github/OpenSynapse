@@ -12,6 +12,7 @@ members = [
     "crates/opensynapse-ipc",
     "crates/opensynapse-agent",
     "crates/opensynapse-sys",
+    "crates/opensynapse-icon",
 ]
 default-members = ["crates/opensynapse"]
 
@@ -32,6 +33,7 @@ opensynapse-cli = { path = "crates/opensynapse-cli" }
 opensynapse-device = { path = "crates/opensynapse-device" }
 opensynapse-ipc = { path = "crates/opensynapse-ipc" }
 opensynapse-sys = { path = "crates/opensynapse-sys" }
+opensynapse-icon = { path = "crates/opensynapse-icon" }
 # Linux/macOS only; Windows uses windows-sys directly (ADR-0003).
 hidapi = "2"
 # Linux only (hotplug netlink socket, ADR-0010); hidapi already depends on it.

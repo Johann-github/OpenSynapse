@@ -38,3 +38,6 @@ opensynapse-device = { workspace = true, features = ["fake"] }
 [[bin]]
 name = "opensynapse-agent"
 path = "src/main.rs"
+
+[build-dependencies]
+opensynapse-icon.workspace = true
