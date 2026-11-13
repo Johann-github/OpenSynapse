@@ -21,3 +21,7 @@ windows-sys.workspace = true
 
 [target.'cfg(not(windows))'.dependencies]
 hidapi.workspace = true
+
+# Hotplug syscalls (ADR-0010); already in the tree through hidapi.
+[target.'cfg(target_os = "linux")'.dependencies]
+libc.workspace = true

@@ -1813,6 +1813,7 @@ name = "opensynapse-hid"
 version = "0.1.0"
 dependencies = [
  "hidapi",
+ "libc",
  "opensynapse-device-registry",
  "opensynapse-protocol",
  "thiserror 2.0.21",

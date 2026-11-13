@@ -13,7 +13,7 @@ below is checked by GitHub Actions until a hardware test is possible.
 |---|---|---|
 | HID feature reports | own SetupAPI backend ([[Decisions/ADR-0003 Own Windows HID backend]]) | `hidapi_backend.rs`, never compiled |
 | HID input reports (events) | `windows_input.rs` | `input::spawn` → `Unsupported` |
-| Hotplug | `windows_hotplug.rs` | `Unsupported` |
+| Hotplug | `windows_hotplug.rs` | Linux: udev netlink ([[Decisions/ADR-0010 Linux hotplug]]); macOS `Unsupported` |
 | IPC | named pipe | `transport/unix.rs`, socket in `$XDG_RUNTIME_DIR` (compile-only; macOS has no `XDG_RUNTIME_DIR`) |
 | Autostart | HKCU Run ([[Decisions/ADR-0006 Agent autostart]]) | `Unsupported` |
 | Install location | `%LOCALAPPDATA%\Programs` ([[Decisions/ADR-0009 Install location]]) | none |
@@ -35,6 +35,11 @@ below is checked by GitHub Actions until a hardware test is possible.
    - Part 1 ✅ **udev rule** (2026-11-13): `data/udev/70-opensynapse.rules`, printed by
      `opensynapse udev-rule` (owner: `opensynapse_sys::udev::UDEV_RULE`). See
      [[#Linux setup]]. Not hardware-tested.
+   - Part 3 ✅ **hotplug** (2026-11-13): netlink `NETLINK_KOBJECT_UEVENT`, udev group 2, one thread in
+     `poll` + eventfd stop; `libc` (already in the tree through hidapi), so no new crate →
+     [[Decisions/ADR-0010 Linux hotplug]]. Parser unit-tested on Windows, Linux code
+     type-checked + clippy-clean locally (`--target x86_64-unknown-linux-gnu`), CI pending.
+     Confidence **inferred** (no hardware test yet).
 4. **Linux agent**: autostart as an XDG autostart `.desktop` file or a systemd user unit (ADR),
    install to `~/.local/bin`, socket as today.
 5. **macOS**: hidapi IOKit (check: non-exclusive open, so the OS keeps the mouse), socket path
