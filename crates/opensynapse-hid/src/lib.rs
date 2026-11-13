@@ -16,6 +16,9 @@ use opensynapse_protocol::{
 
 pub mod hotplug;
 pub mod input;
+#[cfg(target_os = "linux")]
+mod linux_hotplug;
+mod uevent;
 #[cfg(windows)]
 mod windows_hotplug;
 #[cfg(windows)]

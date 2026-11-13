@@ -1,12 +1,15 @@
 //! Device arrival/removal notifications without polling. Windows:
 //! `CM_Register_Notification` on the HID interface class (`windows_hotplug.rs`);
-//! other platforms: unsupported for now.
+//! Linux: udev uevents over a netlink socket (`linux_hotplug.rs`, parsing in
+//! `uevent.rs`); other platforms: unsupported for now.
 //!
-//! Decision: `vault/Decisions/ADR-0005 Agent IPC.md` (hotplug section).
+//! Decisions: `vault/Decisions/ADR-0005 Agent IPC.md` (hotplug section),
+//! `vault/Decisions/ADR-0010 Linux hotplug.md`.
 
 use crate::HidError;
 
-/// A Razer HID interface appeared or went away (lowercase symbolic link path).
+/// A Razer HID interface appeared or went away. `path` is the lowercase symbolic
+/// link on Windows and the `/dev/hidrawN` node on Linux.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum HotplugEvent {
     Arrived { path: String },
@@ -14,7 +17,7 @@ pub enum HotplugEvent {
 }
 
 /// The closure registered with [`watch`].
-#[cfg_attr(not(windows), allow(dead_code))]
+#[cfg_attr(not(any(windows, target_os = "linux")), allow(dead_code))]
 pub(crate) type Callback = Box<dyn Fn(HotplugEvent) + Send + Sync>;
 
 /// Active registration; dropping it unregisters the callback (and waits for a
@@ -22,7 +25,9 @@ pub(crate) type Callback = Box<dyn Fn(HotplugEvent) + Send + Sync>;
 pub struct HotplugWatch {
     #[cfg(windows)]
     _reg: crate::windows_hotplug::Registration,
-    #[cfg(not(windows))]
+    #[cfg(target_os = "linux")]
+    _watch: crate::linux_hotplug::Watcher,
+    #[cfg(not(any(windows, target_os = "linux")))]
     _priv: (),
 }
 
@@ -34,7 +39,8 @@ pub fn is_vendor_path(path: &str, vid: u16) -> bool {
 }
 
 /// Call `f` for every HID interface of vendor `vid` that arrives or is removed.
-/// `f` runs on a system thread and must only hand the event off.
+/// `f` runs on a system thread (Windows) or the watcher thread (Linux) and must
+/// only hand the event off. Never drop the [`HotplugWatch`] from inside `f`.
 pub fn watch(
     vid: u16,
     f: impl Fn(HotplugEvent) + Send + Sync + 'static,
@@ -44,7 +50,12 @@ pub fn watch(
         let reg = crate::windows_hotplug::register(vid, Box::new(f))?;
         Ok(HotplugWatch { _reg: reg })
     }
-    #[cfg(not(windows))]
+    #[cfg(target_os = "linux")]
+    {
+        let watch = crate::linux_hotplug::spawn(vid, Box::new(f))?;
+        Ok(HotplugWatch { _watch: watch })
+    }
+    #[cfg(not(any(windows, target_os = "linux")))]
     {
         let _ = (vid, f);
         Err(HidError::Io(std::io::Error::from(
@@ -71,7 +82,7 @@ mod tests {
         assert!(is_vendor_path(r"\\?\hid#vid_0001&pid_0002#x", 0x0001));
     }
 
-    #[cfg(windows)]
+    #[cfg(any(windows, target_os = "linux"))]
     #[test]
     fn register_and_drop() {
         // Smoke test: registration succeeds and unregisters cleanly.
@@ -79,7 +90,7 @@ mod tests {
         drop(w);
     }
 
-    #[cfg(not(windows))]
+    #[cfg(not(any(windows, target_os = "linux")))]
     #[test]
     fn unsupported_elsewhere() {
         assert!(watch(0x1532, |_| {}).is_err());
