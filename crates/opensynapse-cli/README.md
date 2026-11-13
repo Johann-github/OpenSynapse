@@ -1,7 +1,7 @@
 # opensynapse-cli
 
 CLI dispatch: `list`, `info`, `battery`, `dpi get|set`, `dpi-stages [get|set]`,
-`polling get|set`, `sleep get|set`, `buttons get|set|list`, `profile export|apply`, `agent ping|devices|snapshot|apply|watch|stop|start|autostart|app-profiles [reload]`, `install`, `uninstall`. Global
+`polling get|set`, `sleep get|set`, `buttons get|set|list`, `profile export|apply`, `agent ping|devices|snapshot|apply|watch|stop|start|autostart|app-profiles [reload]`, `install`, `uninstall`, `udev-rule` (prints the Linux udev rule to stdout and install steps to stderr; never writes). Global
 `--pid <hex>` and `-v` (log every report).
 
 Writes are dry runs unless `--apply`; they read the old value first, write, read back,

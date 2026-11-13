@@ -117,6 +117,10 @@ pub enum Command {
         #[arg(long)]
         dir: Option<PathBuf>,
     },
+    /// Linux: print the udev rule that lets the logged-in user open Razer
+    /// hidraw nodes without root (stdout), and how to install it (stderr).
+    /// Only prints; never writes to /etc.
+    UdevRule,
 }
 
 #[derive(Subcommand)]
@@ -318,6 +322,20 @@ fn parse_hex_u16(s: &str) -> Result<u16, String> {
     u16::from_str_radix(t, 16).map_err(|e| format!("not a hex PID: {e}"))
 }
 
+/// `udev-rule`: the rule on stdout (so `> 70-opensynapse.rules` saves a clean
+/// file), the install steps on stderr. Pure text, works on every OS.
+fn udev_rule() -> Result<()> {
+    use opensynapse_sys::udev;
+    print!("{}", udev::UDEV_RULE);
+    eprintln!(
+        "\nSave the rule above as {} (e.g. `opensynapse udev-rule > {}`), then install it:\n{}",
+        udev::RULE_FILE_NAME,
+        udev::RULE_FILE_NAME,
+        udev::install_hint()
+    );
+    Ok(())
+}
+
 pub fn run(cli: Cli) -> Result<()> {
     if cli.verbose {
         tracing_subscriber::fmt()
@@ -341,6 +359,9 @@ pub fn run(cli: Cli) -> Result<()> {
     if let Command::Uninstall { dir } = cli.command {
         return install::uninstall(dir);
     }
+    if let Command::UdevRule = cli.command {
+        return udev_rule();
+    }
     let transport = Transport::new().context("cannot enumerate HID devices")?;
     if let Command::List = cli.command {
         return list(&transport);
@@ -353,7 +374,8 @@ pub fn run(cli: Cli) -> Result<()> {
         | Command::Hid { .. }
         | Command::Settings { .. }
         | Command::Install { .. }
-        | Command::Uninstall { .. } => {
+        | Command::Uninstall { .. }
+        | Command::UdevRule => {
             unreachable!()
         }
         Command::Info => info(&mut dev),
@@ -1069,6 +1091,13 @@ mod tests {
         assert_eq!(parse_hex_u16("00B8"), Ok(0x00B8));
         assert_eq!(parse_hex_u16("0x00b8"), Ok(0x00B8));
         assert!(parse_hex_u16("zz").is_err());
+    }
+
+    #[test]
+    fn udev_rule_parses() {
+        let cli = Cli::try_parse_from(["opensynapse", "udev-rule"]).unwrap();
+        assert!(matches!(cli.command, Command::UdevRule));
+        assert!(Cli::try_parse_from(["opensynapse", "udev-rule", "extra"]).is_err());
     }
 
     #[test]

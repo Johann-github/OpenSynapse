@@ -1,0 +1,21 @@
+# OpenSynapse: let the logged-in user open the hidraw nodes of Razer devices
+# (USB vendor ID 1532) without root.
+#
+# Install:
+#   sudo cp 70-opensynapse.rules /etc/udev/rules.d/
+#   sudo udevadm control --reload-rules && sudo udevadm trigger
+# then unplug and replug the device (or its receiver).
+#
+# TAG+="uaccess" asks systemd-logind to grant an ACL on the node to whoever owns
+# the active local seat session; the access goes away when that user logs out or
+# switches away. The file name sorts before 73-seat-late.rules, which is where
+# the tag is turned into the ACL. No world-writable mode is set.
+
+# USB (wired, or through the wireless receiver): a parent USB device carries the
+# Razer vendor ID.
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="1532", TAG+="uaccess"
+
+# Bluetooth: there is no USB parent. The parent HID device is named
+# "<bus>:<vendor>:<product>.<instance>", with bus 0005 for Bluetooth
+# (its HID_ID reads 0005:00001532:<product>).
+SUBSYSTEM=="hidraw", KERNELS=="0005:1532:*", TAG+="uaccess"

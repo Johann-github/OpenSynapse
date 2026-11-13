@@ -32,6 +32,9 @@ below is checked by GitHub Actions until a hardware test is possible.
    1532) so no root is needed; input reports via a reader thread (blocking read, no polling);
    hotplug without polling (udev netlink monitor or inotify on `/dev`, needs an ADR + dependency
    check against [[Decisions/ADR-0002 Lean by design]]).
+   - Part 1 ✅ **udev rule** (2026-11-13): `data/udev/70-opensynapse.rules`, printed by
+     `opensynapse udev-rule` (owner: `opensynapse_sys::udev::UDEV_RULE`). See
+     [[#Linux setup]]. Not hardware-tested.
 4. **Linux agent**: autostart as an XDG autostart `.desktop` file or a systemd user unit (ADR),
    install to `~/.local/bin`, socket as today.
 5. **macOS**: hidapi IOKit (check: non-exclusive open, so the OS keeps the mouse), socket path
@@ -40,6 +43,26 @@ below is checked by GitHub Actions until a hardware test is possible.
    generic API (stay `Unsupported`); macOS `NSWorkspace` activation notifications.
 7. **Hardware test** on a real Linux/macOS machine with the Viper (or WSL2 + usbipd): same
    checklist as phase 3 ([[RE-Log/2026-11-09 Hardware read test]]).
+
+## Linux setup
+hidraw nodes (`/dev/hidraw*`) are root-only by default. OpenSynapse ships a udev rule instead
+of asking for root or a world-writable mode:
+
+    opensynapse udev-rule > 70-opensynapse.rules
+    sudo cp 70-opensynapse.rules /etc/udev/rules.d/
+    sudo udevadm control --reload-rules && sudo udevadm trigger
+
+then replug the device or receiver. The command only prints (rule on stdout, steps on stderr).
+
+| Claim | Confidence | Evidence |
+|---|---|---|
+| `TAG+="uaccess"` makes systemd-logind put an ACL for the active seat user on the node | inferred | systemd `uaccess` convention (applied by `73-seat-late.rules`, so our file must sort before 73) |
+| USB and receiver: a parent USB device has `idVendor` 1532, matched with `ATTRS{idVendor}` | inferred | standard udev parent walk; Razer VID from [[Devices/Viper V3 HyperSpeed]] / `data/devices/` |
+| Bluetooth: no USB parent; the HID parent is named `0005:1532:<PID>.<n>` (HID_ID `0005:00001532:…`), matched with `KERNELS=="0005:1532:*"` | inferred | kernel HID device naming (`bus:vendor:product.instance`, 4 hex digits) |
+| No `MODE=` / `0666`: other users and system services get no access | observed | rule text, unit test `rule_sets_no_open_mode` |
+
+Untested on hardware. Systems without systemd-logind (no `uaccess`) need a group-based rule
+instead; not covered yet.
 
 ## Open questions
 - Does hidapi on Linux report usage page/usage per collection for the Viper (needed for the

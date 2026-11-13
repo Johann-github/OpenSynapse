@@ -15,6 +15,9 @@ OS integration, kept out of the pure crates. Decisions: [[Decisions/ADR-0006 Age
   leftovers), plus `copy_file` (temp + rename, running exe renamed to `.old`).
 - `shortcut`: pure `.lnk` encoder ([MS-SHLLINK], no COM) and the Start-menu folder; used by
   `install` for the GUI shortcut.
+- `udev`: the Linux udev rule `data/udev/70-opensynapse.rules` (`UDEV_RULE`, embedded with
+  `include_str!`, one owner) plus `install_hint`. Plain text on every OS; printed by
+  `opensynapse udev-rule`. [[Architecture/Linux and macOS port]]
 - `Process`: open a process by pid, read its image path, block until it exits (no polling).
 - `spawn_detached`: the generic detached spawn behind `spawn_agent_detached`.
 - `spawn_agent_detached`: starts `agent_exe` with `DETACHED_PROCESS |

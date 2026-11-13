@@ -33,6 +33,7 @@ pub const GUI_EXE: &str = if cfg!(windows) {
 
 pub mod install;
 pub mod shortcut;
+pub mod udev;
 
 /// The agent binary next to the running executable (dev builds: CLI and GUI
 /// in `target/release` beside it).
