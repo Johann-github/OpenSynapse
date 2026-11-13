@@ -1728,6 +1728,7 @@ dependencies = [
  "anyhow",
  "clap",
  "opensynapse-cli",
+ "opensynapse-icon",
 ]
 
 [[package]]
@@ -1738,6 +1739,7 @@ dependencies = [
  "opensynapse-device",
  "opensynapse-device-registry",
  "opensynapse-hid",
+ "opensynapse-icon",
  "opensynapse-ipc",
  "opensynapse-protocol",
  "opensynapse-sys",
@@ -1782,6 +1784,7 @@ dependencies = [
  "opensynapse-device",
  "opensynapse-device-registry",
  "opensynapse-hid",
+ "opensynapse-icon",
  "opensynapse-ipc",
  "opensynapse-protocol",
  "opensynapse-sys",
@@ -1819,6 +1822,10 @@ dependencies = [
  "tracing",
  "windows-sys 0.61.2",
 ]
+
+[[package]]
+name = "opensynapse-icon"
+version = "0.1.0"
 
 [[package]]
 name = "opensynapse-ipc"
