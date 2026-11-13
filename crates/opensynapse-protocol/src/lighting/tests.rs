@@ -228,3 +228,15 @@ fn mode_text() {
     );
     assert_eq!(Mode::Wave(WaveDirection::Two).to_string(), "wave 2");
 }
+
+#[test]
+fn canonical_effects() {
+    // A static read back with an odd rate byte is the same static.
+    let mut read = Effect::from_mode(Storage::Persistent, 4, Mode::Static(GREEN));
+    read.rate = 9;
+    let want = Effect::from_mode(Storage::Persistent, 4, Mode::Static(GREEN));
+    assert_eq!(read.canonical(), want);
+    // Unknown effects stay raw.
+    read.effect = effect::REACTIVE;
+    assert_eq!(read.canonical(), read);
+}

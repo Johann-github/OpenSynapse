@@ -523,3 +523,100 @@ fn primary_guard_names_the_button() {
     let e = primary_guard(2, false).unwrap_err();
     assert!(e.contains("Right click") && e.contains("allow editing left/right click"));
 }
+
+/// A registry device with extended (0x0F) lighting and zones wheel, logo, underglow.
+fn rgb_mouse() -> &'static Device {
+    Registry::embedded()
+        .devices()
+        .iter()
+        .find(|d| {
+            d.lighting_family() == Some(LightingFamily::Extended)
+                && d.lighting_zones() == [1, 4, 10]
+                && d.lighting_brightness()
+        })
+        .expect("an extended-lighting mouse in the registry")
+}
+
+const GREEN: lighting::Rgb = lighting::Rgb(0, 0xFF, 0);
+
+/// Fake mouse whose logo (volatile storage) runs spectrum at full brightness.
+fn lit_mouse() -> FakeMouse {
+    let m = FakeMouse::new();
+    let spectrum =
+        lighting::Effect::from_mode(lighting::Storage::Volatile, 4, lighting::Mode::Spectrum);
+    m.state().lighting.insert((0, 4), (spectrum, 255));
+    m
+}
+
+#[test]
+fn lighting_write_verifies_and_restores() {
+    let m = lit_mouse();
+    let mut s = session(&m);
+    let new = lighting_setting(
+        lighting::Storage::Volatile,
+        4,
+        lighting::Mode::Static(GREEN),
+        Some(80),
+    );
+    let out = guarded_write(&mut s, new.clone(), Some(rgb_mouse()), None, NO_OPTS).unwrap();
+    assert!(out.verified(), "{out:?}");
+    assert_eq!(out.now, new);
+    assert_eq!(
+        out.old.to_string(),
+        "lighting (logo): spectrum, brightness 100%"
+    );
+    assert_eq!(
+        out.new.to_string(),
+        "lighting (logo): static 00ff00, brightness 80%"
+    );
+    {
+        let st = m.state();
+        let (e, b) = &st.lighting[&(0, 4)];
+        assert_eq!((e.mode(), *b), (Some(lighting::Mode::Static(GREEN)), 204));
+    }
+    // Effect first, then brightness.
+    let sets: Vec<(u8, u8)> = m
+        .sent()
+        .into_iter()
+        .filter(|(_, id)| id & 0x80 == 0)
+        .collect();
+    assert_eq!(sets, [(0x0F, 0x02), (0x0F, 0x04)]);
+    let back = guarded_write(&mut s, out.old, Some(rgb_mouse()), None, RESTORE).unwrap();
+    assert!(back.verified());
+    assert_eq!(
+        m.state().lighting[&(0, 4)].0.mode(),
+        Some(lighting::Mode::Spectrum)
+    );
+}
+
+#[test]
+fn lighting_refused_without_extended_family() {
+    let m = lit_mouse();
+    let new = lighting_setting(lighting::Storage::Volatile, 4, lighting::Mode::Off, None);
+    // The Viper is non-Chroma.
+    let err =
+        guarded_write(&mut session(&m), new.clone(), Some(viper()), None, NO_OPTS).unwrap_err();
+    assert!(err.message.contains("no lighting"), "{}", err.message);
+    // A zone the device does not have.
+    let bad = lighting_setting(lighting::Storage::Volatile, 5, lighting::Mode::Off, None);
+    assert!(guarded_write(&mut session(&m), bad, Some(rgb_mouse()), None, NO_OPTS).is_err());
+    // Standard-family devices are CLI-only.
+    let kb = Registry::embedded()
+        .devices()
+        .iter()
+        .find(|d| d.lighting_family() == Some(LightingFamily::Standard))
+        .unwrap();
+    let err = validate(&new, Some(kb), NO_OPTS).unwrap_err();
+    assert!(err.contains("CLI"), "{err}");
+    assert_eq!(m.writes(), 0);
+}
+
+#[test]
+fn lighting_unreadable_zone_is_never_written() {
+    let m = lit_mouse();
+    // Zone 1 (wheel) is valid for the device, but the fake does not answer it.
+    let new = lighting_setting(lighting::Storage::Volatile, 1, lighting::Mode::Off, None);
+    let err = guarded_write(&mut session(&m), new, Some(rgb_mouse()), None, NO_OPTS).unwrap_err();
+    assert!(err.old.is_none());
+    assert_eq!(m.writes(), 0);
+}

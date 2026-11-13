@@ -7,12 +7,14 @@
 use opensynapse_protocol::buttons::ButtonAssignment;
 use opensynapse_protocol::device::{DeviceMode, FirmwareVersion};
 use opensynapse_protocol::dpi::{self, Dpi, DpiStages};
+use opensynapse_protocol::lighting::Effect;
 use opensynapse_protocol::power::{BatteryLevel, ChargingStatus};
 
 /// Wire protocol version, exchanged in the handshake.
 /// 2: per-app profiles (`ReloadAppProfiles`, `AppProfiles`, `Event::AppProfile`).
 /// 3: `ErrorKind::NoResponse` (device did not answer, e.g. asleep).
-pub const PROTOCOL_VERSION: u16 = 3;
+/// 4: `WireSetting::Lighting` (ADR-0014).
+pub const PROTOCOL_VERSION: u16 = 4;
 
 /// What a connection is for, fixed in the handshake.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -88,6 +90,12 @@ pub enum WireSetting {
     DpiStages {
         storage: dpi::Storage,
         stages: DpiStages,
+    },
+    /// Extended-family lighting of one zone: raw effect (byte 0 = storage, `region` =
+    /// zone) and optional raw brightness 0-255.
+    Lighting {
+        effect: Effect,
+        brightness: Option<u8>,
     },
 }
 

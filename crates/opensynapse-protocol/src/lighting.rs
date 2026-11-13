@@ -195,6 +195,21 @@ impl Effect {
     }
 }
 
+impl Effect {
+    /// The form OpenSynapse writes for the same [`Mode`] (keeping byte 0 and the
+    /// zone), so a read-back compares equal to the request even when the device
+    /// reports other flag/rate bytes. Effects without a mode stay raw.
+    pub fn canonical(&self) -> Self {
+        match self.mode() {
+            Some(m) => Self {
+                profile: self.profile,
+                ..Self::from_mode(Storage::Volatile, self.region, m)
+            },
+            None => self.clone(),
+        }
+    }
+}
+
 const EFFECT_HEADER: usize = 6;
 
 /// 0F/02: `[profile, region, effect, flags, rate, n, n × RGB]`, data_size `6 + 3·n`.
