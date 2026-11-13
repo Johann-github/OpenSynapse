@@ -120,12 +120,13 @@ mod tests {
             AutostartState::from_read(Ok(None), Some(exe)),
             AutostartState::Off
         );
-        let mine = format!("\"{EXE}\"");
+        // This platform's stored form (Windows quoted, Linux Exec=, macOS plain path).
+        let mine = autostart::command_line(exe);
         assert_eq!(
             AutostartState::from_read(Ok(Some(mine.clone())), Some(exe)),
             AutostartState::On
         );
-        let other = r#""D:\old\opensynapse-agent.exe""#.to_owned();
+        let other = autostart::command_line(Path::new(r"D:\old\opensynapse-agent.exe"));
         assert_eq!(
             AutostartState::from_read(Ok(Some(other.clone())), Some(exe)),
             AutostartState::Other(other)
