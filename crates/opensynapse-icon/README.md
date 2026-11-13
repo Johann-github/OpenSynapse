@@ -2,7 +2,7 @@
 
 The OpenSynapse app icon, drawn in code. No image files in the repo, no dependencies.
 
-- Motif: a synapse node with three branches (teal → blue) on a dark rounded square. Our own
+- Motif: a synapse node with three branches (light green → accent green `#2EA043`, shared with the GUI via `ACCENT`) on a dark rounded square. Our own
   design; no Razer artwork or colours ([[ADR-0001 Clean-room reverse engineering]]).
 - `render(size)`: straight RGBA, 4×4 supersampled; strokes thicken below ~24 px.
 - `png`, `ico` (sizes 16–256, PNG entries), `windows_res` (compiled `.res`, icon group 1).

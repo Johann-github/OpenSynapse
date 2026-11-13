@@ -26,8 +26,11 @@ use crate::worker::{self, DeviceRow, Job, Reply, SubMsg};
 pub(crate) const WARN: Color32 = Color32::from_rgb(0xE0, 0x9A, 0x20);
 const BAD: Color32 = Color32::from_rgb(0xE0, 0x50, 0x50);
 const GOOD: Color32 = Color32::from_rgb(0x50, 0xB0, 0x60);
-/// Accent colour (user choice: green).
-const ACCENT: Color32 = Color32::from_rgb(0x2E, 0xA0, 0x43);
+/// Accent colour (user choice: always green); owned by `opensynapse_icon::ACCENT`.
+const ACCENT: Color32 = {
+    let [r, g, b] = opensynapse_icon::ACCENT;
+    Color32::from_rgb(r, g, b)
+};
 
 /// Use the green accent for selections, focus and links in light and dark mode.
 fn apply_accent(ctx: &egui::Context) {
