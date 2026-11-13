@@ -35,7 +35,7 @@ updated: 2026-11-12
   ✅ Stage 1 (CI) + stage 2 (compile clean) done: CI green on Windows/Ubuntu/macOS.
   ✅ Stage 3 (Linux HID: udev rule, input reports, hotplug → [[Decisions/ADR-0010 Linux hotplug]])
   merged, CI green on all three (2026-11-13), all **inferred** (no hardware).
-  🔄 Linux input reader without the 1 s wakeup (raw hidraw + poll + eventfd), agent running.
+  ✅ Linux input reader blocks in poll + eventfd (no idle wakeups); macOS keeps a 1 s wakeup (open).
   **Next:** stage 4 (Linux agent: autostart, install).
 
 Mouse state at end of day 2026-11-12: DPI 800 (stages 400/800, active 2, volatile + persistent),
