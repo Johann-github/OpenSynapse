@@ -132,19 +132,22 @@ mod tests {
 
     #[test]
     fn status_lines() {
+        // The stored command in this platform's form (Windows: quoted path; Linux:
+        // Exec= quoting; macOS: plain path), so the test holds on every OS.
         let exe = Path::new(r"C:\os\opensynapse-agent.exe");
+        let cmd = autostart::command_line(exe);
+        let other = autostart::command_line(Path::new(r"D:\old\opensynapse-agent.exe"));
         assert_eq!(render_status(None, Some(exe)), "Autostart off.");
         assert_eq!(
-            render_status(Some(r#""C:\os\opensynapse-agent.exe""#), Some(exe)),
-            r#"Autostart on: "C:\os\opensynapse-agent.exe""#
+            render_status(Some(&cmd), Some(exe)),
+            format!("Autostart on: {cmd}")
         );
         assert!(
-            render_status(Some(r#""D:\old\opensynapse-agent.exe""#), Some(exe))
+            render_status(Some(&other), Some(exe))
                 .starts_with("Autostart on, but for another binary")
         );
         assert!(
-            render_status(Some(r#""C:\os\opensynapse-agent.exe""#), None)
-                .starts_with("Autostart on, but for another binary")
+            render_status(Some(&cmd), None).starts_with("Autostart on, but for another binary")
         );
     }
 
