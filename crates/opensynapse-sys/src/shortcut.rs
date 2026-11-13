@@ -10,6 +10,9 @@
 //! The shell-item layout (file entry + `0xBEEF0004` extension, version 3) follows
 //! the public libfwsi documentation of Windows shell items. [`encode`] is pure;
 //! only [`start_menu_dir`] reads the environment.
+//!
+//! On Linux the same role is played by a Desktop Entry launcher
+//! ([`launcher_path`], [`launcher_bytes`], rendered by `crate::desktop_entry`).
 
 use std::path::PathBuf;
 
@@ -84,6 +87,38 @@ pub fn start_menu_dir() -> Option<PathBuf> {
         None
     }
 }
+
+/// Where the GUI's menu entry goes for this user: the Start-menu `.lnk` on
+/// Windows, `$XDG_DATA_HOME/applications/opensynapse.desktop` (else under
+/// `~/.local/share`) on Linux, `None` elsewhere or when the environment names
+/// no root.
+pub fn launcher_path() -> Option<PathBuf> {
+    let var = |k: &str| std::env::var(k).ok();
+    if cfg!(windows) {
+        start_menu_dir().map(|d| d.join(FILE_NAME))
+    } else if cfg!(target_os = "linux") {
+        crate::desktop_entry::launcher_path(var("XDG_DATA_HOME").as_deref(), var("HOME").as_deref())
+    } else {
+        None
+    }
+}
+
+/// The menu entry's file contents for the GUI at `gui`, started in
+/// `working_dir`: `.lnk` bytes on Windows, a Desktop Entry elsewhere (pure).
+pub fn launcher_bytes(gui: &str, working_dir: &str, description: &str) -> Vec<u8> {
+    if cfg!(windows) {
+        encode(gui, working_dir, description)
+    } else {
+        crate::desktop_entry::render_launcher(gui, working_dir, description).into_bytes()
+    }
+}
+
+/// Name of the menu for messages ("Start menu" / "App menu").
+pub const MENU_NAME: &str = if cfg!(windows) {
+    "Start menu"
+} else {
+    "App menu"
+};
 
 /// The `.lnk` bytes for a shortcut to `target` (absolute path) that starts in
 /// `working_dir` and shows `description` as its comment.

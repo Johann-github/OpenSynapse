@@ -39,7 +39,7 @@ use crate::hardware::RealHardware;
 const USAGE: &str = "usage: opensynapse-agent [--pipe <name>] [--no-events] [--app-profiles <file>] [--allow-elevated] [-v | -vv]\n  \
      --no-events            do not listen for device hardware events (also OPENSYNAPSE_AGENT_NO_EVENTS=1)\n  \
      --app-profiles <file>  per-app rules file (default %APPDATA%\\OpenSynapse\\app-profiles.toml)\n  \
-     --allow-elevated       run even as administrator (only for systems without UAC)";
+     --allow-elevated       run even as administrator / root (Windows: only for systems without UAC)";
 /// Environment switch equivalent to `--no-events`.
 const NO_EVENTS_ENV: &str = "OPENSYNAPSE_AGENT_NO_EVENTS";
 /// Exit codes shared with the CLI and GUI (`opensynapse_sys::agent_exit`).
@@ -136,11 +136,19 @@ fn main() -> ExitCode {
     };
     init_tracing(args.verbose);
 
-    // An elevated agent would serve unelevated clients with admin rights, and the
-    // Run-key autostart never starts it elevated anyway.
+    // An elevated agent would serve unelevated clients with admin (root) rights,
+    // and the login autostart never starts it elevated anyway (ADR-0006, ADR-0011).
     if !args.allow_elevated && opensynapse_sys::is_elevated().unwrap_or(false) {
+        let hint = if cfg!(windows) {
+            "start it from a normal (non-elevated) session, or pass --allow-elevated on \
+             systems without UAC"
+        } else {
+            "start it as your normal user (the udev rule grants device access, see \
+             `opensynapse udev-rule`), or pass --allow-elevated"
+        };
         eprintln!(
-            "opensynapse-agent: refusing to run as administrator; start it from a normal              (non-elevated) session, or pass --allow-elevated on systems without UAC"
+            "opensynapse-agent: refusing to run as {}; {hint}",
+            opensynapse_sys::ELEVATED_NAME
         );
         return ExitCode::from(EXIT_ELEVATED);
     }

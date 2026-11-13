@@ -1,20 +1,28 @@
 # opensynapse-sys
 
 OS integration, kept out of the pure crates. Decisions: [[Decisions/ADR-0006 Agent autostart]],
-[[Decisions/ADR-0009 Install location]].
+[[Decisions/ADR-0009 Install location]], [[Decisions/ADR-0011 Linux autostart and install]].
 
-- `autostart`: per-user Run key value `OpenSynapse Agent` (`get`, `enable`, `disable`),
-  plus pure helpers `command_line`, `exe_of`, `points_to`.
-- `is_elevated`: `TokenElevation` of the current process.
+- `autostart`: per-user Run key value `OpenSynapse Agent` on Windows; on Linux the XDG
+  autostart entry `$XDG_CONFIG_HOME/autostart/opensynapse-agent.desktop` (`get`, `enable`,
+  `disable`), plus helpers `command_line`, `exe_of`, `points_to` (Run value on Windows, `Exec=`
+  value on Linux) and the pure Windows forms `windows_command_line` / `windows_exe_of`.
+- `desktop_entry`: pure Desktop Entry code for Linux (runs and is tested on every OS): `Exec=`
+  quoting and parsing, string escapes, autostart entry and GUI launcher text, XDG folder
+  resolution from given env values, effective uid from `/proc/self/status` text.
+- `is_elevated`: `TokenElevation` of the current process; Linux: effective uid 0 (root), read
+  from `/proc/self/status` with std (no `libc`). `ELEVATED_NAME` = `administrator` / `root`.
 - `attach_parent_console`: for the GUI-subsystem agent; attaches to the parent console
   and opens `CONOUT$` for unset standard handles.
 - `agent_exe`: the installed agent (`install::dir`) if present, else `opensynapse-agent(.exe)`
   next to the running executable (pure choice: `resolve_agent_exe`).
-- `install`: per-user install folder `%LOCALAPPDATA%\Programs\OpenSynapse` (XDG elsewhere) and the
+- `install`: per-user install folder `%LOCALAPPDATA%\Programs\OpenSynapse` (Linux `~/.local/bin`,
+  shared, so uninstall keeps it: `DEFAULT_DIR_SHARED`; macOS still XDG data dir) and the
   pure plan of `opensynapse install` / `uninstall` (copy plan, autostart plan, files to delete,
   leftovers), plus `copy_file` (temp + rename, running exe renamed to `.old`).
-- `shortcut`: pure `.lnk` encoder ([MS-SHLLINK], no COM) and the Start-menu folder; used by
-  `install` for the GUI shortcut.
+- `shortcut`: pure `.lnk` encoder ([MS-SHLLINK], no COM) and the Start-menu folder;
+  `launcher_path` / `launcher_bytes` pick the GUI menu entry for this OS (`.lnk` on Windows,
+  `$XDG_DATA_HOME/applications/opensynapse.desktop` on Linux); used by `install`.
 - `udev`: the Linux udev rule `data/udev/70-opensynapse.rules` (`UDEV_RULE`, embedded with
   `include_str!`, one owner) plus `install_hint`. Plain text on every OS; printed by
   `opensynapse udev-rule`. [[Architecture/Linux and macOS port]]
@@ -30,5 +38,7 @@ OS integration, kept out of the pure crates. Decisions: [[Decisions/ADR-0006 Age
 - `agent_exit`: the agent's exit codes callers react to (`ALREADY_RUNNING` = 2,
   `ELEVATED` = 3).
 
-Windows only so far (`windows-sys`); elsewhere autostart returns `Unsupported`.
-Registry tests use a scratch key `HKCU\Software\OpenSynapse-test-<pid>`, never the Run key.
+Windows (`windows-sys`) and Linux (std only); on macOS autostart returns `Unsupported`.
+Registry tests use a scratch key `HKCU\Software\OpenSynapse-test-<pid>`, never the Run key;
+Desktop Entry tests are pure (no file is written to the real autostart or menu folders).
+Linux type-check: `cargo clippy -p opensynapse-sys --target x86_64-unknown-linux-gnu --all-targets`.

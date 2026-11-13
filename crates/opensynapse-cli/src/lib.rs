@@ -99,7 +99,7 @@ pub enum Command {
         action: SettingsAction,
     },
     /// Copy CLI, agent and GUI from this build to the per-user install folder
-    /// (%LOCALAPPDATA%\Programs\OpenSynapse), stopping and restarting a running
+    /// (%LOCALAPPDATA%\Programs\OpenSynapse; Linux ~/.local/bin), stopping and restarting a running
     /// agent, and point the login autostart at the installed agent.
     Install {
         /// Install folder instead of the default.
@@ -111,7 +111,7 @@ pub enum Command {
         no_autostart: bool,
     },
     /// Stop the installed agent, remove its autostart entry and delete the
-    /// installed binaries. Settings in %APPDATA%\OpenSynapse are kept.
+    /// installed binaries. Settings in %APPDATA%\OpenSynapse (Linux ~/.config/OpenSynapse) are kept.
     Uninstall {
         /// Install folder instead of the default.
         #[arg(long)]

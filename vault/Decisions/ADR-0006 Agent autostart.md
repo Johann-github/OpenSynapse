@@ -29,8 +29,9 @@ installer framework, no new dependencies.
 - Code lives in `opensynapse-sys` (registry, token, console FFI via `windows-sys`).
 
 **Consequences:** two new `windows-sys` features (`Win32_System_Registry`,
-`Win32_System_Console`), no new crates from crates.io. Linux/macOS autostart (systemd user
-unit / LaunchAgent) is still open; there the functions report `Unsupported`.
+`Win32_System_Console`), no new crates from crates.io. Linux autostart: XDG autostart entry,
+agent refuses root ([[Decisions/ADR-0011 Linux autostart and install]]). macOS (LaunchAgent) is
+still open; there the functions report `Unsupported`.
 - **GUI** ([[Architecture/Crates]], `opensynapse-desktop`): "Start agent at login"
   checkbox over the same Run value (read at start and after a toggle, "Fix" for an entry
   pointing at another binary) and a "Start agent" button on direct HID. The detached

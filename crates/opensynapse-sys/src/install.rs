@@ -2,8 +2,11 @@
 //! `uninstall` (`vault/Decisions/ADR-0009 Install location.md`).
 //!
 //! Windows: `%LOCALAPPDATA%\Programs\OpenSynapse` (per user, no admin rights, the
-//! folder Windows itself suggests for per-user programs). Elsewhere:
-//! `$XDG_DATA_HOME/OpenSynapse/bin` or `~/.local/share/OpenSynapse/bin`.
+//! folder Windows itself suggests for per-user programs). Linux: `~/.local/bin`
+//! (on `PATH` in common distributions; shared with other programs, so uninstall
+//! keeps the folder; `vault/Decisions/ADR-0011 Linux autostart and install.md`).
+//! Other systems (macOS, not decided yet): `$XDG_DATA_HOME/OpenSynapse/bin` or
+//! `~/.local/share/OpenSynapse/bin`.
 //!
 //! Everything here except [`dir`] and [`copy_file`] is pure: the CLI asks which
 //! files to copy or delete and what to do with autostart, then does the I/O.
@@ -62,11 +65,31 @@ pub fn dir_from_xdg(data_home: Option<&str>, home: Option<&str>) -> Option<PathB
     Some(base.join(DIR_NAME).join("bin"))
 }
 
+/// `$HOME/.local/bin` (Linux: the per-user executables folder of the
+/// file-hierarchy convention, on `PATH` in common distributions).
+pub fn dir_from_home(home: Option<&str>) -> Option<PathBuf> {
+    let home = home.filter(|h| !h.trim().is_empty())?;
+    Some(PathBuf::from(home).join(".local").join("bin"))
+}
+
+/// The default install folder is shared with other programs (Linux
+/// `~/.local/bin`): uninstall deletes only our files and keeps the folder.
+pub const DEFAULT_DIR_SHARED: bool = cfg!(target_os = "linux");
+
+/// The environment variable(s) the default folder comes from, for messages.
+pub const DIR_ROOT_VAR: &str = if cfg!(windows) {
+    "LOCALAPPDATA"
+} else {
+    "HOME"
+};
+
 /// The current user's install folder, if the environment names a root.
 pub fn dir() -> Option<PathBuf> {
     let var = |k: &str| std::env::var(k).ok();
     if cfg!(windows) {
         dir_from_local_appdata(var("LOCALAPPDATA").as_deref())
+    } else if cfg!(target_os = "linux") {
+        dir_from_home(var("HOME").as_deref())
     } else {
         dir_from_xdg(var("XDG_DATA_HOME").as_deref(), var("HOME").as_deref())
     }
@@ -325,6 +348,33 @@ mod tests {
             )
         );
         assert_eq!(dir_from_xdg(None, None), None);
+        assert_eq!(
+            dir_from_home(Some("/home/u")),
+            Some(p("/home/u").join(".local").join("bin"))
+        );
+        assert_eq!(dir_from_home(Some("")), None);
+        assert_eq!(dir_from_home(None), None);
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn linux_autostart_plans_use_exec_quoting() {
+        let inst = Path::new("/home/u/.local/bin/opensynapse-agent");
+        let src = Path::new("/home/u/src/My Repo/target/release");
+        let dev = autostart::command_line(&src.join("opensynapse-agent"));
+        assert!(dev.starts_with('"'), "{dev}");
+        assert!(points_into(&dev, src));
+        assert_eq!(
+            plan_autostart(Some(&dev), inst, src, true),
+            AutostartPlan::Set {
+                previous: Some(dev.clone())
+            }
+        );
+        let mine = autostart::command_line(inst);
+        assert_eq!(
+            plan_autostart(Some(&mine), inst, src, false),
+            AutostartPlan::Unchanged
+        );
     }
 
     #[test]

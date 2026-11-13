@@ -147,12 +147,17 @@ stopping a running agent first and starting the installed one after; autostart i
 installed agent, and (default location only) a Start-menu shortcut `OpenSynapse` for the GUI is
 written. `uninstall` reverses it and keeps the settings in `%APPDATA%\OpenSynapse`
 ([[Decisions/ADR-0009 Install location]]).
+Linux ([[Decisions/ADR-0011 Linux autostart and install]], untested on a Linux machine): the
+folder is `~/.local/bin`, the GUI gets an app-menu launcher
+`~/.local/share/applications/opensynapse.desktop` (`$XDG_DATA_HOME`), and uninstall deletes only
+our files there and keeps the shared `~/.local/bin` folder.
 
 `start` launches the installed agent (else the one in the CLI's folder) detached (no window) and
 waits up to 3 s for it to answer; exit code 3 from the agent means it refused to run
-elevated. `autostart` shows, adds or removes the per-user Run-key entry
-([[Decisions/ADR-0006 Agent autostart]]); it reports when the entry points at another
-binary. `off` does not stop a running agent.
+elevated (Linux: as root). `autostart` shows, adds or removes the per-user Run-key entry
+([[Decisions/ADR-0006 Agent autostart]]; Linux: the XDG autostart entry
+`~/.config/autostart/opensynapse-agent.desktop`, `$XDG_CONFIG_HOME`); it reports when the entry
+points at another binary. `off` does not stop a running agent.
 
 `agent apply` runs the same engine as `profile apply` (`opensynapse_device::profile_apply`)
 inside the agent: same checks, skip-unchanged, read-back, same lines (DPI stages always

@@ -1,7 +1,8 @@
 //! `opensynapse install` / `uninstall`: copy the binaries to the fixed per-user
-//! folder (`%LOCALAPPDATA%\Programs\OpenSynapse`) and point autostart there, so
-//! rebuilding `target\release` never collides with the running agent
-//! (`vault/Decisions/ADR-0009 Install location.md`).
+//! folder (`%LOCALAPPDATA%\Programs\OpenSynapse`; Linux `~/.local/bin`) and
+//! point autostart there, so rebuilding `target\release` never collides with
+//! the running agent (`vault/Decisions/ADR-0009 Install location.md`,
+//! `vault/Decisions/ADR-0011 Linux autostart and install.md`).
 //!
 //! What to copy, delete and do with autostart is decided by the pure functions
 //! in `opensynapse_sys::install`; this module does the I/O and prints each step.
@@ -23,7 +24,10 @@ const STOP_WAIT: Duration = Duration::from_secs(5);
 /// `--dir`, else the default install folder.
 fn target_dir(dir: Option<PathBuf>) -> Result<PathBuf> {
     dir.or_else(install::dir).ok_or_else(|| {
-        anyhow!("cannot determine the install folder (LOCALAPPDATA is not set); pass --dir")
+        anyhow!(
+            "cannot determine the install folder ({} is not set); pass --dir",
+            install::DIR_ROOT_VAR
+        )
     })
 }
 
@@ -128,7 +132,7 @@ fn describe(pid: u32, image: &Option<PathBuf>) -> String {
 
 /// `opensynapse install [--dir] [--no-autostart]`.
 pub fn install(dir: Option<PathBuf>, no_autostart: bool) -> Result<()> {
-    // The Start-menu shortcut belongs to the default installation only.
+    // The menu entry (Start menu / app menu) belongs to the default installation only.
     let default_location = dir.is_none();
     let dst = target_dir(dir)?;
     let src = exe_dir()?;
@@ -161,8 +165,8 @@ pub fn install(dir: Option<PathBuf>, no_autostart: bool) -> Result<()> {
     let gui = dst.join(GUI_EXE);
     if default_location && gui.is_file() {
         match write_shortcut(&gui, &dst) {
-            Ok(p) => println!("Start menu: {}", p.display()),
-            Err(e) => println!("Start menu: no shortcut ({e})."),
+            Ok(p) => println!("{}: {}", shortcut::MENU_NAME, p.display()),
+            Err(e) => println!("{}: no shortcut ({e}).", shortcut::MENU_NAME),
         }
     }
 
@@ -229,16 +233,15 @@ fn apply_autostart(agent: &Path, src: &Path, no_autostart: bool) -> Result<bool>
     }
 }
 
-/// `opensynapse uninstall [--dir]`. Deletes only the known binaries (and their
-/// `.tmp`/`.old` leftovers) inside the folder, then the folder if it is empty.
-/// The user's settings (`%APPDATA%\OpenSynapse`) stay.
-/// Write the GUI's Start-menu shortcut (temp file + rename).
+/// Write the GUI's menu entry (Start-menu `.lnk`, Linux `.desktop` launcher)
+/// as a temp file + rename.
 fn write_shortcut(gui: &Path, dir: &Path) -> io::Result<PathBuf> {
-    let folder = shortcut::start_menu_dir()
-        .ok_or_else(|| io::Error::other("the Start-menu folder is unknown (APPDATA not set)"))?;
-    std::fs::create_dir_all(&folder)?;
-    let path = folder.join(shortcut::FILE_NAME);
-    let bytes = shortcut::encode(
+    let path = shortcut::launcher_path()
+        .ok_or_else(|| io::Error::other("the menu folder is unknown on this system"))?;
+    if let Some(folder) = path.parent() {
+        std::fs::create_dir_all(folder)?;
+    }
+    let bytes = shortcut::launcher_bytes(
         &gui.to_string_lossy(),
         &dir.to_string_lossy(),
         "OpenSynapse: Razer device settings",
@@ -249,6 +252,9 @@ fn write_shortcut(gui: &Path, dir: &Path) -> io::Result<PathBuf> {
     Ok(path)
 }
 
+/// `opensynapse uninstall [--dir]`. Deletes only the known binaries (and their
+/// `.tmp`/`.old` leftovers) inside the folder, then the folder if it is empty
+/// (never the shared Linux `~/.local/bin`). The user's settings stay.
 pub fn uninstall(dir: Option<PathBuf>) -> Result<()> {
     let default_location = dir.is_none();
     let dir = target_dir(dir)?;
@@ -277,13 +283,12 @@ pub fn uninstall(dir: Option<PathBuf>) -> Result<()> {
         Err(e) => println!("Autostart: not checked ({e})."),
     }
 
-    if default_location
-        && let Some(lnk) = shortcut::start_menu_dir().map(|d| d.join(shortcut::FILE_NAME))
-    {
+    if default_location && let Some(lnk) = shortcut::launcher_path() {
+        let menu = shortcut::MENU_NAME;
         match std::fs::remove_file(&lnk) {
-            Ok(()) => println!("Start menu: removed {}", lnk.display()),
+            Ok(()) => println!("{menu}: removed {}", lnk.display()),
             Err(e) if e.kind() == io::ErrorKind::NotFound => {}
-            Err(e) => println!("Start menu: could not remove {} ({e}).", lnk.display()),
+            Err(e) => println!("{menu}: could not remove {} ({e}).", lnk.display()),
         }
     }
 
@@ -306,9 +311,13 @@ pub fn uninstall(dir: Option<PathBuf>) -> Result<()> {
             failed.join("; ")
         );
     }
-    match std::fs::remove_dir(&dir) {
-        Ok(()) => println!("Deleted folder {}", dir.display()),
-        Err(_) => println!("Kept {}: it contains other files.", dir.display()),
+    if default_location && install::DEFAULT_DIR_SHARED {
+        println!("Kept {}: shared with other programs.", dir.display());
+    } else {
+        match std::fs::remove_dir(&dir) {
+            Ok(()) => println!("Deleted folder {}", dir.display()),
+            Err(_) => println!("Kept {}: it contains other files.", dir.display()),
+        }
     }
     if let Some(c) = config::dir() {
         println!("Your settings in {} were kept.", c.display());

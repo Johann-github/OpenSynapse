@@ -90,9 +90,10 @@ pub enum StartFailure {
 pub fn start_failure_note(f: &StartFailure) -> String {
     match f {
         StartFailure::Spawn(e) => format!("cannot start the agent: {e}"),
-        StartFailure::Exited(Some(agent_exit::ELEVATED)) => {
-            "the agent refuses to run as administrator; start the GUI unelevated".into()
-        }
+        StartFailure::Exited(Some(agent_exit::ELEVATED)) => format!(
+            "the agent refuses to run as {}; start the GUI unelevated",
+            opensynapse_sys::ELEVATED_NAME
+        ),
         StartFailure::Exited(Some(code)) => format!(
             "the agent exited right away (code {code}); run opensynapse-agent -v to see why"
         ),
@@ -187,7 +188,10 @@ mod tests {
     #[test]
     fn start_failures() {
         let elevated = StartFailure::Exited(Some(agent_exit::ELEVATED));
-        assert!(start_failure_note(&elevated).contains("refuses to run as administrator"));
+        assert!(start_failure_note(&elevated).contains(&format!(
+            "refuses to run as {}",
+            opensynapse_sys::ELEVATED_NAME
+        )));
         assert!(start_failure_note(&StartFailure::Exited(Some(1))).contains("code 1"));
         assert!(start_failure_note(&StartFailure::Exited(None)).contains("-v"));
         assert!(start_failure_note(&StartFailure::NoAnswer { pid: 42 }).contains("pid 42"));

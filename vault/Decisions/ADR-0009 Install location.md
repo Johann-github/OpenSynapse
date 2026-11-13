@@ -10,8 +10,9 @@ no installer framework, no MSI, no new dependencies.
 
 **Decision:**
 - **Location:** `%LOCALAPPDATA%\Programs\OpenSynapse` (per user, no admin rights; the folder
-  Windows uses for per-user programs). Elsewhere `$XDG_DATA_HOME/OpenSynapse/bin` or
-  `~/.local/share/OpenSynapse/bin`. One owner: `opensynapse_sys::install::dir`.
+  Windows uses for per-user programs). Linux: `~/.local/bin` (2026-11-13,
+  [[Decisions/ADR-0011 Linux autostart and install]]); macOS for now `$XDG_DATA_HOME/OpenSynapse/bin`
+  or `~/.local/share/OpenSynapse/bin`. One owner: `opensynapse_sys::install::dir`.
 - **`opensynapse install [--dir <path>] [--no-autostart]`:** copies `opensynapse.exe`,
   `opensynapse-agent.exe` and (optional) `opensynapse-desktop.exe` from the folder of the running
   CLI. A running agent is asked to stop over IPC; the CLI opens its process handle *before*

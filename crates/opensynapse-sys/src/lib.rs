@@ -1,10 +1,13 @@
 //! OS integration for OpenSynapse: start the agent at login, refuse to run
 //! elevated, reach the parent console from a GUI-subsystem binary, and the
 //! per-user install location. Decisions: `vault/Decisions/ADR-0006 Agent
-//! autostart.md`, `vault/Decisions/ADR-0009 Install location.md`.
+//! autostart.md`, `vault/Decisions/ADR-0009 Install location.md`,
+//! `vault/Decisions/ADR-0011 Linux autostart and install.md`.
 //!
-//! Windows only for now; elsewhere [`autostart`] reports `Unsupported`,
-//! [`is_elevated`] answers `false` and [`attach_parent_console`] does nothing.
+//! Windows and Linux. On Linux, [`autostart`] is an XDG autostart entry and
+//! [`is_elevated`] means "effective user is root". On other systems
+//! [`autostart`] reports `Unsupported` and [`is_elevated`] answers `false`;
+//! [`attach_parent_console`] does nothing outside Windows.
 
 use std::io;
 use std::path::{Path, PathBuf};
@@ -31,6 +34,7 @@ pub const GUI_EXE: &str = if cfg!(windows) {
     "opensynapse-desktop"
 };
 
+pub mod desktop_entry;
 pub mod install;
 pub mod shortcut;
 pub mod udev;
@@ -85,9 +89,18 @@ pub fn agent_exe() -> io::Result<PathBuf> {
 pub mod agent_exit {
     /// Another agent already owns the pipe.
     pub const ALREADY_RUNNING: i32 = 2;
-    /// The agent refuses to run with an elevated (administrator) token.
+    /// The agent refuses to run with an elevated (administrator) token, or as
+    /// root on Linux.
     pub const ELEVATED: i32 = 3;
 }
+
+/// What "elevated" means on this OS, for messages: `administrator` on Windows,
+/// `root` elsewhere.
+pub const ELEVATED_NAME: &str = if cfg!(windows) {
+    "administrator"
+} else {
+    "root"
+};
 
 /// Start [`agent_exe`] detached; see [`spawn_detached`].
 pub fn spawn_agent_detached() -> io::Result<std::process::Child> {
@@ -169,13 +182,22 @@ impl Process {
     }
 }
 
-/// `true` when this process runs with an elevated (administrator) token.
+/// `true` when this process runs with an elevated (administrator) token; on
+/// Linux, when its effective user id is 0 (root). Linux reads the `Uid:` line
+/// of `/proc/self/status` with std, so this crate needs no `libc`.
 pub fn is_elevated() -> io::Result<bool> {
     #[cfg(windows)]
     {
         windows::is_elevated()
     }
-    #[cfg(not(windows))]
+    #[cfg(target_os = "linux")]
+    {
+        let status = std::fs::read_to_string("/proc/self/status")?;
+        desktop_entry::euid_from_proc_status(&status)
+            .map(|euid| euid == 0)
+            .ok_or_else(|| io::Error::other("no Uid line in /proc/self/status"))
+    }
+    #[cfg(not(any(windows, target_os = "linux")))]
     {
         Ok(false)
     }
@@ -269,9 +291,14 @@ pub mod config {
     }
 }
 
-/// Login autostart through the per-user Run key
-/// (`HKCU\Software\Microsoft\Windows\CurrentVersion\Run`, value [`VALUE_NAME`]).
-/// No admin rights, no service, no scheduled task.
+/// Login autostart, per user, no admin rights. Windows: the Run key value
+/// [`VALUE_NAME`] under `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`
+/// (no service, no scheduled task). Linux: the XDG autostart entry
+/// `$XDG_CONFIG_HOME/autostart/opensynapse-agent.desktop`, else under
+/// `~/.config` (no systemd unit; ADR-0011).
+///
+/// The "command" handed around is the Run value on Windows and the entry's
+/// `Exec=` value (Desktop Entry quoting, string escapes undone) on Linux.
 pub mod autostart {
     use super::*;
 
@@ -279,13 +306,13 @@ pub mod autostart {
     pub const VALUE_NAME: &str = "OpenSynapse Agent";
 
     /// The command stored in the Run value: the quoted executable path.
-    pub fn command_line(exe: &Path) -> String {
+    pub fn windows_command_line(exe: &Path) -> String {
         format!("\"{}\"", exe.display())
     }
 
     /// The executable part of a Run command: the quoted part, or everything up
     /// to the first space when unquoted.
-    pub fn exe_of(command: &str) -> PathBuf {
+    pub fn windows_exe_of(command: &str) -> PathBuf {
         let c = command.trim();
         let exe = match c.strip_prefix('"') {
             Some(rest) => rest.split('"').next().unwrap_or(rest),
@@ -294,32 +321,74 @@ pub mod autostart {
         PathBuf::from(exe)
     }
 
-    /// Does `command` start `exe`? Compared case-insensitively (Windows paths).
-    pub fn points_to(command: &str, exe: &Path) -> bool {
-        exe_of(command)
-            .to_string_lossy()
-            .eq_ignore_ascii_case(&exe.to_string_lossy())
+    /// The command that starts `exe` at login on this OS: the Run value on
+    /// Windows, the `Exec=` value on Linux.
+    pub fn command_line(exe: &Path) -> String {
+        if cfg!(target_os = "linux") {
+            desktop_entry::quote_exec_arg(&exe.to_string_lossy())
+        } else {
+            windows_command_line(exe)
+        }
     }
 
-    /// The stored command, or `None` when autostart is off.
+    /// The executable a stored command starts.
+    pub fn exe_of(command: &str) -> PathBuf {
+        if cfg!(target_os = "linux") {
+            PathBuf::from(desktop_entry::exec_program(command))
+        } else {
+            windows_exe_of(command)
+        }
+    }
+
+    /// Does `command` start `exe`? Case-insensitive except on Linux.
+    pub fn points_to(command: &str, exe: &Path) -> bool {
+        let found = exe_of(command).to_string_lossy().into_owned();
+        let want = exe.to_string_lossy();
+        if cfg!(target_os = "linux") {
+            found == want
+        } else {
+            found.eq_ignore_ascii_case(&want)
+        }
+    }
+
+    /// The stored command, or `None` when autostart is off (on Linux also when
+    /// our entry is switched off with `Hidden=true` or
+    /// `X-GNOME-Autostart-enabled=false`).
     pub fn get() -> io::Result<Option<String>> {
         #[cfg(windows)]
         {
             windows::run_get(windows::RUN_KEY)
         }
-        #[cfg(not(windows))]
+        #[cfg(target_os = "linux")]
+        {
+            Ok(config::read_optional(&linux_path()?)?
+                .as_deref()
+                .and_then(desktop_entry::autostart_exec))
+        }
+        #[cfg(not(any(windows, target_os = "linux")))]
         {
             Err(unsupported())
         }
     }
 
-    /// Start `exe` at login (replaces an existing entry).
+    /// Start `exe` at login (replaces an existing entry). Linux: written as a
+    /// temp file + rename ([`config::write`]).
     pub fn enable(exe: &Path) -> io::Result<()> {
         #[cfg(windows)]
         {
             windows::run_set(windows::RUN_KEY, &command_line(exe))
         }
-        #[cfg(not(windows))]
+        #[cfg(target_os = "linux")]
+        {
+            let exe = exe.to_str().ok_or_else(|| {
+                io::Error::new(
+                    io::ErrorKind::InvalidInput,
+                    format!("{} is not valid UTF-8", exe.display()),
+                )
+            })?;
+            config::write(&linux_path()?, &desktop_entry::render_autostart(exe))
+        }
+        #[cfg(not(any(windows, target_os = "linux")))]
         {
             let _ = exe;
             Err(unsupported())
@@ -332,17 +401,37 @@ pub mod autostart {
         {
             windows::run_delete(windows::RUN_KEY)
         }
-        #[cfg(not(windows))]
+        #[cfg(target_os = "linux")]
+        {
+            let path = linux_path()?;
+            match std::fs::remove_file(&path) {
+                Ok(()) => Ok(true),
+                Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(false),
+                Err(e) => Err(io::Error::new(
+                    e.kind(),
+                    format!("cannot remove {}: {e}", path.display()),
+                )),
+            }
+        }
+        #[cfg(not(any(windows, target_os = "linux")))]
         {
             Err(unsupported())
         }
     }
 
-    #[cfg(not(windows))]
+    /// The current user's autostart entry.
+    #[cfg(target_os = "linux")]
+    fn linux_path() -> io::Result<PathBuf> {
+        let var = |k: &str| std::env::var(k).ok();
+        desktop_entry::autostart_path(var("XDG_CONFIG_HOME").as_deref(), var("HOME").as_deref())
+            .ok_or_else(|| io::Error::other("cannot locate the autostart folder (HOME is not set)"))
+    }
+
+    #[cfg(not(any(windows, target_os = "linux")))]
     fn unsupported() -> io::Error {
         io::Error::new(
             io::ErrorKind::Unsupported,
-            "autostart is only implemented on Windows so far",
+            "autostart is only implemented on Windows and Linux so far",
         )
     }
 }
@@ -400,27 +489,46 @@ mod tests {
     }
 
     #[test]
-    fn command_line_quotes_the_path() {
+    fn windows_command_line_quotes_the_path() {
         let exe = Path::new(r"C:\Program Files\OpenSynapse\opensynapse-agent.exe");
-        let c = command_line(exe);
+        let c = windows_command_line(exe);
         assert_eq!(c, r#""C:\Program Files\OpenSynapse\opensynapse-agent.exe""#);
-        assert_eq!(exe_of(&c), exe);
-        assert!(points_to(&c, exe));
+        assert_eq!(windows_exe_of(&c), exe);
     }
 
     #[test]
-    fn exe_of_variants() {
+    fn windows_exe_of_variants() {
         assert_eq!(
-            exe_of(r#""C:\a b\x.exe" --flag"#),
+            windows_exe_of(r#""C:\a b\x.exe" --flag"#),
             Path::new(r"C:\a b\x.exe")
         );
-        assert_eq!(exe_of(r"C:\x.exe --flag"), Path::new(r"C:\x.exe"));
-        assert_eq!(exe_of(r"  C:\x.exe  "), Path::new(r"C:\x.exe"));
-        assert_eq!(exe_of(r#""C:\unterminated"#), Path::new(r"C:\unterminated"));
+        assert_eq!(windows_exe_of(r"C:\x.exe --flag"), Path::new(r"C:\x.exe"));
+        assert_eq!(windows_exe_of(r"  C:\x.exe  "), Path::new(r"C:\x.exe"));
+        assert_eq!(
+            windows_exe_of(r#""C:\unterminated"#),
+            Path::new(r"C:\unterminated")
+        );
     }
 
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn linux_command_is_the_exec_value() {
+        let exe = Path::new("/home/u/My Apps/opensynapse-agent");
+        let c = command_line(exe);
+        assert_eq!(c, "\"/home/u/My Apps/opensynapse-agent\"");
+        assert_eq!(exe_of(&c), exe);
+        assert!(points_to(&c, exe));
+        assert!(!points_to(
+            &c,
+            Path::new("/home/u/my apps/opensynapse-agent")
+        ));
+    }
+
+    #[cfg(not(target_os = "linux"))]
     #[test]
     fn points_to_ignores_case_only() {
+        let c = command_line(Path::new(r"C:\x\a.exe"));
+        assert_eq!(exe_of(&c), Path::new(r"C:\x\a.exe"));
         let exe = Path::new(r"C:\Tools\opensynapse-agent.exe");
         assert!(points_to(r#""c:\tools\OPENSYNAPSE-AGENT.EXE""#, exe));
         assert!(!points_to(r#""C:\Other\opensynapse-agent.exe""#, exe));

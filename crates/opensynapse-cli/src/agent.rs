@@ -65,7 +65,8 @@ pub enum AgentAction {
     Stop,
     /// Start the agent in the background (no window) and wait until it answers.
     Start,
-    /// Show the login autostart, or turn it on/off (per-user Run key, no admin rights).
+    /// Show the login autostart, or turn it on/off (per user, no admin rights:
+    /// Run key on Windows, XDG autostart entry on Linux).
     Autostart {
         /// `on` or `off`; without it, show the current state.
         #[arg(value_enum)]

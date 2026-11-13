@@ -15,8 +15,8 @@ below is checked by GitHub Actions until a hardware test is possible.
 | Hotplug | `windows_hotplug.rs` | Linux: udev netlink ([[Decisions/ADR-0010 Linux hotplug]]); macOS `Unsupported` |
 | HID input reports (events) | `windows_input.rs` | Linux `linux_input.rs` (hidraw + `poll`/eventfd); macOS `hidapi_input.rs` (stage 3 part 2, untested on hardware) |
 | IPC | named pipe | `transport/unix.rs`, socket in `$XDG_RUNTIME_DIR` (compile-only; macOS has no `XDG_RUNTIME_DIR`) |
-| Autostart | HKCU Run ([[Decisions/ADR-0006 Agent autostart]]) | `Unsupported` |
-| Install location | `%LOCALAPPDATA%\Programs` ([[Decisions/ADR-0009 Install location]]) | none |
+| Autostart | HKCU Run ([[Decisions/ADR-0006 Agent autostart]]) | Linux: XDG autostart entry `~/.config/autostart/opensynapse-agent.desktop` ([[Decisions/ADR-0011 Linux autostart and install]], inferred); macOS `Unsupported` |
+| Install location | `%LOCALAPPDATA%\Programs` ([[Decisions/ADR-0009 Install location]]) | Linux: `~/.local/bin` + app-menu launcher `~/.local/share/applications/opensynapse.desktop` (ADR-0011, inferred); macOS: XDG data dir placeholder (stage 5) |
 | Per-app foreground watch | WinEvent hook ([[Decisions/ADR-0007 Per-app profiles]]) | `Unsupported` (feature inactive) |
 | GUI | eframe/glow | eframe has `x11` + `wayland` features for Linux |
 
@@ -61,8 +61,17 @@ below is checked by GitHub Actions until a hardware test is possible.
      page/usage). macOS opens non-exclusively (`set_open_exclusive(false)`, hidapi's default is
      exclusive). Open: on Linux the hidraw node carries all collections of the interface, so
      readers see every report of it (agent filters on byte 0).
-4. **Linux agent**: autostart as an XDG autostart `.desktop` file or a systemd user unit (ADR),
-   install to `~/.local/bin`, socket as today.
+4. ✅ **Linux agent** (2026-11-13, **inferred**, unit-tested on Windows, `opensynapse-sys`
+   type-checked + clippy-clean for `x86_64-unknown-linux-gnu`, no Linux session tested):
+   autostart = XDG autostart entry `$XDG_CONFIG_HOME/autostart/opensynapse-agent.desktop`
+   (not a systemd user unit: works in every desktop session and starts inside the graphical
+   session, where the `uaccess` ACL and a later X11 foreground watch apply); install to
+   `~/.local/bin` (on `PATH`; uninstall keeps the shared folder) + GUI launcher
+   `$XDG_DATA_HOME/applications/opensynapse.desktop`; agent refuses euid 0 (exit 3, from
+   `/proc/self/status`, std only). Pure Desktop Entry code in `opensynapse_sys::desktop_entry`
+   (`Exec=` quoting per spec). Same CLI/GUI API. Socket as today. →
+   [[Decisions/ADR-0011 Linux autostart and install]]. Open: `Process::open` (wait for the old
+   agent's exit during `install`) is still Windows-only.
 5. **macOS**: hidapi IOKit (check: non-exclusive open, so the OS keeps the mouse), socket path
    fallback when `XDG_RUNTIME_DIR` is unset (e.g. `$TMPDIR`), LaunchAgent plist for autostart.
 6. **Per-app profiles off Windows** (optional): X11 `_NET_ACTIVE_WINDOW`; Wayland has no

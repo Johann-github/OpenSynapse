@@ -364,7 +364,7 @@ impl App {
         }
     }
 
-    /// "Start agent at login" (per-user Run key, ADR-0006).
+    /// "Start agent at login" (per-user Run key, ADR-0006; Linux XDG autostart, ADR-0011).
     fn autostart_row(&mut self, ui: &mut Ui) {
         let blocked = agent_ctl::autostart_blocked(&self.autostart, self.agent_exe.is_some());
         let other = match &self.autostart {
@@ -379,7 +379,11 @@ impl App {
             );
             let r = match &blocked {
                 Some(why) => r.on_disabled_hover_text(why.as_str()),
-                None => r.on_hover_text("Per-user Run key; no admin rights, no service"),
+                None => r.on_hover_text(if cfg!(windows) {
+                    "Per-user Run key; no admin rights, no service"
+                } else {
+                    "Per-user XDG autostart entry; no root, no service"
+                }),
             };
             if r.changed() {
                 self.set_autostart(on);

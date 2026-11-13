@@ -1,7 +1,8 @@
 //! `opensynapse agent start` and `opensynapse agent autostart [on|off]`
 //! (`vault/Decisions/ADR-0006 Agent autostart.md`). The agent binary is the
 //! installed one if present, else the one next to this executable
-//! (`opensynapse_sys::agent_exe`, ADR-0009); autostart is the per-user Run key.
+//! (`opensynapse_sys::agent_exe`, ADR-0009); autostart is the per-user Run key
+//! (Linux: the XDG autostart entry, ADR-0011).
 
 use std::ffi::OsString;
 use std::path::Path;
@@ -75,9 +76,11 @@ pub(crate) fn start_and_wait(exe: &Path, pipe: &str) -> Result<String> {
 /// Why a freshly started agent exited.
 pub(crate) fn render_exit(status: ExitStatus) -> String {
     match status.code() {
-        Some(agent_exit::ELEVATED) => "the agent refuses to run as administrator; \
-             run this command from a normal (non-elevated) terminal"
-            .into(),
+        Some(agent_exit::ELEVATED) => format!(
+            "the agent refuses to run as {}; run this command from a normal \
+             (non-elevated) terminal",
+            opensynapse_sys::ELEVATED_NAME
+        ),
         _ => format!("the agent exited right away ({status}); run opensynapse-agent -v to see why"),
     }
 }
