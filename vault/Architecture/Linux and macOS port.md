@@ -11,9 +11,9 @@ below is checked by GitHub Actions until a hardware test is possible.
 ## Inventory (2026-11-13, from the code)
 | Area | Windows | Linux / macOS today |
 |---|---|---|
-| HID feature reports | own SetupAPI backend ([[Decisions/ADR-0003 Own Windows HID backend]]) | `hidapi_backend.rs`, never compiled |
-| HID input reports (events) | `windows_input.rs` | `input::spawn` → `Unsupported` |
+| HID feature reports | own SetupAPI backend ([[Decisions/ADR-0003 Own Windows HID backend]]) | `hidapi_backend.rs` (CI-compiled, untested on hardware) |
 | Hotplug | `windows_hotplug.rs` | Linux: udev netlink ([[Decisions/ADR-0010 Linux hotplug]]); macOS `Unsupported` |
+| HID input reports (events) | `windows_input.rs` | `hidapi_input.rs` (stage 3 part 2, untested on hardware) |
 | IPC | named pipe | `transport/unix.rs`, socket in `$XDG_RUNTIME_DIR` (compile-only; macOS has no `XDG_RUNTIME_DIR`) |
 | Autostart | HKCU Run ([[Decisions/ADR-0006 Agent autostart]]) | `Unsupported` |
 | Install location | `%LOCALAPPDATA%\Programs` ([[Decisions/ADR-0009 Install location]]) | none |
@@ -40,6 +40,19 @@ below is checked by GitHub Actions until a hardware test is possible.
      [[Decisions/ADR-0010 Linux hotplug]]. Parser unit-tested on Windows, Linux code
      type-checked + clippy-clean locally (`--target x86_64-unknown-linux-gnu`), CI pending.
      Confidence **inferred** (no hardware test yet).
+   - Part 2 ✅ **input reports** (2026-11-13, **inferred**, compile/clippy-checked for Linux
+     locally, untested on hardware): `hidapi_input.rs`, one reader thread per collection with
+     hidapi `read_timeout(1000 ms)`. hidapi cannot unblock a read from another thread
+     (`HidDevice` is not `Sync`; closing under a blocked read is unsafe), so the thread wakes
+     once per second without a report to check a stop flag: no device I/O, but not the
+     zero-wakeup idle of Windows; `stop` takes ≤ 1 s. Byte 0 = report ID like Windows
+     (unnumbered reports get a 0 in front, decided from the report descriptor). Buffer 1 KiB;
+     hidapi gives no input report length (`input_len` = `None`). Enumeration now keeps
+     collections that share a hidraw path (dedup key includes usage page/usage). macOS opens
+     non-exclusively (`set_open_exclusive(false)`, hidapi's default is exclusive).
+     Open: on Linux the hidraw node carries all collections of the interface, so readers see
+     every report of it (agent filters on byte 0); fully blocking reader via raw fd + `poll`
+     only if the 1 s wakeup ever matters.
 4. **Linux agent**: autostart as an XDG autostart `.desktop` file or a systemd user unit (ADR),
    install to `~/.local/bin`, socket as today.
 5. **macOS**: hidapi IOKit (check: non-exclusive open, so the OS keeps the mouse), socket path

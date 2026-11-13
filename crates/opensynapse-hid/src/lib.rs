@@ -27,6 +27,8 @@ mod windows_input;
 #[cfg(not(windows))]
 mod hidapi_backend;
 #[cfg(not(windows))]
+mod hidapi_input;
+#[cfg(not(windows))]
 use hidapi_backend as backend;
 #[cfg(windows)]
 mod windows;
@@ -115,8 +117,7 @@ pub struct Collection {
 /// closes every matching collection once; nothing is read or written.
 pub fn collections(vid: Option<u16>) -> Result<Vec<Collection>, HidError> {
     let mut entries = backend::enumerate_any(vid)?;
-    entries.sort_by(|a, b| (a.vid, a.pid, &a.path).cmp(&(b.vid, b.pid, &b.path)));
-    entries.dedup_by(|a, b| a.path == b.path);
+    sort_dedup(&mut entries);
     Ok(entries
         .into_iter()
         .map(|entry| Collection {
@@ -124,6 +125,16 @@ pub fn collections(vid: Option<u16>) -> Result<Vec<Collection>, HidError> {
             entry,
         })
         .collect())
+}
+
+/// Sort by VID, PID, path, usage and drop exact repeats. The key includes the
+/// usage because hidapi on Linux (hidraw) and macOS lists every top-level
+/// collection of an interface under the same path; Windows paths are unique per
+/// collection, so nothing changes there.
+fn sort_dedup(entries: &mut Vec<HidEntry>) {
+    let key = |e: &HidEntry| (e.vid, e.pid, e.path.clone(), e.usage_page, e.usage);
+    entries.sort_by_key(key);
+    entries.dedup_by(|a, b| key(a) == key(b));
 }
 
 impl HidEntry {
@@ -147,8 +158,7 @@ impl Transport {
     /// Enumerate Razer (VID 0x1532) collections.
     pub fn new() -> Result<Self, HidError> {
         let mut entries = backend::enumerate_any(Some(RAZER_VID))?;
-        entries.sort_by(|a, b| (a.pid, &a.path).cmp(&(b.pid, &b.path)));
-        entries.dedup_by(|a, b| a.path == b.path);
+        sort_dedup(&mut entries);
         Ok(Self { entries })
     }
 
