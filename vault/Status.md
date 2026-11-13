@@ -22,7 +22,12 @@ zip + SHA-256, built by `.github/workflows/release.yml` from tag `v0.1.0` = `f43
 Release flow: notes in `docs/release-notes/<tag>.md` → push tag `v*` → workflow makes a **draft**
 → download + check → user clicks Publish. (Tag v0.1.0's workflow wrote the .sha256 with CRLF; fixed
 by hand in the release and in the workflow, `2bbc532`.)
+**First thing next session:** installed exes are still v0.1.0-era (`a2b2bab`, IPC v3); `main`
+(`bf7c412`) speaks IPC v4 (lighting). User rebuilds + reinstalls: `cargo build --release
+--workspace`, then `target\release\opensynapse.exe install`; otherwise new GUI ↔ old agent fail.
 Next candidates (ask the user):
+0. v0.2.0 release (report command + issue form, lighting, protocol 4.0 framing); profiles
+   `[lighting]` from [[Backlog]] could go in first.
 1. Live check: GUI battery % updates from the event (leave GUI open a few hours).
 2. Linux/macOS hardware test (port branch `linux-macos-port`, stages 1–6 done, CI green), then
    merge it into `main` and switch `main` CI back to all three OSes.
