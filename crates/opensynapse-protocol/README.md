@@ -4,6 +4,13 @@ Pure encode/decode of Razer protocol 2.5 reports. No I/O, fully unit-tested.
 
 - `report` — 90-byte frame, XOR CRC, status codes + retry disposition, rolling transaction ID.
   Implements [[Protocol/Report Format 2.5]].
+- `report40` — protocol 4.0 frame: report ID 2, 63-byte payload, XOR checksum of bytes
+  2..60, transaction counter 1..31 + target bits 5..7, 53 argument bytes. Same command
+  tables as 2.5. Inferred from Synapse code, not hardware-tested.
+  Implements the 4.0 part of [[Protocol/Protocol 3.0 and 4.0]].
+- `framing` — `Framing` (V25 / V40) + `Encoder`: the one place that turns a `Request` into
+  wire bytes and a reply buffer into a `Report` (4.0 replies are normalised to the 2.5
+  shape, so every parser works for both). [[Decisions/ADR-0015 Protocol 4.0 and 3.0 support]]
 - `command` — command table `(class, id, default data_size)`. Implements [[Protocol/Commands 2.5]].
 - `device`, `dpi`, `polling`, `power`, `profile`, `buttons`, `lighting` — typed request
   builders (`get_*`/`set_*` → `Request`) and reply parsers (`parse_*(report.args())`).
