@@ -39,12 +39,15 @@ pub fn watch(f: OnForeground) -> io::Result<Watch> {
     }
 }
 
-/// Remembers the last executable and lets only changes through.
+/// Remembers the last executable and lets only changes through. Used by the
+/// platform watcher (Windows only so far; see `vault/Architecture/Linux and macOS port.md`).
 #[derive(Default)]
+#[cfg_attr(not(windows), allow(dead_code))]
 pub struct Dedup {
     last: Option<String>,
 }
 
+#[cfg_attr(not(windows), allow(dead_code))]
 impl Dedup {
     /// `true` when `exe` differs from the previous one (which it then becomes).
     pub fn changed(&mut self, exe: &str) -> bool {

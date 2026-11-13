@@ -245,8 +245,13 @@ fn main() -> ExitCode {
     stop.store(true, Ordering::SeqCst);
     waker.wake();
     let _ = accept.join();
-    drop(foreground);
-    drop(hotplug);
+    // Explicit shutdown order. Off Windows these handles own no OS resource yet
+    // (watch and hotplug are `Unsupported` there), so they have no `Drop`.
+    #[cfg_attr(not(windows), allow(clippy::drop_non_drop))]
+    {
+        drop(foreground);
+        drop(hotplug);
+    }
     drop(core);
     ExitCode::SUCCESS
 }
