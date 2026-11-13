@@ -20,10 +20,6 @@ Parked items, ranked. Pick from here when [[Status]] "Resume here" is empty.
 - **Linux / macOS** (goal: second). Missing there: HID transport (hidapi path exists, untested on
   hardware), autostart, foreground watch for per-app profiles (returns `Unsupported`), install location.
 
-## Install
-- Start-menu shortcut: add a LinkTargetIDList so the Properties dialog shows the target (works
-  without it). [[Decisions/ADR-0009 Install location]]
-
 ## Ideas, declined for now
 - Windows toast when an automatic write (app-profile switch) fails because the mouse sleeps.
   User 2026-11-11: not wanted; the opt-in hint in CLI/GUI is enough ([[Decisions/ADR-0008 User settings and wake hint]]).

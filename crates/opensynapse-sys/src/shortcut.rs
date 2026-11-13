@@ -2,11 +2,14 @@
 //! (`vault/Decisions/ADR-0009 Install location.md`).
 //!
 //! Layout from Microsoft's open specification "[MS-SHLLINK]: Shell Link (.LNK)
-//! Binary File Format": a 76-byte `ShellLinkHeader`, a `LinkInfo` block that names
-//! the target by local path (ANSI and Unicode), `StringData` (description and
-//! working folder, UTF-16) and the 4-byte terminal block. No `LinkTargetIDList`:
-//! the shell resolves the target from `LinkInfo`. [`encode`] is pure; only
-//! [`start_menu_dir`] reads the environment.
+//! Binary File Format": a 76-byte `ShellLinkHeader`, a `LinkTargetIDList` (for a
+//! drive path: "This PC" → drive → one file-entry item per component, so the
+//! Properties dialog shows the target), a `LinkInfo` block that names the target
+//! by local path (ANSI and Unicode), `StringData` (description, working folder,
+//! icon, UTF-16), an environment-variable block and the 4-byte terminal block.
+//! The shell-item layout (file entry + `0xBEEF0004` extension, version 3) follows
+//! the public libfwsi documentation of Windows shell items. [`encode`] is pure;
+//! only [`start_menu_dir`] reads the environment.
 
 use std::path::PathBuf;
 
@@ -22,6 +25,27 @@ const LINK_CLSID: [u8; 16] = [
 /// `LinkFlags`: HasLinkInfo | HasName | HasWorkingDir | HasIconLocation | IsUnicode |
 /// HasExpString.
 const LINK_FLAGS: u32 = 0x02 | 0x04 | 0x10 | 0x40 | 0x80 | 0x200;
+/// `LinkFlags.HasLinkTargetIDList`.
+const HAS_ID_LIST: u32 = 0x01;
+/// Root shell item: "This PC" (CLSID {20D04FE0-3AEA-1069-A2D8-08002B30309D}).
+const ROOT_MY_COMPUTER: [u8; 20] = [
+    0x14, 0x00, 0x1F, 0x50, 0xE0, 0x4F, 0xD0, 0x20, 0xEA, 0x3A, 0x69, 0x10, 0xA2, 0xD8, 0x08, 0x00,
+    0x2B, 0x30, 0x30, 0x9D,
+];
+/// Volume shell item: class type 0x2F, then the drive ("C:\") padded to 22 bytes.
+const DRIVE_ITEM_TYPE: u8 = 0x2F;
+const DRIVE_ITEM_DATA: usize = 22;
+/// File-entry shell item class types.
+const ITEM_DIRECTORY: u8 = 0x31;
+const ITEM_FILE: u8 = 0x32;
+/// `FILE_ATTRIBUTE_DIRECTORY`.
+const FILE_ATTRIBUTE_DIRECTORY: u16 = 0x10;
+/// File-entry extension block: signature, version 3, and the offset of the long
+/// name inside the block (stored at +16; observed: a shell-made shortcut has
+/// 0x2E there for version 9 with its name at +0x2E).
+const EXT_SIGNATURE: u32 = 0xBEEF_0004;
+const EXT_VERSION: u16 = 3;
+const EXT_V3_NAME_OFFSET: u16 = 0x14;
 /// `EnvironmentVariableDataBlock`: size and signature; ANSI and Unicode target
 /// fields of 260 characters each.
 const ENV_BLOCK_SIZE: u32 = 0x314;
@@ -64,8 +88,13 @@ pub fn start_menu_dir() -> Option<PathBuf> {
 /// The `.lnk` bytes for a shortcut to `target` (absolute path) that starts in
 /// `working_dir` and shows `description` as its comment.
 pub fn encode(target: &str, working_dir: &str, description: &str) -> Vec<u8> {
-    let mut out = Vec::with_capacity(512);
-    header(&mut out);
+    let mut out = Vec::with_capacity(1024);
+    let ids = id_list(target);
+    header(&mut out, ids.is_some());
+    if let Some(ids) = ids {
+        put_u16(&mut out, ids.len() as u16);
+        out.extend_from_slice(&ids);
+    }
     link_info(&mut out, target);
     string_data(&mut out, description);
     string_data(&mut out, working_dir);
@@ -96,10 +125,72 @@ fn env_block(out: &mut Vec<u8>, target: &str) {
     }
 }
 
-fn header(out: &mut Vec<u8>) {
+/// The `IDList` (items + 2-byte terminator) for an absolute drive path such as
+/// `C:\dir\app.exe`; `None` for anything else (UNC, relative), which then relies
+/// on `LinkInfo` alone. Directories are all components but the last.
+fn id_list(target: &str) -> Option<Vec<u8>> {
+    let b = target.as_bytes();
+    if b.len() < 4 || !b[0].is_ascii_alphabetic() || b[1] != b':' || b[2] != b'\\' {
+        return None;
+    }
+    let parts: Vec<&str> = target[3..].split('\\').filter(|p| !p.is_empty()).collect();
+    if parts.is_empty() || parts.len() > 64 {
+        return None;
+    }
+    let mut out = ROOT_MY_COMPUTER.to_vec();
+    // Volume item: size, type, "C:\" + zero padding.
+    put_u16(&mut out, (3 + DRIVE_ITEM_DATA) as u16);
+    out.push(DRIVE_ITEM_TYPE);
+    let mut drive = [0u8; DRIVE_ITEM_DATA];
+    drive[..3].copy_from_slice(&[b[0].to_ascii_uppercase(), b':', b'\\']);
+    out.extend_from_slice(&drive);
+    for (i, name) in parts.iter().enumerate() {
+        let dir = i + 1 < parts.len();
+        out.extend_from_slice(&file_entry(name, dir));
+    }
+    put_u16(&mut out, 0); // TerminalID
+    Some(out)
+}
+
+/// One file-entry shell item: size, class type, size/date/attributes left 0
+/// (the shell reads the live file), the name as primary (ANSI, `?` for
+/// non-ASCII) and as Unicode long name in a version-3 `0xBEEF0004` extension.
+fn file_entry(name: &str, dir: bool) -> Vec<u8> {
+    let mut item = vec![0, 0]; // size, patched below
+    item.push(if dir { ITEM_DIRECTORY } else { ITEM_FILE });
+    item.push(0);
+    put_u32(&mut item, 0); // file size
+    put_u32(&mut item, 0); // modification date/time (FAT)
+    put_u16(&mut item, if dir { FILE_ATTRIBUTE_DIRECTORY } else { 0x20 });
+    item.extend(
+        name.chars()
+            .map(|c| if c.is_ascii() { c as u8 } else { b'?' }),
+    );
+    item.push(0);
+    if item.len() % 2 == 1 {
+        item.push(0);
+    }
+    let ext_off = item.len();
+    let long = utf16_nul(name);
+    let ext_size = usize::from(EXT_V3_NAME_OFFSET) + long.len() + 2;
+    put_u16(&mut item, ext_size as u16);
+    put_u16(&mut item, EXT_VERSION);
+    put_u32(&mut item, EXT_SIGNATURE);
+    put_u32(&mut item, 0); // creation date/time
+    put_u32(&mut item, 0); // last access date/time
+    put_u16(&mut item, EXT_V3_NAME_OFFSET);
+    put_u16(&mut item, 0); // localized-name size: none
+    item.extend_from_slice(&long);
+    put_u16(&mut item, ext_off as u16); // offset of this extension in the item
+    let size = item.len() as u16;
+    item[..2].copy_from_slice(&size.to_le_bytes());
+    item
+}
+
+fn header(out: &mut Vec<u8>, has_ids: bool) {
     put_u32(out, HEADER_SIZE);
     out.extend_from_slice(&LINK_CLSID);
-    put_u32(out, LINK_FLAGS);
+    put_u32(out, LINK_FLAGS | if has_ids { HAS_ID_LIST } else { 0 });
     put_u32(out, FILE_ATTRIBUTE_ARCHIVE);
     out.extend_from_slice(&[0; 24]); // creation, access, write time
     put_u32(out, 0); // FileSize
@@ -193,16 +284,66 @@ mod tests {
         let b = encode(r"C:\a\gui.exe", r"C:\a", "x");
         assert_eq!(u32_at(&b, 0), 0x4C);
         assert_eq!(&b[4..20], &LINK_CLSID);
-        assert_eq!(u32_at(&b, 20), 0x2D6);
+        assert_eq!(u32_at(&b, 20), 0x2D7, "flags incl. HasLinkTargetIDList");
         assert_eq!(u32_at(&b, 60), 1, "ShowCommand");
         assert_eq!(&b[b.len() - 4..], &[0, 0, 0, 0], "terminal block");
+        // No drive letter: no ID list, LinkInfo follows the header directly.
+        let unc = encode(r"\\host\share\gui.exe", r"\\host\share", "x");
+        assert_eq!(u32_at(&unc, 20), 0x2D6);
+        assert_eq!(u32_at(&unc, 80), 0x24, "LinkInfoHeaderSize at 76 + 4");
+    }
+
+    /// Walk the ID list: root, drive, then one file entry per component whose
+    /// primary name and Unicode long name match the path.
+    #[test]
+    fn id_list_items_name_each_component() {
+        let target = r"c:\Users\ü\app.exe";
+        let b = encode(target, r"c:\Users\ü", "x");
+        let total = u16_at(&b, 76) as usize;
+        let ids = &b[78..78 + total];
+        assert_eq!(&ids[..20], &ROOT_MY_COMPUTER);
+        assert_eq!(u16_at(ids, 20), 25);
+        assert_eq!(&ids[22..26], b"\x2FC:\\", "drive upper-cased");
+        let mut at = 45;
+        let mut seen = Vec::new();
+        loop {
+            let size = u16_at(ids, at) as usize;
+            if size == 0 {
+                assert_eq!(at + 2, total, "terminator ends the list");
+                break;
+            }
+            let item = &ids[at..at + size];
+            let ext = u16_at(item, size - 2) as usize;
+            assert_eq!(u16_at(item, ext), (size - ext) as u16, "extension size");
+            assert_eq!(u16_at(item, ext + 2), EXT_VERSION);
+            assert_eq!(u32_at(item, ext + 4), EXT_SIGNATURE);
+            let units: Vec<u16> = (0..)
+                .map(|i| u16_at(item, ext + u16_at(item, ext + 16) as usize + 2 * i))
+                .take_while(|&u| u != 0)
+                .collect();
+            let primary_end = 14 + item[14..].iter().position(|&c| c == 0).unwrap();
+            seen.push((
+                item[2],
+                String::from_utf8(item[14..primary_end].to_vec()).unwrap(),
+                String::from_utf16(&units).unwrap(),
+            ));
+            at += size;
+        }
+        assert_eq!(
+            seen,
+            [
+                (ITEM_DIRECTORY, "Users".into(), "Users".into()),
+                (ITEM_DIRECTORY, "?".into(), "ü".into()),
+                (ITEM_FILE, "app.exe".into(), "app.exe".into()),
+            ]
+        );
     }
 
     #[test]
     fn link_info_offsets_point_at_the_paths() {
         let target = r"C:\Users\ü\OpenSynapse\opensynapse-desktop.exe";
         let b = encode(target, r"C:\Users\ü\OpenSynapse", "OpenSynapse");
-        let li = 76;
+        let li = 78 + u16_at(&b, 76) as usize;
         let size = u32_at(&b, li) as usize;
         assert_eq!(u32_at(&b, li + 4), 0x24);
         assert_eq!(u32_at(&b, li + 8), 1);

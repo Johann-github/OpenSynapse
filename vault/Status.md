@@ -21,7 +21,14 @@ updated: 2026-11-12
 1. Battery-level events (07/xx, report 5): leave `opensynapse hid listen` running for a longer
    session (~10 min setup + waiting, no user action needed).
 2. Linux / macOS (second platform goal; several sessions).
-3. Start-menu shortcut: LinkTargetIDList so Properties shows the target (cosmetic, ~30 min).
+3. ~~Start-menu shortcut: LinkTargetIDList~~ ✅ done 2026-11-13 (shell-verified, see below).
+
+### 2026-11-13
+- 🔄 Battery-level events: `opensynapse --pid 00B8 hid listen --all-readable --seconds 14400`
+  started 15:52 (battery 25 %), log outside the repo (session scratchpad). Result → RE-Log.
+- ✅ Start-menu shortcut now has a LinkTargetIDList → [[Decisions/ADR-0009 Install location]].
+  **User step:** `cargo build --release --workspace`, `target\release\opensynapse.exe install`,
+  then Start menu → OpenSynapse → right-click → Open file location / Properties shows the target.
 
 Mouse state at end of day 2026-11-12: DPI 800 (stages 400/800, active 2, volatile + persistent),
 1000 Hz, sleep 300 s, button 4 = mouse button 4 in slot 0 and slot 1, wake hint off.

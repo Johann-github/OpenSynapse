@@ -41,6 +41,17 @@ no installer framework, no MSI, no new dependencies.
   `TargetPath` reads empty (it only reports ID-list targets; cosmetic: Properties shows no
   target). Real install with the shortcut: **user step pending** (install touches autostart,
   which Claude may not run).
+- **LinkTargetIDList** (added 2026-11-13): for drive paths (`X:\…`) the `.lnk` now also
+  carries an ID list: "This PC" root item, volume item (`0x2F` + `X:\`), then one file-entry
+  item per component (`0x31` folder / `0x32` file, primary name ANSI with `?` for non-ASCII)
+  with a version-3 `0xBEEF0004` extension holding the Unicode long name. Other paths (UNC)
+  keep LinkInfo only. Item layout from the public libfwsi documentation of Windows shell
+  items; the +16 field of the extension is the offset of the long name (observed: a
+  shell-made shortcut has 0x2E there for version 9; version 3 uses 0x14 with a zero u16 at
+  +18). Evidence (2026-11-13, observed): `Shell.Application … GetLink.Path` and WScript
+  `TargetPath` return the full target for the generated shortcut **and** for a stripped copy
+  with only the ID list, incl. a path with umlauts (`Grüße\tööl.exe`). A first try with the
+  name at +18 lost non-ASCII names (shell fell back to the `?` primary name).
 
 **Consequences:** rebuilding `target\release` no longer touches the running agent once installed.
 The user installs once and re-runs `install` after each build they want to use. Writing the Run
