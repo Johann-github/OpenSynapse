@@ -32,7 +32,8 @@ updated: 2026-11-12
 - 🔄 Linux/macOS port started: plan [[Architecture/Linux and macOS port]] (user: CI first,
   hardware later). Stage 1: `.github/workflows/ci.yml` (Windows/Ubuntu/macOS: fmt, clippy,
   test). Port work lives on branch **`linux-macos-port`** (user 2026-11-13: not on `main`).
-  **Next:** read the CI result, then stage 2 (compile clean).
+  ✅ Stage 1 (CI) + stage 2 (compile clean) done: CI green on Windows/Ubuntu/macOS.
+  **Next:** stage 3 (Linux HID: udev rule, input reports, hotplug), CI-only until hardware.
 
 Mouse state at end of day 2026-11-12: DPI 800 (stages 400/800, active 2, volatile + persistent),
 1000 Hz, sleep 300 s, button 4 = mouse button 4 in slot 0 and slot 1, wake hint off.

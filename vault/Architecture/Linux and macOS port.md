@@ -21,11 +21,13 @@ below is checked by GitHub Actions until a hardware test is possible.
 | GUI | eframe/glow | eframe has `x11` + `wayland` features for Linux |
 
 ## Stages
-1. **CI** (this session): GitHub Actions on `windows-latest`, `ubuntu-latest`, `macos-latest`:
+1. ✅ **CI** (2026-11-13): GitHub Actions on `windows-latest`, `ubuntu-latest`, `macos-latest`:
    `fmt --check`, `clippy -D warnings`, `test --workspace`. Linux needs `libudev-dev`
-   (hidapi hidraw) and `libxkbcommon-dev` (eframe). Expected: Linux/macOS fail first.
-2. **Compile clean**: fix what CI reports, no new features. Every `cfg(not(windows))` path
-   builds and its tests pass.
+   (hidapi hidraw) and `libxkbcommon-dev` (eframe). Runs on every branch push.
+2. ✅ **Compile clean** (2026-11-13, run 43450884428 green on all three): everything already
+   compiled off Windows. Fixed only lints (`drop_non_drop` on the agent's shutdown drops,
+   `dead_code` on `Dedup`) and two tests with Windows path assumptions in `opensynapse-sys`
+   (`Path::join` separator; `starts_with` on `C:\…`, which is one component on Unix).
 3. **Linux HID**: hidapi hidraw backend; udev rule shipped in `data/` (`TAG+="uaccess"` for VID
    1532) so no root is needed; input reports via a reader thread (blocking read, no polling);
    hotplug without polling (udev netlink monitor or inotify on `/dev`, needs an ADR + dependency
