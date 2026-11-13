@@ -9,10 +9,8 @@
 
 use std::time::Duration;
 
-use opensynapse_device_registry::RAZER_VID;
-use opensynapse_protocol::{
-    Disposition, FEATURE_REPORT_LEN, ProtocolError, Report, Request, Status, TransactionCounter,
-};
+use opensynapse_device_registry::{RAZER_VID, Registry};
+use opensynapse_protocol::{Disposition, Encoder, Framing, ProtocolError, Report, Request, Status};
 
 pub mod hotplug;
 pub mod input;
@@ -30,10 +28,12 @@ mod windows;
 #[cfg(windows)]
 use windows as backend;
 
-/// Usage page / usage of the collection that carries the 91-byte feature report.
+/// Usage page / usage of the collection that carries the 91-byte 2.5 feature report.
 pub const CONTROL_USAGE_PAGE: u16 = 0x0001;
 pub const CONTROL_USAGE: u16 = 0x0002;
 /// Interface Synapse claims for the Viper V3 HyperSpeed (and the 2.5 default).
+/// Also used for 4.0 devices: their `claimInterface` is unknown (no 4.0 manifest
+/// was found), 0 is the Synapse base-class default (inferred).
 pub const DEFAULT_INTERFACE: i32 = 0;
 
 /// Process image names of Razer software that drives the same devices. Both apps
@@ -123,15 +123,42 @@ pub fn collections(vid: Option<u16>) -> Result<Vec<Collection>, HidError> {
         .collect())
 }
 
+/// Frame format for a PID: the registry protocol's framing, or the 2.5 frame
+/// when the registry names no supported protocol (so unknown devices are still
+/// listed with the 2.5 control-collection shape, as before 4.0 support).
+pub fn framing_for_pid(pid: u16) -> Framing {
+    Registry::embedded()
+        .lookup(RAZER_VID, pid)
+        .and_then(|m| m.protocol().framing())
+        .unwrap_or(Framing::V25)
+}
+
 impl HidEntry {
-    /// True for the collection that carries the protocol 2.5 feature report.
+    /// True for the control collection of this entry's device on `interface`,
+    /// judged with the framing the registry gives its PID ([`framing_for_pid`]).
     pub fn is_control(&self, interface: i32) -> bool {
-        self.interface == interface
-            && self.usage_page == CONTROL_USAGE_PAGE
-            && self.usage == CONTROL_USAGE
-            && self
-                .feature_len
-                .is_none_or(|n| usize::from(n) == FEATURE_REPORT_LEN)
+        self.is_control_for(framing_for_pid(self.pid), interface)
+    }
+
+    /// True for the collection that carries `framing`'s feature report.
+    /// - 2.5: usage page 1 / usage 2 and a 91-byte feature report (observed).
+    /// - 4.0: a 64-byte feature report (report ID 2). Synapse picks the
+    ///   collection by interface only, so the usage is not checked when the
+    ///   backend reports the feature length; without a length (hidapi) the 2.5
+    ///   usage pair is required (inferred, untested).
+    pub fn is_control_for(&self, framing: Framing, interface: i32) -> bool {
+        if self.interface != interface {
+            return false;
+        }
+        let mouse_usage = self.usage_page == CONTROL_USAGE_PAGE && self.usage == CONTROL_USAGE;
+        let len = framing.feature_len();
+        match framing {
+            Framing::V25 => mouse_usage && self.feature_len.is_none_or(|n| usize::from(n) == len),
+            Framing::V40(_) => match self.feature_len {
+                Some(n) => usize::from(n) == len,
+                None => mouse_usage,
+            },
+        }
     }
 }
 
@@ -153,7 +180,7 @@ impl Transport {
         &self.entries
     }
 
-    /// Control collections (usage page 1 / usage 2 / 91-byte feature on `interface`).
+    /// Control collections on `interface` ([`HidEntry::is_control`]).
     pub fn control_entries(&self, interface: i32) -> Vec<HidEntry> {
         self.entries
             .iter()
@@ -162,9 +189,14 @@ impl Transport {
             .collect()
     }
 
-    /// Open a collection (zero-access handle on Windows).
+    /// Open a collection (zero-access handle on Windows) with the framing the
+    /// registry gives its PID ([`framing_for_pid`]).
     pub fn open(&self, entry: &HidEntry, timing: Timing) -> Result<DeviceSession, HidError> {
-        Ok(Session::new(backend::Device::open(&entry.path)?, timing))
+        Ok(Session::with_framing(
+            backend::Device::open(&entry.path)?,
+            timing,
+            framing_for_pid(entry.pid),
+        ))
     }
 }
 
@@ -210,28 +242,40 @@ impl Default for Timing {
 }
 
 /// An open device: serialises request/response exchanges and owns the
-/// transaction counter.
+/// transaction counter (inside its [`Encoder`]).
+///
+/// The send algorithm is the same for 2.5 and 4.0: Synapse's `rzDevice40` uses
+/// the 2.5 status handling, reply matching (transaction, class, id) and default
+/// pacing (observed). Only the frame differs, see [`Framing`].
 pub struct Session<D> {
     io: D,
     timing: Timing,
-    counter: TransactionCounter,
+    encoder: Encoder,
 }
 
 impl<D: FeatureIo> Session<D> {
+    /// Session speaking protocol 2.5.
     pub fn new(io: D, timing: Timing) -> Self {
+        Self::with_framing(io, timing, Framing::V25)
+    }
+
+    pub fn with_framing(io: D, timing: Timing, framing: Framing) -> Self {
         Self {
             io,
             timing,
-            counter: TransactionCounter::default(),
+            encoder: Encoder::new(framing),
         }
+    }
+
+    pub fn framing(&self) -> Framing {
+        self.encoder.framing()
     }
 
     /// Send `request` and wait for its reply (Synapse's send algorithm):
     /// SET → wait → GET; poll while busy; resend on a transient failure or a
     /// reply that does not match; stop on a permanent failure status.
     pub fn execute(&mut self, request: &Request) -> Result<Report, HidError> {
-        let report = request.encode(self.counter.next_id());
-        let wire = report.to_feature_report();
+        let (report, wire) = self.encoder.encode(request)?;
         let mut last = String::from("none");
         // The last attempt ended with status Timeout: classify as NoResponse.
         let mut timed_out = false;
@@ -241,7 +285,7 @@ impl<D: FeatureIo> Session<D> {
             }
             tracing::debug!(?report, attempt, "send");
             timed_out = false;
-            if let Err(e) = self.io.send_feature(&wire) {
+            if let Err(e) = self.io.send_feature(wire.as_slice()) {
                 last = e.to_string();
                 continue;
             }
@@ -269,15 +313,16 @@ impl<D: FeatureIo> Session<D> {
 
     /// Read replies to one SET until it is done, failed, or needs a resend.
     fn poll(&self, request: &Report) -> Outcome {
+        let framing = self.encoder.framing();
         for poll in 0..self.timing.max_in {
             if poll > 0 {
                 std::thread::sleep(self.timing.between_in);
             }
-            let mut buf = [0u8; FEATURE_REPORT_LEN];
-            let reply = match self.io.get_feature(&mut buf) {
+            let mut buf = framing.reply_buffer();
+            let reply = match self.io.get_feature(buf.as_mut_slice()) {
                 Err(e) => return Outcome::Resend(e.to_string()),
                 Ok(n) if n < 9 => return Outcome::Resend(format!("short read ({n} bytes)")),
-                Ok(_) => match Report::from_feature_report(&buf) {
+                Ok(_) => match framing.decode(buf.as_slice()) {
                     Ok(r) => r,
                     Err(e) => return Outcome::Resend(e.to_string()),
                 },
