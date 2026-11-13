@@ -398,6 +398,8 @@ mod tests {
 
     #[test]
     fn start_menu_folder() {
+        // Windows separators; elsewhere `join` uses '/' (the folder is Windows-only).
+        #[cfg(windows)]
         assert_eq!(
             start_menu_dir_from(Some(r"C:\Users\u\AppData\Roaming")),
             Some(PathBuf::from(

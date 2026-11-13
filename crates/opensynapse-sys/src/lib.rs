@@ -357,7 +357,8 @@ mod tests {
         let inst = PathBuf::from(r"C:\inst\opensynapse-agent.exe");
         let sib = PathBuf::from(r"C:\repo\target\release\opensynapse-agent.exe");
         let both = |_: &Path| true;
-        let only_sib = |p: &Path| p.starts_with(r"C:\repo");
+        // Equality, not `starts_with`: off Windows `C:\repo\…` is one component.
+        let only_sib = |p: &Path| p == sib.as_path();
         assert_eq!(
             super::resolve_agent_exe(Some(inst.clone()), Some(sib.clone()), both),
             Some(inst.clone())
