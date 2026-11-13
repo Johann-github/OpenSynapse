@@ -23,6 +23,16 @@ it runs, else talks to the device in-process on a worker thread ([[Architecture/
   warning and "Fix" (re-point it at this installation). Without the agent binary next to
   the GUI the checkbox and button are disabled with a tooltip; errors are status lines.
 
+- Lighting (`src/lighting_view.rs`, [[Decisions/ADR-0014 Lighting]]): a "Lighting" section
+  only for devices with a lighting family. Extended (0x0F) devices: effect combo (static,
+  breathing, breathing two colours, spectrum, wave, off), zone combo from the registry
+  (`all` when none is known), egui colour pickers, brightness slider (hidden for
+  `*NoBrightness` classes), "Save on device" (storage byte 1; default volatile) and Apply.
+  Starts at static accent green (`opensynapse_icon::ACCENT`), 100 %; the panel does not
+  read the current lighting yet. The write is a normal guarded write (agent `Write` with
+  `WireSetting::Lighting`, or in-process) with the Restore button. Standard (03/0A)
+  devices get a note pointing to the CLI. Untested on hardware; the untested-device
+  warning covers it.
 - Settings (`src/user_settings.rs`, [[Decisions/ADR-0008 User settings and wake hint]]): a "Settings" row under the autostart
   checkbox with "Show hint when the mouse is asleep" (default off). It reads
   `%APPDATA%\OpenSynapse\settings.toml` once at start and writes it on each toggle (same

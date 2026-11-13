@@ -11,6 +11,7 @@
 use opensynapse_protocol::buttons::{ButtonAssignment, Mode};
 use opensynapse_protocol::device::{DeviceMode, FirmwareVersion};
 use opensynapse_protocol::dpi::{Dpi, DpiStage, DpiStages, Storage};
+use opensynapse_protocol::lighting::{Effect, Rgb};
 use opensynapse_protocol::power::{BatteryLevel, ChargingStatus};
 
 use crate::msg::{
@@ -124,6 +125,7 @@ mod tag {
     pub const SET_SLEEP: u8 = 2;
     pub const SET_BUTTON: u8 = 3;
     pub const SET_DPI_STAGES: u8 = 4;
+    pub const SET_LIGHTING: u8 = 5;
     // dpi::Storage
     pub const STORE_VOLATILE: u8 = 0;
     pub const STORE_PERSISTENT: u8 = 1;
@@ -477,7 +479,25 @@ impl Writer {
                 self.storage(*storage);
                 self.stages(stages);
             }
+            WireSetting::Lighting { effect, brightness } => {
+                self.u8(tag::SET_LIGHTING);
+                self.effect(effect);
+                self.opt(brightness, |w, b| w.u8(*b));
+            }
         }
+    }
+
+    fn effect(&mut self, e: &Effect) {
+        self.u8(e.profile);
+        self.u8(e.region);
+        self.u8(e.effect);
+        self.u8(e.flags);
+        self.u8(e.rate);
+        self.list(&e.colors, |w, c| {
+            w.u8(c.0);
+            w.u8(c.1);
+            w.u8(c.2);
+        });
     }
 
     fn write_done(&mut self, d: &WriteDone) {
@@ -890,8 +910,23 @@ impl<'a> Reader<'a> {
                 storage: self.storage()?,
                 stages: self.stages()?,
             }),
+            tag::SET_LIGHTING => Ok(WireSetting::Lighting {
+                effect: self.effect()?,
+                brightness: self.opt(Self::u8)?,
+            }),
             t => unknown("WireSetting", t),
         }
+    }
+
+    fn effect(&mut self) -> R<Effect> {
+        Ok(Effect {
+            profile: self.u8()?,
+            region: self.u8()?,
+            effect: self.u8()?,
+            flags: self.u8()?,
+            rate: self.u8()?,
+            colors: self.list(|r| Ok(Rgb(r.u8()?, r.u8()?, r.u8()?)))?,
+        })
     }
 
     fn write_done(&mut self) -> R<WriteDone> {

@@ -123,8 +123,17 @@ pub fn listenable(cols: &[Collection], pid: Option<u16>) -> Vec<&Collection> {
         .collect()
 }
 
-/// `MI_01 COL05` style part of an interface path (empty parts omitted).
+/// `MI_01 COL05` style part of an interface path (empty parts omitted), or the
+/// whole path when it has neither (local diagnostics only, see [`path_parts`]).
 pub fn short_path(path: &str) -> String {
+    path_parts(path).unwrap_or_else(|| path.to_owned())
+}
+
+/// Only the `MI_xx COLyy` parts of a path, `None` when it has neither (single
+/// interface devices, Linux `/dev/hidraw*`, macOS IOKit paths). For output that
+/// leaves the machine (`report`): never falls back to the raw path, which can
+/// carry instance IDs or Bluetooth addresses.
+pub fn path_parts(path: &str) -> Option<String> {
     let lower = path.to_ascii_lowercase();
     let part = |key: &str| {
         lower
@@ -133,11 +142,7 @@ pub fn short_path(path: &str) -> String {
             .map(str::to_ascii_uppercase)
     };
     let parts: Vec<String> = [part("&mi_"), part("&col")].into_iter().flatten().collect();
-    if parts.is_empty() {
-        path.to_owned()
-    } else {
-        parts.join(" ")
-    }
+    (!parts.is_empty()).then(|| parts.join(" "))
 }
 
 /// Human label of a collection: PID, interface/collection, usage page/usage.

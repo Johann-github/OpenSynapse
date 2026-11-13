@@ -303,7 +303,7 @@ transaction_id = 0xFF
 dpi_min = 100
 dpi_max = 16000
 dpi_step = 50
-lighting = { matrix = [7, 5], leds = 16, regions = 3 }
+lighting = { matrix = [7, 5], leds = 16, regions = 3, zones = [1, 4, 11] }
 synapse_class = "rzDevice25Legacy"
 evidence = "synapse-manifest"
 
@@ -382,7 +382,7 @@ transaction_id = 0x3F
 dpi_min = 100
 dpi_max = 16000
 dpi_step = 1
-lighting = { matrix = [7, 5], leds = 3, regions = 3 }
+lighting = { matrix = [7, 5], leds = 3, regions = 3, zones = [1, 4, 17] }
 synapse_class = "rzDevice25LegacyNoBrightness"
 evidence = "synapse-manifest"
 
@@ -399,7 +399,7 @@ dpi_min = 100
 dpi_max = 16000
 dpi_step = 1
 polling_rates = [500, 1000]
-lighting = { matrix = [7, 5], leds = 3, regions = 3 }
+lighting = { matrix = [7, 5], leds = 3, regions = 3, zones = [1, 4, 10] }
 synapse_class = "rzDevice25LegacyNoBrightness"
 evidence = "synapse-manifest"
 
@@ -428,7 +428,7 @@ dpi_min = 100
 dpi_max = 16000
 dpi_step = 50
 polling_rates = [125, 500, 1000]
-lighting = { matrix = [8, 5], leds = 16, regions = 3 }
+lighting = { matrix = [8, 5], leds = 16, regions = 3, zones = [1, 4, 11] }
 synapse_class = "rzDevice25"
 evidence = "synapse-manifest"
 [[device.variants]]
@@ -461,7 +461,7 @@ transaction_id = 0x3F
 dpi_min = 100
 dpi_max = 16000
 dpi_step = 50
-lighting = { matrix = [7, 5], leds = 2, regions = 2 }
+lighting = { matrix = [7, 5], leds = 2, regions = 2, zones = [1, 4] }
 synapse_class = "rzDevice25NoBrightness"
 evidence = "synapse-manifest"
 
@@ -499,7 +499,7 @@ dpi_min = 100
 dpi_max = 16000
 dpi_step = 50
 polling_rates = [125, 500, 1000]
-lighting = { matrix = [8, 5], leds = 16, regions = 3 }
+lighting = { matrix = [8, 5], leds = 16, regions = 3, zones = [1, 4, 11] }
 synapse_class = "rzDevice25"
 evidence = "synapse-manifest"
 
@@ -537,7 +537,7 @@ connection = ["usb"]
 dpi_min = 200
 dpi_max = 7200
 dpi_step = 100
-lighting = { matrix = [7, 5], leds = 1, regions = 1 }
+lighting = { matrix = [7, 5], leds = 1, regions = 1, zones = [4] }
 synapse_class = "rzDevice25"
 evidence = "synapse-manifest"
 
@@ -554,7 +554,7 @@ dpi_min = 100
 dpi_max = 16000
 dpi_step = 50
 polling_rates = [125, 500, 1000]
-lighting = { matrix = [7, 5], leds = 2, regions = 2 }
+lighting = { matrix = [7, 5], leds = 2, regions = 2, zones = [1, 4] }
 synapse_class = "rzDevice25"
 evidence = "synapse-manifest"
 
@@ -571,7 +571,7 @@ dpi_min = 200
 dpi_max = 6400
 dpi_step = 100
 polling_rates = [500, 1000]
-lighting = { matrix = [7, 5], leds = 1, regions = 1 }
+lighting = { matrix = [7, 5], leds = 1, regions = 1, zones = [4] }
 synapse_class = "rzDevice25"
 evidence = "synapse-manifest"
 
@@ -588,7 +588,7 @@ dpi_min = 100
 dpi_max = 16000
 dpi_step = 50
 polling_rates = [125, 500, 1000]
-lighting = { matrix = [7, 5], leds = 3, regions = 3 }
+lighting = { matrix = [7, 5], leds = 3, regions = 3, zones = [1, 4, 17] }
 synapse_class = "rzDevice25"
 evidence = "synapse-manifest"
 
@@ -623,7 +623,7 @@ synapse_product_id = 105
 kind = "mouse"
 protocol = "2.5"
 connection = ["usb", "dongle"]
-lighting = { matrix = [7, 6], leds = 2, regions = 2 }
+lighting = { matrix = [7, 6], leds = 2, regions = 2, zones = [1, 4] }
 synapse_class = "rzDevice25"
 evidence = "synapse-manifest"
 
@@ -639,7 +639,7 @@ transaction_id = 0xFF
 dpi_min = 200
 dpi_max = 7200
 dpi_step = 100
-lighting = { matrix = [7, 5], leds = 1, regions = 1 }
+lighting = { matrix = [7, 5], leds = 1, regions = 1, zones = [4] }
 synapse_class = "rzDevice25"
 evidence = "synapse-manifest"
 
@@ -655,7 +655,7 @@ transaction_id = 0xFF
 dpi_min = 200
 dpi_max = 7200
 dpi_step = 100
-lighting = { matrix = [7, 5], leds = 1, regions = 1 }
+lighting = { matrix = [7, 5], leds = 1, regions = 1, zones = [4] }
 synapse_class = "rzDevice25"
 evidence = "synapse-manifest"
 
@@ -672,7 +672,7 @@ dpi_min = 100
 dpi_max = 16000
 dpi_step = 50
 polling_rates = [125, 500, 1000]
-lighting = { matrix = [9, 5], leds = 20, regions = 3 }
+lighting = { matrix = [9, 5], leds = 20, regions = 3, zones = [1, 4, 11] }
 synapse_class = "rzDevice25"
 evidence = "synapse-manifest"
 
@@ -706,7 +706,7 @@ dpi_min = 100
 dpi_max = 16000
 dpi_step = 50
 polling_rates = [125, 500, 1000]
-lighting = { matrix = [8, 5], leds = 16, regions = 3 }
+lighting = { matrix = [8, 5], leds = 16, regions = 3, zones = [1, 4, 11] }
 synapse_class = "rzDevice25"
 evidence = "synapse-manifest"
 [[device.variants]]
@@ -746,7 +746,7 @@ dpi_min = 100
 dpi_max = 16000
 dpi_step = 100
 polling_rates = [125, 500, 1000]
-lighting = { matrix = [7, 5], leds = 2, regions = 2 }
+lighting = { matrix = [7, 5], leds = 2, regions = 2, zones = [1, 4] }
 synapse_class = "rzDevice25"
 evidence = "synapse-manifest"
 [[device.variants]]
@@ -767,7 +767,7 @@ connection = ["usb"]
 dpi_min = 200
 dpi_max = 6400
 dpi_step = 100
-lighting = { matrix = [7, 5], leds = 1, regions = 1 }
+lighting = { matrix = [7, 5], leds = 1, regions = 1, zones = [4] }
 synapse_class = "rzDevice25"
 evidence = "synapse-manifest"
 
@@ -784,7 +784,7 @@ dpi_min = 100
 dpi_max = 16000
 dpi_step = 50
 polling_rates = [125, 500, 1000]
-lighting = { matrix = [7, 6], leds = 2, regions = 2 }
+lighting = { matrix = [7, 6], leds = 2, regions = 2, zones = [1, 4] }
 synapse_class = "rzDevice25"
 evidence = "synapse-manifest"
 [[device.variants]]
@@ -806,7 +806,7 @@ transaction_id = 0xFF
 dpi_min = 100
 dpi_max = 16000
 dpi_step = 50
-lighting = { matrix = [7, 5], leds = 1, regions = 1 }
+lighting = { matrix = [7, 5], leds = 1, regions = 1, zones = [4] }
 synapse_class = "rzDevice25"
 evidence = "synapse-manifest"
 
@@ -824,7 +824,7 @@ dpi_min = 100
 dpi_max = 20000
 dpi_step = 50
 battery = true
-lighting = { matrix = [7, 5], leds = 1, regions = 1 }
+lighting = { matrix = [7, 5], leds = 1, regions = 1, zones = [4] }
 synapse_class = "rzDevice25"
 evidence = "synapse-manifest"
 [[device.variants]]
@@ -850,7 +850,7 @@ dpi_max = 20000
 dpi_step = 50
 polling_rates = [125, 500, 1000]
 battery = true
-lighting = { matrix = [7, 5], leds = 1, regions = 1 }
+lighting = { matrix = [7, 5], leds = 1, regions = 1, zones = [4] }
 synapse_class = "rzDevice25"
 evidence = "synapse-manifest"
 [[device.variants]]
@@ -932,7 +932,7 @@ transaction_id = 0x3F
 dpi_min = 100
 dpi_max = 20000
 dpi_step = 50
-lighting = { matrix = [7, 5], leds = 2, regions = 2 }
+lighting = { matrix = [7, 5], leds = 2, regions = 2, zones = [1, 4] }
 synapse_class = "rzDevice25"
 evidence = "synapse-manifest"
 
@@ -948,7 +948,7 @@ transaction_id = 0x1F
 dpi_min = 100
 dpi_max = 20000
 dpi_step = 50
-lighting = { matrix = [7, 5], leds = 2, regions = 2 }
+lighting = { matrix = [7, 5], leds = 2, regions = 2, zones = [1, 4] }
 synapse_class = "rzDevice25"
 evidence = "synapse-manifest"
 
@@ -966,7 +966,7 @@ dpi_min = 100
 dpi_max = 20000
 dpi_step = 50
 battery = true
-lighting = { matrix = [9, 5], leds = 14, regions = 3 }
+lighting = { matrix = [9, 5], leds = 14, regions = 3, zones = [1, 4, 11] }
 synapse_class = "rzDevice25"
 evidence = "synapse-manifest"
 [[device.variants]]
@@ -988,7 +988,7 @@ transaction_id = 0xFF
 dpi_min = 200
 dpi_max = 8500
 dpi_step = 100
-lighting = { matrix = [7, 5], leds = 1, regions = 1 }
+lighting = { matrix = [7, 5], leds = 1, regions = 1, zones = [4] }
 synapse_class = "rzDevice25"
 evidence = "synapse-manifest"
 
@@ -1005,7 +1005,7 @@ dpi_min = 200
 dpi_max = 8500
 dpi_step = 100
 polling_rates = [125, 500, 1000]
-lighting = { matrix = [7, 5], leds = 1, regions = 1 }
+lighting = { matrix = [7, 5], leds = 1, regions = 1, zones = [4] }
 synapse_class = "rzDevice25"
 evidence = "synapse-manifest"
 
@@ -1022,7 +1022,7 @@ dpi_min = 100
 dpi_max = 20000
 dpi_step = 100
 polling_rates = [125, 500, 1000]
-lighting = { matrix = [7, 5], leds = 3, regions = 3 }
+lighting = { matrix = [7, 5], leds = 3, regions = 3, zones = [1, 4, 17] }
 synapse_class = "rzDevice25"
 evidence = "synapse-manifest"
 
@@ -1042,7 +1042,7 @@ dpi_max = 20000
 dpi_step = 50
 polling_rates = [125, 500, 1000]
 battery = true
-lighting = { matrix = [7, 5], leds = 3, regions = 3 }
+lighting = { matrix = [7, 5], leds = 3, regions = 3, zones = [1, 4, 17] }
 synapse_class = "rzDevice25"
 evidence = "synapse-manifest"
 [[device.variants]]
@@ -1071,7 +1071,7 @@ dpi_min = 100
 dpi_max = 20000
 dpi_step = 50
 polling_rates = [125, 500, 1000, 2000, 4000, 5000, 8000]
-lighting = { matrix = [7, 5], leds = 1, regions = 1 }
+lighting = { matrix = [7, 5], leds = 1, regions = 1, zones = [4] }
 synapse_class = "rzDevice25"
 evidence = "synapse-manifest"
 
@@ -1087,7 +1087,7 @@ dpi_min = 100
 dpi_max = 16000
 dpi_step = 50
 polling_rates = [125, 500, 1000]
-lighting = { matrix = [7, 5], leds = 3, regions = 3 }
+lighting = { matrix = [7, 5], leds = 3, regions = 3, zones = [1, 4, 17] }
 synapse_class = "rzDevice25"
 evidence = "synapse-manifest"
 
@@ -1129,7 +1129,7 @@ dpi_min = 100
 dpi_max = 18000
 dpi_step = 50
 polling_rates = [125, 500, 1000]
-lighting = { matrix = [7, 5], leds = 2, regions = 2 }
+lighting = { matrix = [7, 5], leds = 2, regions = 2, zones = [1, 17] }
 synapse_class = "rzDevice25"
 evidence = "synapse-manifest"
 
@@ -1162,7 +1162,7 @@ transaction_id = 0x1F
 dpi_min = 100
 dpi_max = 26000
 dpi_step = 50
-lighting = { matrix = [7, 5], leds = 11, regions = 3 }
+lighting = { matrix = [7, 5], leds = 11, regions = 3, zones = [1, 4, 10] }
 synapse_class = "rzDevice25"
 evidence = "synapse-manifest"
 
@@ -1252,7 +1252,7 @@ dpi_min = 200
 dpi_max = 8500
 dpi_step = 100
 polling_rates = [125, 500, 1000]
-lighting = { matrix = [7, 5], leds = 1, regions = 1 }
+lighting = { matrix = [7, 5], leds = 1, regions = 1, zones = [4] }
 synapse_class = "rzDevice25"
 evidence = "synapse-manifest"
 
@@ -1268,7 +1268,7 @@ transaction_id = 0xFF
 dpi_min = 200
 dpi_max = 8500
 dpi_step = 100
-lighting = { matrix = [7, 5], leds = 1, regions = 1 }
+lighting = { matrix = [7, 5], leds = 1, regions = 1, zones = [4] }
 synapse_class = "rzDevice25"
 evidence = "synapse-manifest"
 
@@ -1312,7 +1312,7 @@ dpi_min = 100
 dpi_max = 30000
 dpi_step = 50
 battery = true
-lighting = { matrix = [7, 5], leds = 2, regions = 2 }
+lighting = { matrix = [7, 5], leds = 2, regions = 2, zones = [4, 17] }
 synapse_class = "rzDevice25"
 evidence = "synapse-manifest"
 [[device.variants]]
@@ -1344,7 +1344,7 @@ dpi_max = 30000
 dpi_step = 50
 polling_rates = [125, 500, 1000]
 battery = true
-lighting = { matrix = [7, 5], leds = 13, regions = 3 }
+lighting = { matrix = [7, 5], leds = 13, regions = 3, zones = [1, 4, 10] }
 synapse_class = "rzDevice25"
 evidence = "synapse-manifest"
 [[device.variants]]
@@ -1376,7 +1376,7 @@ dpi_max = 30000
 dpi_step = 50
 polling_rates = [125, 500, 1000]
 battery = true
-lighting = { matrix = [7, 5], leds = 11, regions = 3 }
+lighting = { matrix = [7, 5], leds = 11, regions = 3, zones = [1, 4, 10] }
 synapse_class = "rzDevice25"
 evidence = "synapse-manifest"
 [[device.variants]]
@@ -1493,7 +1493,7 @@ dpi_min = 100
 dpi_max = 18000
 dpi_step = 50
 polling_rates = [125, 500, 1000]
-lighting = { matrix = [7, 5], leds = 1, regions = 1 }
+lighting = { matrix = [7, 5], leds = 1, regions = 1, zones = [1] }
 synapse_class = "rzDevice25DualLinkMouse"
 evidence = "synapse-manifest"
 [[device.variants]]
@@ -1617,7 +1617,7 @@ dpi_min = 100
 dpi_max = 30000
 dpi_step = 50
 battery = true
-lighting = { matrix = [9, 10], leds = 18, regions = 3 }
+lighting = { matrix = [9, 10], leds = 18, regions = 3, zones = [1, 4, 10] }
 synapse_class = "rzDevice25"
 evidence = "synapse-manifest"
 [[device.variants]]
@@ -1646,7 +1646,7 @@ dpi_min = 100
 dpi_max = 35000
 dpi_step = 1
 polling_rates = [125, 500, 1000]
-lighting = { matrix = [7, 5], leds = 11, regions = 3 }
+lighting = { matrix = [7, 5], leds = 11, regions = 3, zones = [1, 4, 10] }
 synapse_class = "rzDevice25"
 evidence = "synapse-manifest"
 
@@ -1666,7 +1666,7 @@ dpi_max = 35000
 dpi_step = 50
 polling_rates = [125, 500, 1000]
 battery = true
-lighting = { matrix = [7, 5], leds = 13, regions = 3 }
+lighting = { matrix = [7, 5], leds = 13, regions = 3, zones = [1, 4, 10] }
 synapse_class = "rzDevice25"
 evidence = "synapse-manifest"
 [[device.variants]]
@@ -1697,7 +1697,7 @@ dpi_min = 100
 dpi_max = 30000
 dpi_step = 50
 battery = true
-lighting = { matrix = [7, 8], leds = 14, regions = 3 }
+lighting = { matrix = [7, 8], leds = 14, regions = 3, zones = [1, 4, 10] }
 synapse_class = "rzDevice25"
 evidence = "synapse-manifest"
 [[device.variants]]
@@ -1760,7 +1760,7 @@ dpi_min = 100
 dpi_max = 35000
 dpi_step = 50
 battery = true
-lighting = { matrix = [7, 5], leds = 12, regions = 2 }
+lighting = { matrix = [7, 5], leds = 12, regions = 2, zones = [1, 10] }
 synapse_class = "rzDevice25"
 evidence = "synapse-manifest"
 [[device.variants]]
@@ -1792,7 +1792,7 @@ dpi_max = 26000
 dpi_step = 50
 polling_rates = [125, 500, 1000]
 battery = true
-lighting = { matrix = [7, 5], leds = 4, regions = 2 }
+lighting = { matrix = [7, 5], leds = 4, regions = 2, zones = [4, 10] }
 synapse_class = "rzDevice25"
 evidence = "synapse-manifest"
 [[device.variants]]
@@ -1989,7 +1989,7 @@ dpi_min = 100
 dpi_max = 16000
 dpi_step = 50
 polling_rates = [125, 500, 1000]
-lighting = { matrix = [7, 5], leds = 2, regions = 2 }
+lighting = { matrix = [7, 5], leds = 2, regions = 2, zones = [1, 4] }
 synapse_class = "rzDevice25"
 evidence = "synapse-manifest"
 [[device.variants]]

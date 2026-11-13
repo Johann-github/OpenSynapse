@@ -107,9 +107,9 @@ impl DeviceRow {
             .map_or("unknown Razer device", |d| d.name.as_str())
     }
 
-    /// Only protocol 2.5 is implemented.
+    /// Protocols OpenSynapse implements (owner: `Protocol::is_supported`).
     pub fn supported(&self) -> bool {
-        self.protocol == Protocol::V25
+        self.protocol.is_supported()
     }
 
     /// Warning for the device panel when OpenSynapse was never tested on this
@@ -363,7 +363,7 @@ impl Local {
         let row = DeviceRow::new(entry.path.clone(), entry.pid);
         if !row.supported() {
             return Err(format!(
-                "{} speaks protocol {}; only 2.5 is implemented",
+                "{} speaks protocol {}; only 2.5 and 4.0 are implemented",
                 row.name(),
                 row.protocol
             ));

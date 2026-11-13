@@ -15,6 +15,13 @@ the desktop GUI and the background agent; no OS code, no UI.
   `ActionEdit::from_action`/`to_action` convert profile actions through the core mapping
   (`opensynapse_core::plan::button_assignment`) and the export mapping
   (`profile_apply::button_action`).
+- `Setting::Lighting` (extended 0x0F family only, [[Decisions/ADR-0014 Lighting]]): the
+  canonical effect of one zone + optional raw brightness; written as 0F/02 then 0F/04,
+  read back via 0F/82 + 0F/84 (`Effect::canonical` so equal modes compare equal).
+  `validate` refuses devices without the extended family (standard 03/0A devices are
+  CLI-only: no read-back), zones the registry does not list, brightness on
+  `*NoBrightness` classes and, except for restores, effects the GUI does not offer.
+  `lighting_setting` builds it from GUI choices. Untested on hardware.
 - Report bytes come only from `opensynapse-protocol` builders.
 - `fake` feature (and `cfg(test)`): `FakeMouse`, an in-memory Viper V3 HyperSpeed that
   answers feature reports, for tests in this crate and in dependent crates.

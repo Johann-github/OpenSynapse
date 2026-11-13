@@ -3,6 +3,8 @@
 //! The TOML files in `data/devices/` are embedded at compile time and parsed on
 //! first use. Schema: `data/devices/SCHEMA.md`.
 
+use opensynapse_protocol::Framing;
+use opensynapse_protocol::report40::Target;
 use serde::Deserialize;
 use std::sync::OnceLock;
 
@@ -61,6 +63,27 @@ pub enum Protocol {
     Unknown,
 }
 
+impl Protocol {
+    /// Wire framing OpenSynapse implements for this family, `None` if it has none.
+    /// 2.5 is hardware-tested; 4.0 is implemented from Synapse code only (inferred,
+    /// no hardware) and addresses the base class's default target, the mouse.
+    /// 3.0 is Bluetooth LE GATT, not HID, and stays unsupported.
+    /// See `vault/Decisions/ADR-0015 Protocol 4.0 and 3.0 support.md`.
+    pub fn framing(self) -> Option<Framing> {
+        match self {
+            Self::V25 => Some(Framing::V25),
+            Self::V40 => Some(Framing::V40(Target::Mouse)),
+            Self::V30 | Self::Unknown => None,
+        }
+    }
+
+    /// True if OpenSynapse can talk to a PID of this family. The one owner of
+    /// the "supported protocol" decision; CLI, agent and GUI ask here.
+    pub fn is_supported(self) -> bool {
+        self.framing().is_some()
+    }
+}
+
 impl std::fmt::Display for Protocol {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(match self {
@@ -92,16 +115,54 @@ pub enum Evidence {
 #[derive(Clone, Debug, PartialEq, Eq, Deserialize)]
 #[serde(untagged)]
 pub enum Lighting {
-    /// LED matrix `[rows, cols]`, total LEDs, number of regions (if known).
+    /// LED matrix `[rows, cols]`, total LEDs, number of regions (if known) and the
+    /// zone (region) IDs from the device manifest (empty when unknown).
     Matrix {
         matrix: [u16; 2],
         leds: u16,
         regions: Option<u8>,
+        #[serde(default)]
+        zones: Vec<u8>,
     },
     Chroma {
         chroma: bool,
     },
 }
+
+/// Which lighting command family a device answers (`vault/Protocol/Lighting 2.5.md`,
+/// `vault/Decisions/ADR-0014 Lighting.md`). Picked from the Synapse driver class.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum LightingFamily {
+    /// Class 0x0F: per-zone effects (0F/02, 0F/82) and brightness (0F/04, 0F/84).
+    Extended,
+    /// Class 0x03: whole-device matrix effect 03/0A (no GET) and LED brightness 03/03.
+    Standard,
+}
+
+/// Driver classes that use the base class's 0x0F lighting (observed: no override; the
+/// `NoSerial`/`NoBrightness` subclasses are inferred from their names).
+const EXTENDED_CLASSES: [&str; 8] = [
+    "rzDevice25",
+    "rzDevice25DualLinkMouse",
+    "rzDevice25DualLinkKeyboard",
+    "rzDevice25WirelessKeyboard",
+    "rzDevice25MikaWirelessKeyboard",
+    "rzDevice25ChromaEffect",
+    "rzDevice25NoSerial",
+    "rzDevice25NoBrightness",
+];
+
+/// Driver classes that send the 03/0A matrix effect (observed for `LedMatrix` and
+/// `Legacy`; the other two inferred from their names).
+const STANDARD_CLASSES: [&str; 4] = [
+    "rzDevice25LedMatrix",
+    "rzDevice25LedMatrixSkipSetEffect",
+    "rzDevice25Legacy",
+    "rzDevice25LegacyNoBrightness",
+];
+
+/// Classes without a brightness command (inferred from the name).
+const NO_BRIGHTNESS_CLASSES: [&str; 2] = ["rzDevice25NoBrightness", "rzDevice25LegacyNoBrightness"];
 
 #[derive(Clone, Debug, PartialEq, Eq, Deserialize)]
 #[serde(untagged)]
@@ -170,6 +231,42 @@ impl Device {
     /// unverified; front-ends warn before them.
     pub fn hardware_tested(&self) -> bool {
         self.tested
+    }
+
+    /// Lighting family OpenSynapse may write, or `None` (no lighting, non-Chroma,
+    /// laptop, or a driver class whose lighting commands are unknown).
+    pub fn lighting_family(&self) -> Option<LightingFamily> {
+        let Some(Lighting::Matrix { leds, .. }) = &self.lighting else {
+            return None;
+        };
+        if *leds == 0 || self.laptop || self.protocol != Protocol::V25 {
+            return None;
+        }
+        let class = self.synapse_class.as_deref()?;
+        if EXTENDED_CLASSES.contains(&class) {
+            Some(LightingFamily::Extended)
+        } else if STANDARD_CLASSES.contains(&class) {
+            Some(LightingFamily::Standard)
+        } else {
+            None
+        }
+    }
+
+    /// Zone IDs from the device manifest (empty when unknown).
+    pub fn lighting_zones(&self) -> &[u8] {
+        match &self.lighting {
+            Some(Lighting::Matrix { zones, .. }) => zones,
+            _ => &[],
+        }
+    }
+
+    /// False for driver classes without a brightness command.
+    pub fn lighting_brightness(&self) -> bool {
+        self.lighting_family().is_some()
+            && !self
+                .synapse_class
+                .as_deref()
+                .is_some_and(|c| NO_BRIGHTNESS_CLASSES.contains(&c))
     }
 
     /// True if the DPI value fits the sensor's range and step (when known).
@@ -325,6 +422,38 @@ mod tests {
     }
 
     #[test]
+    fn supported_protocols_and_framing() {
+        assert_eq!(Protocol::V25.framing(), Some(Framing::V25));
+        assert_eq!(Protocol::V40.framing(), Some(Framing::V40(Target::Mouse)));
+        assert_eq!(Protocol::V30.framing(), None);
+        assert_eq!(Protocol::Unknown.framing(), None);
+        assert!(Protocol::V25.is_supported() && Protocol::V40.is_supported());
+        assert!(!Protocol::V30.is_supported() && !Protocol::Unknown.is_supported());
+    }
+
+    #[test]
+    fn untested_4_0_device_parses_and_is_flagged_untested() {
+        let r = Registry::parse(
+            "test",
+            r#"
+            [[device]]
+            name = "Test 4.0 Mouse"
+            vid = 0x1532
+            pid = 0x0F00
+            kind = "mouse"
+            protocol = "4.0"
+            synapse_class = "rzDevice40"
+            evidence = "inferred"
+            "#,
+        )
+        .unwrap();
+        let m = r.lookup(RAZER_VID, 0x0F00).unwrap();
+        assert_eq!(m.protocol(), Protocol::V40);
+        assert!(m.protocol().is_supported());
+        assert!(!m.device().hardware_tested());
+    }
+
+    #[test]
     fn variant_and_dongle_lookup() {
         let r = Registry::embedded();
         let with_variant = r.devices().iter().find(|d| !d.variants.is_empty()).unwrap();
@@ -361,13 +490,63 @@ mod tests {
         let m = r.lookup(RAZER_VID, 0x0A79).unwrap();
         assert!(matches!(m, Match::Dongle(d) if d.pid == 0x0500));
         assert_eq!(m.protocol(), Protocol::Unknown);
+        assert!(!m.protocol().is_supported());
         assert_eq!(
             r.devices()[0].lighting,
             Some(Lighting::Matrix {
                 matrix: [1, 2],
                 leds: 2,
-                regions: None
+                regions: None,
+                zones: vec![],
             })
         );
+    }
+
+    #[test]
+    fn lighting_families() {
+        let r = Registry::embedded();
+        let viper = r.lookup(RAZER_VID, 0x00B8).unwrap().device();
+        assert_eq!(viper.lighting_family(), None);
+        assert!(!viper.lighting_brightness());
+        let of = |class: &str| {
+            r.devices()
+                .iter()
+                .filter(|d| d.synapse_class.as_deref() == Some(class))
+                .find(|d| matches!(d.lighting, Some(Lighting::Matrix { leds: 1.., .. })))
+                .unwrap_or_else(|| panic!("a lit {class} device"))
+        };
+        let basilisk = of("rzDevice25");
+        assert_eq!(basilisk.lighting_family(), Some(LightingFamily::Extended));
+        assert!(basilisk.lighting_brightness());
+        let matrix = of("rzDevice25LedMatrix");
+        assert_eq!(matrix.lighting_family(), Some(LightingFamily::Standard));
+        let no_bright = of("rzDevice25LegacyNoBrightness");
+        assert_eq!(no_bright.lighting_family(), Some(LightingFamily::Standard));
+        assert!(!no_bright.lighting_brightness());
+        // Unknown lighting classes and laptops are refused.
+        assert_eq!(of("rzDevice25Noa").lighting_family(), None);
+        assert!(
+            r.devices()
+                .iter()
+                .filter(|d| d.laptop)
+                .all(|d| d.lighting_family().is_none())
+        );
+    }
+
+    #[test]
+    fn manifest_zones() {
+        let r = Registry::embedded();
+        let with_zones = r
+            .devices()
+            .iter()
+            .filter(|d| !d.lighting_zones().is_empty())
+            .count();
+        assert_eq!(with_zones, 99);
+        let zoned = r
+            .devices()
+            .iter()
+            .find(|d| d.lighting_zones() == [1, 4, 10])
+            .expect("a wheel + logo + underglow device");
+        assert_eq!(zoned.kind, Kind::Mouse);
     }
 }

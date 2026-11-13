@@ -34,9 +34,11 @@ Rule: only factual values. A field that is not known is **omitted** (never guess
 
 ### `lighting`
 - `{ chroma = false }` — Synapse flags the product as non-Chroma (no user lighting).
-- `{ matrix = [rows, cols], leds = N, regions = R }` — size of the LED matrix Synapse's
-  lighting engine addresses, total LED count over all regions, number of regions. Zone
-  names are not in the source data, so there is no `zones` field yet.
+- `{ matrix = [rows, cols], leds = N, regions = R, zones = [..] }` — size of the LED matrix
+  Synapse's lighting engine addresses, total LED count over all regions, number of regions,
+  and `zones`: the region IDs listed in the device manifest's `ledConfig` (only IDs 0–255;
+  names for the IDs: `vault/Protocol/Lighting 2.5.md`). `zones` is omitted when the
+  manifest lists none.
 
 ### `[[device.variants]]`
 Per alternate PID (receiver or Bluetooth) of the same product:
@@ -59,6 +61,10 @@ Per alternate PID (receiver or Bluetooth) of the same product:
 - `protocol` mapping from `synapse_class`: `rzDevice25*` → `2.5`, `rzDevice30*` → `3.0`,
   `rzDevice40*` → `4.0`. Audio/camera/IoT classes (`Audio*`, `rzCam*`, `rzDeviceIoT`, …) use
   vendor-specific transports → `unknown`.
+- Supported by OpenSynapse: `2.5` (hardware-tested on one device) and `4.0` (from Synapse
+  code only, no hardware). `3.0` (Bluetooth LE GATT) and `unknown` are listed but not
+  driven. Set `4.0` only with evidence (manifest class / event-parser type, or a hardware
+  probe); see `vault/Decisions/ADR-0015 Protocol 4.0 and 3.0 support.md`.
 - `transaction_id`: Synapse 4 itself uses a rolling counter in the 2.5 transaction byte
   (see `vault/Protocol/Report Format 2.5.md`); the per-device fixed value is OpenRazer's.
 - PIDs are unique across all files (primary `pid`s); alternate PIDs appear only in `variants`.

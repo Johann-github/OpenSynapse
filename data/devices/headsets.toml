@@ -21,7 +21,7 @@ kind = "headset"
 protocol = "unknown"
 connection = ["usb", "bluetooth"]
 bluetooth_pid = 0x0309
-lighting = { matrix = [1, 2], leds = 2, regions = 1 }
+lighting = { matrix = [1, 2], leds = 2, regions = 1, zones = [4] }
 synapse_class = "AudioAWKittyBLE"
 evidence = "synapse-manifest"
 
@@ -123,7 +123,7 @@ synapse_product_id = 1306
 kind = "headset"
 protocol = "unknown"
 connection = ["dongle"]
-lighting = { matrix = [1, 1], leds = 1, regions = 1 }
+lighting = { matrix = [1, 1], leds = 1, regions = 1, zones = [4] }
 synapse_class = "AudioAvneraDevice"
 evidence = "synapse-manifest"
 
@@ -135,7 +135,7 @@ synapse_product_id = 1308
 kind = "headset"
 protocol = "unknown"
 connection = ["dongle"]
-lighting = { matrix = [1, 1], leds = 1, regions = 1 }
+lighting = { matrix = [1, 1], leds = 1, regions = 1, zones = [4] }
 synapse_class = "AudioAvneraDevice"
 evidence = "synapse-manifest"
 
@@ -191,7 +191,7 @@ synapse_product_id = 1319
 kind = "headset"
 protocol = "unknown"
 connection = ["dongle"]
-lighting = { matrix = [1, 1], leds = 1, regions = 1 }
+lighting = { matrix = [1, 1], leds = 1, regions = 1, zones = [4] }
 synapse_class = "AudioKrakenUltimate"
 evidence = "synapse-manifest"
 
@@ -252,7 +252,7 @@ kind = "headset"
 protocol = "unknown"
 connection = ["usb", "bluetooth"]
 bluetooth_pid = 0x0530
-lighting = { matrix = [1, 2], leds = 2, regions = 1 }
+lighting = { matrix = [1, 2], leds = 2, regions = 1, zones = [4] }
 synapse_class = "AudioAWKittyBLE"
 evidence = "synapse-manifest"
 
@@ -264,7 +264,7 @@ synapse_product_id = 1331
 kind = "headset"
 protocol = "unknown"
 connection = ["usb"]
-lighting = { matrix = [1, 1], leds = 1, regions = 1 }
+lighting = { matrix = [1, 1], leds = 1, regions = 1, zones = [4] }
 synapse_class = "AudioKrystalT2"
 evidence = "synapse-manifest"
 
@@ -277,7 +277,7 @@ kind = "headset"
 protocol = "unknown"
 connection = ["usb", "bluetooth"]
 bluetooth_pid = 0x0534
-lighting = { matrix = [1, 2], leds = 2, regions = 1 }
+lighting = { matrix = [1, 2], leds = 2, regions = 1, zones = [4] }
 synapse_class = "AudioAWKittyBLE"
 evidence = "synapse-manifest"
 
@@ -289,7 +289,7 @@ synapse_product_id = 1335
 kind = "headset"
 protocol = "unknown"
 connection = ["usb"]
-lighting = { matrix = [1, 1], leds = 1, regions = 1 }
+lighting = { matrix = [1, 1], leds = 1, regions = 1, zones = [15] }
 synapse_class = "AudioKrystalT3"
 evidence = "synapse-manifest"
 
@@ -333,7 +333,7 @@ synapse_product_id = 1353
 kind = "headset"
 protocol = "unknown"
 connection = ["usb"]
-lighting = { matrix = [1, 1], leds = 1, regions = 1 }
+lighting = { matrix = [1, 1], leds = 1, regions = 1, zones = [4] }
 synapse_class = "AudioKrystalT2"
 evidence = "synapse-manifest"
 
@@ -345,7 +345,7 @@ synapse_product_id = 1364
 kind = "headset"
 protocol = "unknown"
 connection = ["usb"]
-lighting = { matrix = [5, 5], leds = 4, regions = 1 }
+lighting = { matrix = [5, 5], leds = 4, regions = 1, zones = [4] }
 synapse_class = "AudioKrakenKittyV2Pro"
 evidence = "synapse-manifest"
 
@@ -368,7 +368,7 @@ synapse_product_id = 1376
 kind = "headset"
 protocol = "unknown"
 connection = ["usb"]
-lighting = { matrix = [1, 1], leds = 1, regions = 1 }
+lighting = { matrix = [1, 1], leds = 1, regions = 1, zones = [15] }
 synapse_class = "AudioKrakenKittyT3"
 evidence = "synapse-manifest"
 
@@ -381,7 +381,7 @@ kind = "headset"
 protocol = "unknown"
 connection = ["usb", "bluetooth"]
 bluetooth_pid = 0x0562
-lighting = { matrix = [1, 2], leds = 2, regions = 1 }
+lighting = { matrix = [1, 2], leds = 2, regions = 1, zones = [4] }
 synapse_class = "AudioAWKittyBLE"
 evidence = "synapse-manifest"
 
@@ -551,7 +551,7 @@ kind = "headset"
 protocol = "unknown"
 connection = ["usb", "bluetooth"]
 bluetooth_pid = 0x057E
-lighting = { matrix = [1, 2], leds = 2, regions = 1 }
+lighting = { matrix = [1, 2], leds = 2, regions = 1, zones = [4] }
 synapse_class = "AudioAWKittyBLE"
 evidence = "synapse-manifest"
 
@@ -564,7 +564,7 @@ kind = "headset"
 protocol = "unknown"
 connection = ["usb", "bluetooth"]
 bluetooth_pid = 0x057F
-lighting = { matrix = [1, 2], leds = 2, regions = 1 }
+lighting = { matrix = [1, 2], leds = 2, regions = 1, zones = [4] }
 synapse_class = "AudioAWKittyBLE"
 evidence = "synapse-manifest"
 
@@ -970,7 +970,7 @@ synapse_product_id = 1303
 kind = "speaker"
 protocol = "2.5"
 connection = ["usb"]
-lighting = { matrix = [12, 24], leds = 48, regions = 2 }
+lighting = { matrix = [12, 24], leds = 48, regions = 2, zones = [16, 17] }
 synapse_class = "rzDevice25"
 evidence = "synapse-manifest"
 
@@ -982,7 +982,7 @@ synapse_product_id = 1304
 kind = "speaker"
 protocol = "2.5"
 connection = ["usb"]
-lighting = { matrix = [4, 8], leds = 16, regions = 2 }
+lighting = { matrix = [4, 8], leds = 16, regions = 2, zones = [16, 17] }
 synapse_class = "rzDevice25"
 evidence = "synapse-manifest"
 
@@ -995,7 +995,7 @@ kind = "speaker"
 protocol = "2.5"
 connection = ["usb", "bluetooth"]
 bluetooth_pid = 0x054C
-lighting = { matrix = [1, 18], leds = 18, regions = 1 }
+lighting = { matrix = [1, 18], leds = 18, regions = 1, zones = [10] }
 synapse_class = "rzDevice25Noa"
 evidence = "synapse-manifest"
 [[device.variants]]
@@ -1012,7 +1012,7 @@ kind = "speaker"
 protocol = "2.5"
 connection = ["usb", "bluetooth"]
 bluetooth_pid = 0x0558
-lighting = { matrix = [1, 30], leds = 30, regions = 1 }
+lighting = { matrix = [1, 30], leds = 30, regions = 1, zones = [10] }
 synapse_class = "rzDevice25Noa"
 evidence = "synapse-manifest"
 [[device.variants]]
@@ -1029,7 +1029,7 @@ kind = "speaker"
 protocol = "2.5"
 connection = ["usb", "bluetooth"]
 bluetooth_pid = 0x0559
-lighting = { matrix = [1, 14], leds = 14, regions = 1 }
+lighting = { matrix = [1, 14], leds = 14, regions = 1, zones = [10] }
 synapse_class = "rzDevice25NoaT3"
 evidence = "synapse-manifest"
 [[device.variants]]
@@ -1046,7 +1046,7 @@ kind = "speaker"
 protocol = "2.5"
 connection = ["usb", "bluetooth"]
 bluetooth_pid = 0x055B
-lighting = { matrix = [1, 2], leds = 12, regions = 2 }
+lighting = { matrix = [1, 2], leds = 12, regions = 2, zones = [16, 17] }
 synapse_class = "rzDevice25NommoV2Pro"
 evidence = "synapse-manifest"
 [[device.variants]]
@@ -1063,7 +1063,7 @@ kind = "speaker"
 protocol = "2.5"
 connection = ["usb", "bluetooth"]
 bluetooth_pid = 0x055D
-lighting = { matrix = [1, 2], leds = 12, regions = 2 }
+lighting = { matrix = [1, 2], leds = 12, regions = 2, zones = [16, 17] }
 synapse_class = "rzDevice25NommoV2Pro"
 evidence = "synapse-manifest"
 [[device.variants]]

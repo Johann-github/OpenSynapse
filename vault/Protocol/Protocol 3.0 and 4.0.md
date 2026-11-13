@@ -49,6 +49,14 @@ Each claim has a tag: **observed** (read directly in shipped code), **inferred**
 - **OpenSynapse implication (inferred)**: ship a PID → {protocol class, event parser,
   claimInterface, reportId} table taken from the manifests. Do not probe.
 
+## OpenSynapse status (2026-11-13)
+- **4.0 (USB HID):** frame encode/decode in `opensynapse-protocol` (`report40`, `framing`),
+  session/transport in `opensynapse-hid` (picks the framing from the registry protocol),
+  `Protocol::is_supported()` in the registry is the one support gate. **Inferred, never run
+  on hardware.** No registry device is 4.0 yet (see "Which devices speak 4.0").
+- **3.0 (BLE GATT):** not supported. It is a vendor GATT service, not a HID collection, so
+  the HID path cannot reach it. Plan in [[Decisions/ADR-0015 Protocol 4.0 and 3.0 support]].
+
 ## Protocol 3.0 (BLE GATT)
 
 ### Transport
@@ -64,6 +72,12 @@ Each claim has a tag: **observed** (read directly in shipped code), **inferred**
 
   A device class can override these UUIDs (`setUUID`).
 - **observed**: Razer BLE vendor IDs that are accepted: `0x1532` and `0x068E`.
+- **inferred**: The service UUID is vendor-specific (not the Bluetooth SIG HID service
+  `0x1812`). Windows maps only the HID-over-GATT service to HID collections, so the 3.0
+  command channel does **not** appear as a HID device and `HidD_SetFeature` cannot reach it.
+  Synapse itself goes through `noble` (a GATT client), not `node-rz-hid`, which agrees.
+  The keyboard/mouse input of such a device over Bluetooth is ordinary HOGP and is
+  unrelated to configuration.
 - **observed**: Command timeouts are 500 ms (legacy 3.0) and 1500 ms (V2).
 
 ### Request frame
@@ -208,6 +222,36 @@ Target device type, transaction bits 5–7 (observed):
   (inferred).
 - **unknown**: Multi-frame transfers for 4.0. No offset/continuation field was found. The
   largest single argument block is 53 bytes.
+
+### 4.0 details re-checked for the implementation (2026-11-13, [[Decisions/ADR-0015 Protocol 4.0 and 3.0 support]])
+
+Source: `pretty/le_33_rzDevice40.js` (class `rzDevice40`: constructor defaults,
+`_calculateChecksum`, `_getTransactionId`, `_createDataSend`, `_getUSBTransferInResult`,
+`sendCommand`). Static reading only, no hardware.
+
+| Item | Finding | Tag |
+|---|---|---|
+| Checksum | The XOR loop is the 2.5 one (indices 2..87), run over the **63-byte** buffer: indices past 62 add nothing, and it runs before bytes 61/62 are written (both still 0). Net effect: **XOR of payload bytes 2..60**, stored at 61; byte 62 = 0 | observed |
+| Transaction counter | "if counter = 31 then 0; counter += 1": values **1..31**, never 0 (2.5: 0..30). The target type is ORed in as `type << 5` | observed |
+| Default target | Constructor default `deviceType = Mouse` (0); only dongle-specific calls (e.g. HyperSpeed mode, THX code) pass `DockDongle` (7) | observed |
+| Size bytes | Override size ≤ 255 (always for OpenSynapse, data size is a u8): bytes 2,3,4 = 0, byte 5 = size. Size > 255: bytes 2..3 = default size BE, 4..5 = size BE | observed |
+| Argument copy | All bytes of the argument array are copied from offset 8 (no clamp to the size) | observed. OpenSynapse rejects sizes > 53 instead |
+| Send | Same native action as 2.5 (`hid.sendFeatureReport[Mutex]`, payload tagged `protocol: "25"`), buffer `[2, …63]`; success = 64 bytes written; per-device Web Lock | observed |
+| Read | `hid.getFeatureReport(reportId 2, length 64)`; reply args = `data[8 .. 8+data[5]]` | observed |
+| Reply checks | Transaction byte, class, id must match, else resend (or re-read with `retryTransactionIdMismatch`, default off) | observed |
+| Status handling | Identical to 2.5: 0 resend, 1 poll again (busy), 2 done, 3 resend, 4 resend (Set Device Mode timeout optionally ignored), 5 and 6..11 fail without resend | observed |
+| Timing | Same constants module as 2.5 (`SLEEP_TIME_BETWEEN_*`, `MAX_RETRY_*`) | observed |
+| HID collection | Picked by `claimInterface` from the device manifest (no usage check), like 2.5. **No 4.0 manifest is available**, so interface and usage of a real 4.0 device are unknown | observed (method) / unknown (values) |
+| Feature report length in HID caps | Expected `FeatureReportByteLength = 64` on the collection (report ID 2 + 63) | inferred |
+
+### Which devices speak 4.0
+- **unknown / none known.** None of the ~350 fetched device manifests (`fetched/dm/`,
+  `fetched/dmalt/`, `products/`) names an `rzDevice40*` class, and none has
+  `hardwareEventParserType` 26/27/28 (the PROTOCOL40 parsers). The class names appear only
+  in the lighting-engine loader table and the shared product bundles' chunk maps, which list
+  every class and say nothing about PIDs (observed, 2026-11-13 search). 4.0 devices are
+  probably among the 81 Synapse-4 products that have no fetched manifest
+  ([[Devices/Device Registry]]), but nothing says which.
 
 ### 4.0 over BLE (`rzDevice40Ble`)
 - **observed**: Uses the same GATT connect as 3.0. A write is a single GATT write, with no

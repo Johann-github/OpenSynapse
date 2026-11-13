@@ -1,7 +1,7 @@
 # opensynapse-cli
 
-CLI dispatch: `list`, `info`, `battery`, `dpi get|set`, `dpi-stages [get|set]`,
-`polling get|set`, `sleep get|set`, `buttons get|set|list`, `profile export|apply`, `agent ping|devices|snapshot|apply|watch|stop|start|autostart|app-profiles [reload]`, `install`, `uninstall`, `udev-rule` (prints the Linux udev rule to stdout and install steps to stderr; never writes). Global
+CLI dispatch: `list`, `info`, `report`, `battery`, `dpi get|set`, `dpi-stages [get|set]`,
+`polling get|set`, `sleep get|set`, `buttons get|set|list`, `lighting get|set`, `profile export|apply`, `agent ping|devices|snapshot|apply|watch|stop|start|autostart|app-profiles [reload]`, `install`, `uninstall`, `udev-rule` (prints the Linux udev rule to stdout and install steps to stderr; never writes). Global
 `--pid <hex>` and `-v` (log every report).
 
 Writes are dry runs unless `--apply`; they read the old value first, write, read back,
@@ -9,10 +9,10 @@ and print the restore command. `--force` overrides range checks and the
 Razer-software-running guard.
 
 Before a write command (`dpi set`, `dpi-stages set`, `polling set`, `sleep set`,
-`buttons set`, `profile apply`, `agent apply`; dry run and `--apply`) to a device the
+`buttons set`, `lighting set`, `profile apply`, `agent apply`; dry run and `--apply`) to a device the
 registry does not mark as hardware-tested (`Device::hardware_tested`), one line goes to
 stderr: `Warning: <name> has not been tested with OpenSynapse yet; writes may not work as
-expected. Reads are safe.` The write is not blocked and exit codes are unchanged. `info`
+expected. Reads are safe. Please report: opensynapse report` The write is not blocked and exit codes are unchanged. `info`
 prints `Tested with OpenSynapse: yes|no`.
 
 DPI stages (class 04, 04/86 get, 04/06 set, see [[Protocol/Commands 2.5]]):
@@ -26,6 +26,27 @@ in the list, 1 = first; usually equal to the stage ID), writes the whole list ba
 verifies it. `dpi set` does not move the active stage, so use this to select one.
 Whether selecting a stage also applies its DPI is unknown; `set` prints the current
 DPI (04/85) before and after the write so you can see it. It never writes 04/05.
+
+Lighting ([[Protocol/Lighting 2.5]], [[Decisions/ADR-0014 Lighting]]; **untested on
+hardware**, no RGB device is `tested = true`, so the untested warning precedes every write):
+
+    opensynapse lighting get [--zone Z] [--persistent]
+    opensynapse lighting set off|spectrum [--zone Z] [--brightness PCT] [--persistent] [--apply] [--force]
+    opensynapse lighting set static 00ff00 [--zone logo] [--brightness 80] [--apply]
+    opensynapse lighting set breathing ff0000 [00ff00] [...]
+    opensynapse lighting set wave [--direction 1|2] [...]
+
+The family comes from the registry (`Device::lighting_family`); devices without one
+(non-Chroma like the Viper, unknown driver classes, laptops) are refused. Zones: names
+(`all`, `wheel`, `logo`, `backlight`, `underglow`, `side-stripe`, …) or IDs; a zone the
+registry does not list for the device needs `--force`. Default zone `all` (0); reads of
+`all` use the first registry zone.
+- Extended (0x0F) devices: storage byte 0 (volatile) unless `--persistent`. `set` reads
+  the old effect and brightness, writes 0F/02 (+ 0F/04), reads back and prints the
+  restore command. If the old effect cannot be read, `--apply` needs `--force`.
+- Standard (03/0A) devices: one effect for the whole device, no storage byte, no read
+  command, so no read-back or restore of the effect; `--brightness` uses 03/03 on the
+  zone's LED (backlight for `all`) and is read back.
 
 Buttons (class 02, see [[Protocol/Commands 2.5]]):
 
@@ -191,5 +212,20 @@ cannot parse. With `wake-hint on`, a command that fails because the device did n
 (direct HID `HidError::NoResponse`, agent `ErrorKind::NoResponse`, or that error's text in a
 write failure) prints `Hint: Mouse seems asleep — move it to wake it, then retry` after the
 usual `Error: …`. Default: off.
+
+Device report ([[Devices/Device Registry]], section "Community device reports"):
+
+    opensynapse [--pid HEX] report
+
+Prints a Markdown block for a "Device report" issue: OpenSynapse version, OS, and per
+connected Razer PID the registry entry (name, kind, protocol, tested), the HID collections
+(interface, `MI_xx COLyy`, usage page/usage, report lengths, readable), whether the
+protocol 2.5 control collection opened, and the result or error of each read: firmware,
+serial, device mode, battery, charging, DPI, DPI stages (volatile, `*` = active), polling
+rate, sleep timer, buttons 1-5 (profile 1, normal mode). Read-only: only GET commands, sent
+to protocol 2.5 PIDs only (3.0, 4.0 and unknown PIDs list their collections, no reads); never writes, never
+uses the network. Serials are masked (last 4 characters), raw HID paths are not printed.
+Each read uses 5 sends instead of 20, so a sleeping device does not stall the report; if a
+read gets no response the report says to wake the device and run it again.
 
 Vault: [[Architecture/Crates]], [[Status]]

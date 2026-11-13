@@ -18,6 +18,7 @@ use opensynapse_ipc::msg::{
     Reply, Request, WireSetting, WireSnapshot, WireWriteOpts,
 };
 use opensynapse_ipc::transport::default_pipe_name;
+use opensynapse_protocol::lighting;
 use opensynapse_protocol::power::{BatteryLevel, ChargingStatus};
 
 #[derive(Subcommand, Clone, Debug, PartialEq, Eq)]
@@ -570,6 +571,19 @@ fn render_setting(s: &WireSetting) -> String {
                 })
                 .collect();
             format!("DPI stages ({storage:?}) [{}]", list.join(", "))
+        }
+        WireSetting::Lighting { effect, brightness } => {
+            let mut s = format!(
+                "lighting ({}): {}",
+                lighting::region::name(effect.region),
+                effect
+                    .mode()
+                    .map_or_else(|| format!("effect {}", effect.effect), |m| m.to_string())
+            );
+            if let Some(raw) = brightness {
+                s.push_str(&format!(", brightness {}%", lighting::raw_to_percent(*raw)));
+            }
+            s
         }
     }
 }

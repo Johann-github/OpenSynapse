@@ -18,6 +18,14 @@ Parked items, ranked. Pick from here when [[Status]] "Resume here" is empty.
 - Polling command 00/40 (HyperPolling) untested; the Viper uses 00/05.
 - Viper: does the USB cable carry data (own PID)? Unit/range of the low-power threshold.
 
+## Lighting ([[Decisions/ADR-0014 Lighting]])
+- **Hardware test** on any RGB device (extended-family mouse, `LedMatrix` keyboard): byte 0
+  meaning, wave direction, zone-0 read. Until then every lighting write is unverified.
+- Optional `[lighting]` table in TOML profiles (per-app colours): core plan + device apply
+  with restore + export.
+- GUI: read the current lighting into the panel (snapshot field) instead of starting at
+  the accent green.
+
 ## Platforms
 - **Linux / macOS** (goal: second). 🔄 Started 2026-11-13, plan and stages in
   [[Architecture/Linux and macOS port]] (CI first, hardware later).

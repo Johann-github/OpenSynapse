@@ -144,6 +144,11 @@ impl Request {
         self.data_size
     }
 
+    /// The 80-byte argument area (bytes beyond `data_size` are zero).
+    pub fn args(&self) -> &[u8; ARGS_LEN] {
+        &self.args
+    }
+
     /// Bind to a transaction ID and produce the wire report (CRC filled in).
     pub fn encode(&self, transaction_id: u8) -> Report {
         let mut b = [0u8; REPORT_LEN];

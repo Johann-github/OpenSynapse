@@ -15,11 +15,14 @@ mod agent;
 mod hid_probe;
 mod install;
 mod lifecycle;
+mod lighting;
 mod profile;
+mod report;
 mod settings;
 
 pub use agent::AgentAction;
 pub use hid_probe::HidAction;
+pub use lighting::LightingAction;
 pub use settings::{SettingKey, SettingsAction, hint_for as wake_hint_for};
 
 #[derive(Parser)]
@@ -78,6 +81,11 @@ pub enum Command {
         #[command(subcommand)]
         action: ButtonsAction,
     },
+    /// Read or set hardware lighting effects (RGB devices; untested on hardware).
+    Lighting {
+        #[command(subcommand)]
+        action: LightingAction,
+    },
     /// Export the device settings to a TOML profile, or apply one.
     Profile {
         #[command(subcommand)]
@@ -93,6 +101,9 @@ pub enum Command {
         #[command(subcommand)]
         action: HidAction,
     },
+    /// Read-only Markdown report of the connected Razer devices, to paste into a
+    /// "Device report" issue. Never writes; serials are masked.
+    Report,
     /// User settings of the CLI and GUI (`settings.toml`).
     Settings {
         #[command(subcommand)]
@@ -352,6 +363,8 @@ impl Command {
                 action: SleepAction::Set { .. }
             } | Command::Buttons {
                 action: ButtonsAction::Set { .. }
+            } | Command::Lighting {
+                action: LightingAction::Set { .. }
             } | Command::Profile {
                 action: ProfileAction::Apply { .. }
             }
@@ -366,7 +379,7 @@ pub(crate) fn untested_warning(device: Option<&Device>) -> Option<String> {
         Some(d) if d.hardware_tested() => None,
         d => Some(format!(
             "Warning: {} has not been tested with OpenSynapse yet; writes may not work as \
-             expected. Reads are safe.",
+             expected. Reads are safe. Please report: opensynapse report",
             d.map_or("this device", |d| d.name.as_str())
         )),
     }
@@ -393,6 +406,9 @@ pub fn run(cli: Cli) -> Result<()> {
     if let Command::Hid { action } = cli.command {
         return hid_probe::run(action, cli.pid);
     }
+    if let Command::Report = cli.command {
+        return report::run(cli.pid);
+    }
     if let Command::Settings { action } = cli.command {
         return settings::run(action);
     }
@@ -418,6 +434,7 @@ pub fn run(cli: Cli) -> Result<()> {
         Command::List
         | Command::Agent { .. }
         | Command::Hid { .. }
+        | Command::Report
         | Command::Settings { .. }
         | Command::Install { .. }
         | Command::Uninstall { .. }
@@ -503,6 +520,7 @@ pub fn run(cli: Cli) -> Result<()> {
             }
             ButtonsAction::List { slot, offset } => buttons_list(&mut dev, slot, offset, verbose),
         },
+        Command::Lighting { action } => lighting::run(&mut dev, action),
         Command::Profile { action } => match action {
             ProfileAction::Export { buttons, out } => {
                 profile::export(&mut dev, &buttons, out.as_deref())
@@ -1063,9 +1081,9 @@ impl Target {
         };
         let m = reg.lookup(RAZER_VID, entry.pid);
         let protocol = m.map_or(Protocol::Unknown, |m| m.protocol());
-        if protocol != Protocol::V25 {
+        if !protocol.is_supported() {
             bail!(
-                "{:04X} speaks protocol {protocol}; only 2.5 is implemented",
+                "{:04X} speaks protocol {protocol}; only 2.5 and 4.0 are implemented",
                 entry.pid
             );
         }
@@ -1107,14 +1125,29 @@ impl Target {
 
     /// Dry run unless `--apply`; refuses while Razer software runs unless `--force`.
     fn write(&mut self, opts: WriteOpts, change: &str, restore: &str, req: &Request) -> Result<()> {
+        self.write_all(opts, change, restore, std::slice::from_ref(req))
+    }
+
+    /// [`Self::write`] for a change that takes several reports, sent in order.
+    fn write_all(
+        &mut self,
+        opts: WriteOpts,
+        change: &str,
+        restore: &str,
+        reqs: &[Request],
+    ) -> Result<()> {
         if !opts.apply {
             println!("Dry run: would change {change}.");
-            println!("Report: {:?}", req.encode(0));
+            for req in reqs {
+                println!("Report: {:?}", req.encode(0));
+            }
             println!("Run again with --apply to write.");
             return Ok(());
         }
         self.guard(opts)?;
-        self.session.execute(req)?;
+        for req in reqs {
+            self.session.execute(req)?;
+        }
         println!("Changed {change}.");
         // Empty: the caller explains why there is no restore command.
         if !restore.is_empty() {
@@ -1147,7 +1180,8 @@ mod tests {
             untested_warning(Some(other)).as_deref(),
             Some(
                 "Warning: Razer Basilisk V3 X HyperSpeed has not been tested with OpenSynapse \
-                 yet; writes may not work as expected. Reads are safe."
+                 yet; writes may not work as expected. Reads are safe. Please \
+                 report: opensynapse report"
             )
         );
         assert!(
@@ -1169,6 +1203,8 @@ mod tests {
         assert!(writes(&["sleep", "set", "300"]));
         assert!(writes(&["buttons", "set", "4", "off"]));
         assert!(writes(&["profile", "apply", "p.toml"]));
+        assert!(writes(&["lighting", "set", "off"]));
+        assert!(!writes(&["lighting", "get"]));
         assert!(!writes(&["dpi", "get"]));
         assert!(!writes(&["dpi-stages"]));
         assert!(!writes(&["polling", "get"]));

@@ -34,6 +34,7 @@ pub fn setting_to_wire(s: Setting) -> WireSetting {
         Setting::Sleep(v) => WireSetting::Sleep(v),
         Setting::Button(a) => WireSetting::Button(a),
         Setting::DpiStages { storage, stages } => WireSetting::DpiStages { storage, stages },
+        Setting::Lighting { effect, brightness } => WireSetting::Lighting { effect, brightness },
     }
 }
 
@@ -47,6 +48,7 @@ pub fn setting_from_wire(s: WireSetting) -> Setting {
         WireSetting::Sleep(v) => Setting::Sleep(v),
         WireSetting::Button(a) => Setting::Button(a),
         WireSetting::DpiStages { storage, stages } => Setting::DpiStages { storage, stages },
+        WireSetting::Lighting { effect, brightness } => Setting::Lighting { effect, brightness },
     }
 }
 
@@ -126,9 +128,9 @@ pub fn registry_device(pid: u16) -> Option<&'static Device> {
         .map(|m| m.device())
 }
 
-/// Only protocol 2.5 is implemented.
+/// Protocols OpenSynapse implements (owner: [`Protocol::is_supported`]).
 pub fn is_supported(protocol: Protocol) -> bool {
-    protocol == Protocol::V25
+    protocol.is_supported()
 }
 
 pub fn device_info(e: &HidEntry) -> DeviceInfo {

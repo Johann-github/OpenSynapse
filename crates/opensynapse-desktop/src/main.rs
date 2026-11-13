@@ -11,6 +11,7 @@ mod agent_ctl;
 mod app;
 mod app_profiles_view;
 mod backend;
+mod lighting_view;
 mod ops;
 mod remote;
 mod user_settings;

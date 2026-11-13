@@ -434,7 +434,7 @@ impl<H: Hardware> Core<H> {
             return Err(err(
                 ErrorKind::Unsupported,
                 format!(
-                    "{} speaks protocol {protocol}; only 2.5 is implemented",
+                    "{} speaks protocol {protocol}; only 2.5 and 4.0 are implemented",
                     name.unwrap_or("unknown Razer device")
                 ),
             ));

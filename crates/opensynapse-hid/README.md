@@ -29,6 +29,11 @@ HID transport and device sessions. Windows: native SetupAPI + hid.dll (`src/wind
   inferred, untested on hardware ([[Architecture/Linux and macOS port]], stage 3).
 - Enumeration keeps collections that share a path (hidapi lists each top-level collection
   of a hidraw node under one path).
+- Protocol 4.0 (inferred, untested): the framing comes from the registry protocol of the
+  PID (`framing_for_pid`). `Transport::open` builds `Session::with_framing`; the control
+  collection is the configured interface with a 64-byte feature report (report ID 2).
+  Same send algorithm; buffers are 64 bytes with report ID 2 in byte 0.
+  [[Decisions/ADR-0015 Protocol 4.0 and 3.0 support]]
 - `conflicting_process()` warns when `RazerAppEngine.exe` runs (ToolHelp snapshot).
 - `hotplug::watch`: arrival/removal of Razer interfaces without polling. Windows:
   `CM_Register_Notification` (`src/windows_hotplug.rs`, [[Decisions/ADR-0005 Agent IPC]]).

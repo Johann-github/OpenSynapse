@@ -1,4 +1,5 @@
-//! Pure encode/decode of Razer protocol 2.5 reports. No I/O. See README.md.
+//! Pure encode/decode of Razer protocol 2.5 reports and their protocol 4.0
+//! framing (`report40`, `framing`). No I/O. See README.md.
 //!
 //! Each typed module offers request builders (`get_*` / `set_*` → [`Request`]) and
 //! response parsers (`parse_*(args)`), where `args` is [`Report::args`] of the reply.
@@ -8,14 +9,17 @@ pub mod command;
 pub mod device;
 pub mod dpi;
 pub mod event;
+pub mod framing;
 pub mod hid_usage;
 pub mod lighting;
 pub mod polling;
 pub mod power;
 pub mod profile;
 pub mod report;
+pub mod report40;
 
 pub use command::Command;
+pub use framing::{Encoder, Framing, Wire};
 pub use report::{
     ARGS_LEN, Disposition, FEATURE_REPORT_LEN, REPORT_LEN, Report, Request, Status,
     TransactionCounter,
@@ -28,6 +32,10 @@ pub enum ProtocolError {
     Length(usize),
     #[error("data_size {0} exceeds the 80-byte argument area")]
     DataSize(u8),
+    #[error("data_size {size} exceeds the {max}-byte argument area of this frame")]
+    FrameDataSize { size: u8, max: usize },
+    #[error("frame has {got} bytes, expected {expected}")]
+    FrameLength { got: usize, expected: usize },
     #[error("{len} argument bytes exceed data_size {data_size}")]
     ArgsTooLong { len: usize, data_size: u8 },
     #[error("response too short: need {need} argument bytes, got {got}")]
