@@ -7,7 +7,9 @@ updated: 2026-11-12
 Parked items, ranked. Pick from here when [[Status]] "Resume here" is empty.
 
 ## Reverse engineering
-- **Battery-level events (07/xx, event report 5).** The Viper V3 HyperSpeed runs on one AA battery
+- ✅ Battery-level event observed 2026-11-13 (`05 31 …`, [[RE-Log/2026-11-13 Battery event capture]]).
+  Still open: its granularity (per % or thresholds), low-battery warning.
+- ~~**Battery-level events (07/xx, event report 5).**~~ The Viper V3 HyperSpeed runs on one AA battery
   and cannot charge ([[Devices/Viper V3 HyperSpeed]]), so charging events are out. Level events:
   leave `opensynapse hid listen` running over a longer session, or test with a rechargeable device.
   → [[RE-Log/2026-11-10 Hardware events capture]]

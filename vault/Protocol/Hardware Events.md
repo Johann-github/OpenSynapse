@@ -172,4 +172,7 @@ is used twice (THX and haptic gain). The parser type decides which meaning appli
 ## Viper V3 HyperSpeed (hardware, 2026-11-10)
 - Events arrive on **MI_01 COL06** (usage page 0x0001, usage 0x0000, input 16 bytes), in device mode Normal (observed).
 - DPI button press → `05 02 XX XX YY YY` (DPI X/Y, u16 big-endian) (observed).
+- Battery change, unprompted → `05 31 3E 00 00 01` (level 62/255 = 24 %, not charging, no external
+  power, mouse), matching the 07/80 read (observed 2026-11-13; one event in ~2.5 h, level 64 → 62).
+  → [[RE-Log/2026-11-13 Battery event capture]]
 - The agent listens there by default. → [[RE-Log/2026-11-10 Hardware events capture]]

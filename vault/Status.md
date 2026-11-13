@@ -24,8 +24,11 @@ updated: 2026-11-12
 3. ~~Start-menu shortcut: LinkTargetIDList~~ ✅ done 2026-11-13 (shell-verified, see below).
 
 ### 2026-11-13
-- 🔄 Battery-level events: `opensynapse --pid 00B8 hid listen --all-readable --seconds 14400`
-  started 15:52 (battery 25 %), log outside the repo (session scratchpad). Result → RE-Log.
+- ✅ Battery-level event observed: one `05 31 3E 00 00 01` (62/255 = 24 %) after ~2.5 h of
+  `hid listen` (15:52–~18:20, ended by host memory pressure) → [[RE-Log/2026-11-13 Battery event capture]].
+- ✅ App icon drawn in code (`opensynapse-icon`), green accent shared with the GUI
+  (`opensynapse_icon::ACCENT`; user: accent always green). Linux/macOS port: branch
+  `linux-macos-port`, stages 1–6 done, CI green (see that branch's Status).
 - ✅ Start-menu shortcut now has a LinkTargetIDList → [[Decisions/ADR-0009 Install location]].
   ✅ User-checked 2026-11-13 after rebuild + install: Properties shows the target.
   Installed exes built 2026-11-13 from `a2b2bab`.
