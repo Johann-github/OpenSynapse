@@ -142,9 +142,6 @@ pub fn device_info(e: &HidEntry) -> DeviceInfo {
     }
 }
 
-/// A decoded hardware notification as a subscriber event. `raw` is the input
-/// report it came from (record ID, event ID, payload).
-#[cfg_attr(not(test), allow(dead_code))] // used by EventSink (no source in slice 1)
 /// The device a hardware event came from (`None` for agent-level events).
 pub fn event_path(ev: &Event) -> Option<&str> {
     match ev {
@@ -157,6 +154,9 @@ pub fn event_path(ev: &Event) -> Option<&str> {
     }
 }
 
+/// A decoded hardware notification as a subscriber event. `raw` is the input
+/// report it came from (record ID, event ID, payload). Battery (event 49) and DPI
+/// (event 2) get typed events; clients update their display from them.
 pub fn notification_to_wire(path: &str, raw: &[u8], n: Notification) -> Event {
     let path = path.to_owned();
     let raw_event = |path: String| Event::Hardware {
@@ -227,6 +227,22 @@ mod tests {
                 level: 200,
                 charging: 1
             }
+        );
+        // The full 16-byte report the Viper sent on its own (hardware capture
+        // 2026-11-13, vault/RE-Log/2026-11-13 Battery event capture.md): 62/255 = 24 %.
+        let raw = [5, 0x31, 0x3E, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+        let n = hw::decode(&raw).unwrap();
+        assert_eq!(
+            notification_to_wire("p", &raw, n),
+            Event::Battery {
+                path: "p".into(),
+                level: 0x3E,
+                charging: 0
+            }
+        );
+        assert_eq!(
+            opensynapse_protocol::power::BatteryLevel(0x3E).percent(),
+            24
         );
         let raw = [5, 0x05];
         let n = hw::decode(&raw).unwrap();
