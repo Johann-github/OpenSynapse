@@ -33,7 +33,10 @@ updated: 2026-11-12
   hardware later). Stage 1: `.github/workflows/ci.yml` (Windows/Ubuntu/macOS: fmt, clippy,
   test). Port work lives on branch **`linux-macos-port`** (user 2026-11-13: not on `main`).
   ✅ Stage 1 (CI) + stage 2 (compile clean) done: CI green on Windows/Ubuntu/macOS.
-  **Next:** stage 3 (Linux HID: udev rule, input reports, hotplug), CI-only until hardware.
+  ✅ Stage 3 (Linux HID: udev rule, input reports, hotplug → [[Decisions/ADR-0010 Linux hotplug]])
+  merged, CI green on all three (2026-11-13), all **inferred** (no hardware).
+  🔄 Linux input reader without the 1 s wakeup (raw hidraw + poll + eventfd), agent running.
+  **Next:** stage 4 (Linux agent: autostart, install).
 
 Mouse state at end of day 2026-11-12: DPI 800 (stages 400/800, active 2, volatile + persistent),
 1000 Hz, sleep 300 s, button 4 = mouse button 4 in slot 0 and slot 1, wake hint off.
