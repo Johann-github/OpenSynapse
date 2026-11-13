@@ -160,6 +160,11 @@ fn apply_profile(
     let (toml, _) = crate::profile::read_profile(file)?;
     let mut c = connect()?;
     let device = select(&mut c, pid, path)?;
+    if let Some(pid) = target_pid(&mut c, &device) {
+        let m = opensynapse_device_registry::Registry::embedded()
+            .lookup(opensynapse_device_registry::RAZER_VID, pid);
+        crate::warn_if_untested(m.map(|m| m.device()));
+    }
     let req = Request::ApplyProfile {
         device: device.clone(),
         toml,
@@ -280,6 +285,18 @@ fn watch() -> Result<()> {
         }
     }
     Ok(())
+}
+
+/// USB PID of `device`; a path is resolved through the agent's device list.
+/// `None` if the agent does not list it (the apply call then reports the error).
+fn target_pid(c: &mut Client, device: &DeviceRef) -> Option<u16> {
+    match device {
+        DeviceRef::Pid(p) => Some(*p),
+        DeviceRef::Path(path) => match call(c, Request::ListDevices).ok()? {
+            Reply::Devices { list, .. } => list.iter().find(|d| &d.path == path).map(|d| d.pid),
+            _ => None,
+        },
+    }
 }
 
 /// The device a `snapshot` targets from the CLI flags, or `None` to pick automatically.

@@ -1476,6 +1476,7 @@ battery = true
 lighting = { chroma = false }
 synapse_class = "rzDevice25DualLinkMouse"
 evidence = "synapse-manifest"
+tested = true
 
 [[device]]
 name = "Razer Basilisk V3 X HyperSpeed"

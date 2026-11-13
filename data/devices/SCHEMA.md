@@ -30,6 +30,7 @@ Rule: only factual values. A field that is not known is **omitted** (never guess
 | `synapse_class` | string | no | Name of the Synapse device-driver class used for the primary PID |
 | `synapse4` | bool | no | `false` = only known from Synapse's legacy (Synapse 2) list, not supported by Synapse 4 |
 | `evidence` | enum | yes | `synapse-manifest` `synapse-js` `openrazer` `inferred` |
+| `tested` | bool | no | `true` only when OpenSynapse has been tested on this product with real hardware (default `false`). Front-ends warn before writing to untested devices; writes are not blocked |
 
 ### `lighting`
 - `{ chroma = false }` — Synapse flags the product as non-Chroma (no user lighting).

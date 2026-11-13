@@ -1,0 +1,49 @@
+# Windows release: on a tag `v*`, build the three exes on GitHub and attach a zip
+# plus SHA-256 to a DRAFT pre-release. Nothing is published until a maintainer
+# reviews the draft and clicks "Publish". Notes: docs/release-notes/<tag>.md.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rust toolchain
+        run: rustup show
+      - name: Test
+        run: cargo test --workspace
+      - name: Build
+        run: cargo build --release --workspace --locked
+      - name: Package
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $name = "OpenSynapse-$tag-windows-x64"
+          New-Item -ItemType Directory $name | Out-Null
+          foreach ($exe in "opensynapse", "opensynapse-agent", "opensynapse-desktop") {
+            Copy-Item "target/release/$exe.exe" $name
+          }
+          Copy-Item README.md, LICENSE-MIT, LICENSE-APACHE $name
+          Compress-Archive -Path $name -DestinationPath "$name.zip"
+          $hash = (Get-FileHash "$name.zip" -Algorithm SHA256).Hash.ToLower()
+          "$hash  $name.zip" | Out-File -Encoding ascii "$name.zip.sha256"
+          "ZIP=$name.zip" >> $env:GITHUB_ENV
+      - name: Draft release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $notes = "docs/release-notes/$tag.md"
+          if (-not (Test-Path $notes)) { throw "missing $notes" }
+          gh release create $tag $env:ZIP "$env:ZIP.sha256" --draft --prerelease --title "OpenSynapse $tag (Windows preview)" --notes-file $notes

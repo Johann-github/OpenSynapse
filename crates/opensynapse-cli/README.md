@@ -8,6 +8,13 @@ Writes are dry runs unless `--apply`; they read the old value first, write, read
 and print the restore command. `--force` overrides range checks and the
 Razer-software-running guard.
 
+Before a write command (`dpi set`, `dpi-stages set`, `polling set`, `sleep set`,
+`buttons set`, `profile apply`, `agent apply`; dry run and `--apply`) to a device the
+registry does not mark as hardware-tested (`Device::hardware_tested`), one line goes to
+stderr: `Warning: <name> has not been tested with OpenSynapse yet; writes may not work as
+expected. Reads are safe.` The write is not blocked and exit codes are unchanged. `info`
+prints `Tested with OpenSynapse: yes|no`.
+
 DPI stages (class 04, 04/86 get, 04/06 set, see [[Protocol/Commands 2.5]]):
 
     opensynapse dpi-stages [get] [--persistent]
