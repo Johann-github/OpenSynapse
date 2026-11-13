@@ -473,6 +473,9 @@ impl App {
                 self.refresh();
             }
         });
+        if let Some(note) = row.untested_note() {
+            ui.colored_label(WARN, note);
+        }
         self.last_write_box(ui);
         let snap = match &self.snapshot {
             None => {

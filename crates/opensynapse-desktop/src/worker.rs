@@ -111,6 +111,19 @@ impl DeviceRow {
     pub fn supported(&self) -> bool {
         self.protocol == Protocol::V25
     }
+
+    /// Warning for the device panel when OpenSynapse was never tested on this
+    /// device (registry `Device::hardware_tested`), else `None`.
+    pub fn untested_note(&self) -> Option<&'static str> {
+        if self.device.is_some_and(|d| d.hardware_tested()) {
+            None
+        } else {
+            Some(
+                "Not tested with OpenSynapse yet: changes may not work as expected. \
+                 Reading is safe.",
+            )
+        }
+    }
 }
 
 /// Start the worker. Dropping the returned `Sender` ends the thread.
@@ -480,5 +493,17 @@ impl Agent {
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn untested_note_only_for_untested_devices() {
+        assert_eq!(DeviceRow::new("p".into(), 0x00B8).untested_note(), None);
+        assert!(DeviceRow::new("p".into(), 0x00B9).untested_note().is_some());
+        assert!(DeviceRow::new("p".into(), 0xFFFF).untested_note().is_some());
     }
 }

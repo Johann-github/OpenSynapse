@@ -148,6 +148,9 @@ pub struct Device {
     pub synapse_class: Option<String>,
     pub synapse4: Option<bool>,
     pub evidence: Evidence,
+    /// Hardware-tested with OpenSynapse; read through [`Device::hardware_tested`].
+    #[serde(default)]
+    tested: bool,
     #[serde(default)]
     pub variants: Vec<Variant>,
 }
@@ -160,6 +163,13 @@ impl Device {
             Some(OneOrMany::One(p)) => std::slice::from_ref(p),
             Some(OneOrMany::Many(v)) => v,
         }
+    }
+
+    /// True if OpenSynapse has been tested on this product with real hardware
+    /// (`tested = true` in `data/devices`). Writes to other devices are allowed but
+    /// unverified; front-ends warn before them.
+    pub fn hardware_tested(&self) -> bool {
+        self.tested
     }
 
     /// True if the DPI value fits the sensor's range and step (when known).
@@ -297,6 +307,21 @@ mod tests {
         assert_eq!(d.lighting, Some(Lighting::Chroma { chroma: false }));
         assert!(d.dpi_valid(800) && d.dpi_valid(30000));
         assert!(!d.dpi_valid(825) && !d.dpi_valid(50) && !d.dpi_valid(30050));
+        assert!(d.hardware_tested());
+    }
+
+    #[test]
+    fn only_the_viper_is_hardware_tested() {
+        let r = Registry::embedded();
+        let tested: Vec<u16> = r
+            .devices()
+            .iter()
+            .filter(|d| d.hardware_tested())
+            .map(|d| d.pid)
+            .collect();
+        assert_eq!(tested, [0x00B8]);
+        let basilisk = r.lookup(RAZER_VID, 0x00B9).unwrap().device();
+        assert!(!basilisk.hardware_tested());
     }
 
     #[test]
@@ -329,6 +354,7 @@ mod tests {
             dongle_pid = [0x0A78, 0x0A79]
             lighting = { matrix = [1, 2], leds = 2 }
             evidence = "inferred"
+            tested = false
             "#,
         )
         .unwrap();

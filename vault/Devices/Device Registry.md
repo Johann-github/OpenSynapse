@@ -6,7 +6,9 @@ tags: [devices, moc]
 Machine-readable source: `data/devices/*.toml` (loaded by `opensynapse-device-registry`).
 Schema: `data/devices/SCHEMA.md`. Build log: [[RE-Log/2026-11-09 Device database]].
 
-- [[Devices/Viper V3 HyperSpeed]]: dev hardware, PID `0x00B8`
+- [[Devices/Viper V3 HyperSpeed]]: dev hardware, PID `0x00B8`. The only entry with
+  `tested = true` (hardware-tested with OpenSynapse, 2026-11-13); CLI and GUI warn before
+  writing to any other device (`Device::hardware_tested`).
 - Protocol background: [[Protocol/Overview]], [[Protocol/Report Format 2.5]], [[Protocol/Protocol 3.0 and 4.0]]
 
 Status: 🟢 first full extraction (2026-11-09). 448 products, 582 distinct USB PIDs including receiver and Bluetooth variants.

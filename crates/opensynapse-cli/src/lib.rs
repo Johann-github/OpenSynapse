@@ -318,6 +318,49 @@ fn parse_hex_u16(s: &str) -> Result<u16, String> {
     u16::from_str_radix(t, 16).map_err(|e| format!("not a hex PID: {e}"))
 }
 
+impl Command {
+    /// True for subcommands that can write to the device (dry run or `--apply`).
+    fn writes(&self) -> bool {
+        matches!(
+            self,
+            Command::Dpi {
+                action: DpiAction::Set { .. }
+            } | Command::DpiStages {
+                action: Some(DpiStagesAction::Set { .. })
+            } | Command::Polling {
+                action: PollingAction::Set { .. },
+                ..
+            } | Command::Sleep {
+                action: SleepAction::Set { .. }
+            } | Command::Buttons {
+                action: ButtonsAction::Set { .. }
+            } | Command::Profile {
+                action: ProfileAction::Apply { .. }
+            }
+        )
+    }
+}
+
+/// The stderr line shown before a write to a device that OpenSynapse was never
+/// tested on (`Device::hardware_tested`), or `None` for a tested device.
+pub(crate) fn untested_warning(device: Option<&Device>) -> Option<String> {
+    match device {
+        Some(d) if d.hardware_tested() => None,
+        d => Some(format!(
+            "Warning: {} has not been tested with OpenSynapse yet; writes may not work as \
+             expected. Reads are safe.",
+            d.map_or("this device", |d| d.name.as_str())
+        )),
+    }
+}
+
+/// Print [`untested_warning`] to stderr, if any. Never blocks the write.
+pub(crate) fn warn_if_untested(device: Option<&Device>) {
+    if let Some(line) = untested_warning(device) {
+        eprintln!("{line}");
+    }
+}
+
 pub fn run(cli: Cli) -> Result<()> {
     if cli.verbose {
         tracing_subscriber::fmt()
@@ -347,6 +390,9 @@ pub fn run(cli: Cli) -> Result<()> {
     }
 
     let mut dev = Target::select(&transport, cli.pid)?;
+    if cli.command.writes() {
+        warn_if_untested(dev.device);
+    }
     match cli.command {
         Command::List
         | Command::Agent { .. }
@@ -498,6 +544,11 @@ fn info(dev: &mut Target) -> Result<()> {
         }
         println!("Battery: {}", if d.battery { "yes" } else { "no" });
     }
+    let tested = dev.device.is_some_and(Device::hardware_tested);
+    println!(
+        "Tested with OpenSynapse: {}",
+        if tested { "yes" } else { "no" }
+    );
     Ok(())
 }
 
@@ -1062,6 +1113,48 @@ mod tests {
     #[test]
     fn cli_definition_is_valid() {
         Cli::command().debug_assert();
+    }
+
+    #[test]
+    fn untested_warning_line() {
+        let reg = Registry::embedded();
+        let viper = reg.lookup(RAZER_VID, 0x00B8).unwrap().device();
+        assert_eq!(untested_warning(Some(viper)), None);
+        let other = reg.lookup(RAZER_VID, 0x00B9).unwrap().device();
+        assert_eq!(
+            untested_warning(Some(other)).as_deref(),
+            Some(
+                "Warning: Razer Basilisk V3 X HyperSpeed has not been tested with OpenSynapse \
+                 yet; writes may not work as expected. Reads are safe."
+            )
+        );
+        assert!(
+            untested_warning(None)
+                .unwrap()
+                .starts_with("Warning: this device ")
+        );
+    }
+
+    #[test]
+    fn write_commands_are_flagged() {
+        let writes = |argv: &[&str]| {
+            let argv = std::iter::once("opensynapse").chain(argv.iter().copied());
+            Cli::try_parse_from(argv).unwrap().command.writes()
+        };
+        assert!(writes(&["dpi", "set", "800"]));
+        assert!(writes(&["dpi-stages", "set", "--active", "2"]));
+        assert!(writes(&["polling", "set", "1000"]));
+        assert!(writes(&["sleep", "set", "300"]));
+        assert!(writes(&["buttons", "set", "4", "off"]));
+        assert!(writes(&["profile", "apply", "p.toml"]));
+        assert!(!writes(&["dpi", "get"]));
+        assert!(!writes(&["dpi-stages"]));
+        assert!(!writes(&["polling", "get"]));
+        assert!(!writes(&["sleep", "get"]));
+        assert!(!writes(&["buttons", "get", "4"]));
+        assert!(!writes(&["profile", "export"]));
+        assert!(!writes(&["info"]));
+        assert!(!writes(&["battery"]));
     }
 
     #[test]
