@@ -1,6 +1,8 @@
 //! Per-user local endpoint. Windows: named pipe
 //! `\\.\pipe\opensynapse-agent-<user SID>`, reachable only by the same user;
-//! Unix: a 0600 socket in `$XDG_RUNTIME_DIR` (compile-only for now).
+//! Unix: a 0600 socket in `$XDG_RUNTIME_DIR`, on macOS in
+//! `~/Library/Application Support/OpenSynapse` ([`socket_path`]; untested on
+//! hardware).
 //!
 //! API (same on every platform):
 //! - [`default_pipe_name`]: the current user's endpoint name.
@@ -16,6 +18,9 @@
 mod windows;
 #[cfg(windows)]
 pub use windows::{Conn, Listener, Waker, connect, default_pipe_name};
+
+#[cfg(any(unix, test))]
+pub mod socket_path;
 
 #[cfg(unix)]
 mod unix;

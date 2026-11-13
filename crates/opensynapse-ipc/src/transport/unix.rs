@@ -1,21 +1,32 @@
-//! Unix transport (compile-only for now): a stream socket at
-//! `$XDG_RUNTIME_DIR/opensynapse-agent.sock` with mode 0600. `$XDG_RUNTIME_DIR`
-//! is per user and 0700, so only the same user can reach the socket.
+//! Unix transport: a stream socket with mode 0600 at
+//! [`super::socket_path::socket_path`] (`$XDG_RUNTIME_DIR/opensynapse-agent.sock`;
+//! macOS `~/Library/Application Support/OpenSynapse/opensynapse-agent.sock`).
+//! Both folders are private to the user (0700), so only the same user can reach
+//! the socket. Untested on hardware (ADR-0012).
 
 use std::io::{self, Read, Write};
-use std::os::unix::fs::PermissionsExt;
+use std::os::unix::fs::{DirBuilderExt, PermissionsExt};
 use std::os::unix::net::{UnixListener, UnixStream};
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use super::socket_path::{Layout, socket_path};
+
 /// The current user's socket path.
 pub fn default_pipe_name() -> io::Result<String> {
-    let dir = std::env::var_os("XDG_RUNTIME_DIR")
-        .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "XDG_RUNTIME_DIR is not set"))?;
-    let path = PathBuf::from(dir).join("opensynapse-agent.sock");
-    path.into_os_string()
-        .into_string()
-        .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "socket path is not UTF-8"))
+    let var = |k: &str| -> io::Result<Option<String>> {
+        std::env::var_os(k)
+            .map(|v| {
+                v.into_string().map_err(|_| {
+                    io::Error::new(io::ErrorKind::InvalidData, format!("{k} is not UTF-8"))
+                })
+            })
+            .transpose()
+    };
+    match Layout::CURRENT {
+        Layout::Xdg => socket_path(Layout::Xdg, var("XDG_RUNTIME_DIR")?.as_deref(), None),
+        Layout::MacOs => socket_path(Layout::MacOs, None, var("HOME")?.as_deref()),
+    }
 }
 
 /// Server side: the bound socket makes this process the only agent.
@@ -29,6 +40,17 @@ impl Listener {
     /// (nobody accepting) is replaced.
     pub fn bind(name: &str) -> io::Result<Self> {
         let path = PathBuf::from(name);
+        // macOS: `~/Library/Application Support/OpenSynapse` may not exist yet.
+        // Created private (0700); an existing folder is left as it is.
+        if let Some(dir) = path.parent()
+            && !dir.as_os_str().is_empty()
+            && !dir.exists()
+        {
+            std::fs::DirBuilder::new()
+                .recursive(true)
+                .mode(0o700)
+                .create(dir)?;
+        }
         if path.exists() {
             if UnixStream::connect(&path).is_ok() {
                 return Err(io::Error::new(

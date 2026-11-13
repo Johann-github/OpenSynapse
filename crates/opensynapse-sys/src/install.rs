@@ -5,7 +5,8 @@
 //! folder Windows itself suggests for per-user programs). Linux: `~/.local/bin`
 //! (on `PATH` in common distributions; shared with other programs, so uninstall
 //! keeps the folder; `vault/Decisions/ADR-0011 Linux autostart and install.md`).
-//! Other systems (macOS, not decided yet): `$XDG_DATA_HOME/OpenSynapse/bin` or
+//! macOS: also `~/.local/bin` (`vault/Decisions/ADR-0012 macOS agent.md`).
+//! Other Unix systems (not decided): `$XDG_DATA_HOME/OpenSynapse/bin` or
 //! `~/.local/share/OpenSynapse/bin`.
 //!
 //! Everything here except [`dir`] and [`copy_file`] is pure: the CLI asks which
@@ -66,15 +67,19 @@ pub fn dir_from_xdg(data_home: Option<&str>, home: Option<&str>) -> Option<PathB
 }
 
 /// `$HOME/.local/bin` (Linux: the per-user executables folder of the
-/// file-hierarchy convention, on `PATH` in common distributions).
+/// file-hierarchy convention, on `PATH` in common distributions; macOS: the
+/// same folder by convention of per-user CLI installers, ADR-0012).
 pub fn dir_from_home(home: Option<&str>) -> Option<PathBuf> {
     let home = home.filter(|h| !h.trim().is_empty())?;
     Some(PathBuf::from(home).join(".local").join("bin"))
 }
 
-/// The default install folder is shared with other programs (Linux
-/// `~/.local/bin`): uninstall deletes only our files and keeps the folder.
-pub const DEFAULT_DIR_SHARED: bool = cfg!(target_os = "linux");
+/// The default install folder uses `~/.local/bin` (Linux, macOS).
+const DEFAULT_DIR_IS_LOCAL_BIN: bool = cfg!(any(target_os = "linux", target_os = "macos"));
+
+/// The default install folder is shared with other programs (`~/.local/bin`
+/// on Linux and macOS): uninstall deletes only our files and keeps the folder.
+pub const DEFAULT_DIR_SHARED: bool = DEFAULT_DIR_IS_LOCAL_BIN;
 
 /// The environment variable(s) the default folder comes from, for messages.
 pub const DIR_ROOT_VAR: &str = if cfg!(windows) {
@@ -88,7 +93,7 @@ pub fn dir() -> Option<PathBuf> {
     let var = |k: &str| std::env::var(k).ok();
     if cfg!(windows) {
         dir_from_local_appdata(var("LOCALAPPDATA").as_deref())
-    } else if cfg!(target_os = "linux") {
+    } else if DEFAULT_DIR_IS_LOCAL_BIN {
         dir_from_home(var("HOME").as_deref())
     } else {
         dir_from_xdg(var("XDG_DATA_HOME").as_deref(), var("HOME").as_deref())

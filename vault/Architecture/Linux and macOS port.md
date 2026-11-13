@@ -14,9 +14,10 @@ below is checked by GitHub Actions until a hardware test is possible.
 | HID feature reports | own SetupAPI backend ([[Decisions/ADR-0003 Own Windows HID backend]]) | `hidapi_backend.rs` (CI-compiled, untested on hardware) |
 | Hotplug | `windows_hotplug.rs` | Linux: udev netlink ([[Decisions/ADR-0010 Linux hotplug]]); macOS `Unsupported` |
 | HID input reports (events) | `windows_input.rs` | Linux `linux_input.rs` (hidraw + `poll`/eventfd); macOS `hidapi_input.rs` (stage 3 part 2, untested on hardware) |
-| IPC | named pipe | `transport/unix.rs`, socket in `$XDG_RUNTIME_DIR` (compile-only; macOS has no `XDG_RUNTIME_DIR`) |
-| Autostart | HKCU Run ([[Decisions/ADR-0006 Agent autostart]]) | Linux: XDG autostart entry `~/.config/autostart/opensynapse-agent.desktop` ([[Decisions/ADR-0011 Linux autostart and install]], inferred); macOS `Unsupported` |
-| Install location | `%LOCALAPPDATA%\Programs` ([[Decisions/ADR-0009 Install location]]) | Linux: `~/.local/bin` + app-menu launcher `~/.local/share/applications/opensynapse.desktop` (ADR-0011, inferred); macOS: XDG data dir placeholder (stage 5) |
+| IPC | named pipe | `transport/unix.rs`: Linux socket in `$XDG_RUNTIME_DIR`; macOS `~/Library/Application Support/OpenSynapse/opensynapse-agent.sock` ([[Decisions/ADR-0012 macOS agent]], inferred) |
+| Autostart | HKCU Run ([[Decisions/ADR-0006 Agent autostart]]) | Linux: XDG autostart entry `~/.config/autostart/opensynapse-agent.desktop` ([[Decisions/ADR-0011 Linux autostart and install]], inferred); macOS: LaunchAgent `~/Library/LaunchAgents/io.github.johann-github.opensynapse.agent.plist` (ADR-0012, inferred) |
+| Install location | `%LOCALAPPDATA%\Programs` ([[Decisions/ADR-0009 Install location]]) | Linux: `~/.local/bin` + app-menu launcher `~/.local/share/applications/opensynapse.desktop` (ADR-0011, inferred); macOS: `~/.local/bin`, no GUI launcher yet (`.app` bundle open; ADR-0012, inferred) |
+| Refuse elevated agent | `TokenElevation` | Linux euid from `/proc/self/status`; macOS `geteuid` (own declaration, no `libc`; ADR-0012) |
 | Per-app foreground watch | WinEvent hook ([[Decisions/ADR-0007 Per-app profiles]]) | `Unsupported` (feature inactive) |
 | GUI | eframe/glow | eframe has `x11` + `wayland` features for Linux |
 
@@ -72,8 +73,18 @@ below is checked by GitHub Actions until a hardware test is possible.
    (`Exec=` quoting per spec). Same CLI/GUI API. Socket as today. →
    [[Decisions/ADR-0011 Linux autostart and install]]. Open: `Process::open` (wait for the old
    agent's exit during `install`) is still Windows-only.
-5. **macOS**: hidapi IOKit (check: non-exclusive open, so the OS keeps the mouse), socket path
-   fallback when `XDG_RUNTIME_DIR` is unset (e.g. `$TMPDIR`), LaunchAgent plist for autostart.
+5. ✅ **macOS agent** (2026-11-13, **inferred**, unit-tested on Windows, `opensynapse-sys` +
+   `opensynapse-ipc` type-checked + clippy-clean for `aarch64-apple-darwin`, no Mac tested):
+   socket `~/Library/Application Support/OpenSynapse/opensynapse-agent.sock` (folder created
+   0700, needs only `HOME`; `XDG_RUNTIME_DIR` ignored on macOS; `$TMPDIR` rejected because the
+   system cleans it; paths over 103 bytes refused); autostart = LaunchAgent plist in
+   `~/Library/LaunchAgents` (`RunAtLoad` true, `KeepAlive` false, `LimitLoadToSessionType` Aqua,
+   XML-escaped path, no `launchctl`: takes effect at next login); install to `~/.local/bin`
+   (shared, like Linux); agent refuses euid 0 via a hand-declared `geteuid` (no `libc` crate).
+   → [[Decisions/ADR-0012 macOS agent]]. Open: GUI launcher (`.app` bundle in `~/Applications`);
+   input reader still wakes once per second (blocking IOKit callback + CFRunLoop needs a Mac to
+   test); hidapi non-exclusive open and Login Items switch-off unverified; `Process::open`
+   still Windows-only.
 6. **Per-app profiles off Windows** (optional): X11 `_NET_ACTIVE_WINDOW`; Wayland has no
    generic API (stay `Unsupported`); macOS `NSWorkspace` activation notifications.
 7. **Hardware test** on a real Linux/macOS machine with the Viper (or WSL2 + usbipd): same

@@ -2,16 +2,20 @@
 //! elevated, reach the parent console from a GUI-subsystem binary, and the
 //! per-user install location. Decisions: `vault/Decisions/ADR-0006 Agent
 //! autostart.md`, `vault/Decisions/ADR-0009 Install location.md`,
-//! `vault/Decisions/ADR-0011 Linux autostart and install.md`.
+//! `vault/Decisions/ADR-0011 Linux autostart and install.md`,
+//! `vault/Decisions/ADR-0012 macOS agent.md`.
 //!
-//! Windows and Linux. On Linux, [`autostart`] is an XDG autostart entry and
-//! [`is_elevated`] means "effective user is root". On other systems
-//! [`autostart`] reports `Unsupported` and [`is_elevated`] answers `false`;
-//! [`attach_parent_console`] does nothing outside Windows.
+//! Windows, Linux and macOS. On Linux, [`autostart`] is an XDG autostart entry;
+//! on macOS a launchd LaunchAgent plist; on both [`is_elevated`] means
+//! "effective user is root". On other systems [`autostart`] reports
+//! `Unsupported` and [`is_elevated`] answers `false`; [`attach_parent_console`]
+//! does nothing outside Windows.
 
 use std::io;
 use std::path::{Path, PathBuf};
 
+#[cfg(target_os = "macos")]
+mod macos;
 #[cfg(windows)]
 mod windows;
 
@@ -36,6 +40,7 @@ pub const GUI_EXE: &str = if cfg!(windows) {
 
 pub mod desktop_entry;
 pub mod install;
+pub mod launch_agent;
 pub mod shortcut;
 pub mod udev;
 
@@ -183,8 +188,9 @@ impl Process {
 }
 
 /// `true` when this process runs with an elevated (administrator) token; on
-/// Linux, when its effective user id is 0 (root). Linux reads the `Uid:` line
-/// of `/proc/self/status` with std, so this crate needs no `libc`.
+/// Linux and macOS, when its effective user id is 0 (root). Linux reads the
+/// `Uid:` line of `/proc/self/status` with std; macOS has no `/proc` and calls
+/// libSystem's `geteuid` through a one-line declaration. No `libc` crate either way.
 pub fn is_elevated() -> io::Result<bool> {
     #[cfg(windows)]
     {
@@ -197,7 +203,11 @@ pub fn is_elevated() -> io::Result<bool> {
             .map(|euid| euid == 0)
             .ok_or_else(|| io::Error::other("no Uid line in /proc/self/status"))
     }
-    #[cfg(not(any(windows, target_os = "linux")))]
+    #[cfg(target_os = "macos")]
+    {
+        Ok(macos::is_root())
+    }
+    #[cfg(not(any(windows, target_os = "linux", target_os = "macos")))]
     {
         Ok(false)
     }
@@ -295,12 +305,34 @@ pub mod config {
 /// [`VALUE_NAME`] under `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`
 /// (no service, no scheduled task). Linux: the XDG autostart entry
 /// `$XDG_CONFIG_HOME/autostart/opensynapse-agent.desktop`, else under
-/// `~/.config` (no systemd unit; ADR-0011).
+/// `~/.config` (no systemd unit; ADR-0011). macOS: the LaunchAgent
+/// `~/Library/LaunchAgents/<label>.plist`, read by launchd at the next login
+/// (no `launchctl`; ADR-0012).
 ///
-/// The "command" handed around is the Run value on Windows and the entry's
-/// `Exec=` value (Desktop Entry quoting, string escapes undone) on Linux.
+/// The "command" handed around is the Run value on Windows, the entry's
+/// `Exec=` value (Desktop Entry quoting, string escapes undone) on Linux, and
+/// the plain agent path (first `ProgramArguments` string) on macOS.
 pub mod autostart {
     use super::*;
+
+    /// How this OS stores the autostart command.
+    #[derive(Clone, Copy, PartialEq, Eq)]
+    enum Form {
+        /// Quoted Run value (Windows and fallback); paths compare ignoring case.
+        Windows,
+        /// Desktop Entry `Exec=` value.
+        Linux,
+        /// Plain path from the plist.
+        MacOs,
+    }
+
+    const FORM: Form = if cfg!(target_os = "linux") {
+        Form::Linux
+    } else if cfg!(target_os = "macos") {
+        Form::MacOs
+    } else {
+        Form::Windows
+    };
 
     /// Registry value name under the Run key.
     pub const VALUE_NAME: &str = "OpenSynapse Agent";
@@ -322,38 +354,39 @@ pub mod autostart {
     }
 
     /// The command that starts `exe` at login on this OS: the Run value on
-    /// Windows, the `Exec=` value on Linux.
+    /// Windows, the `Exec=` value on Linux, the path itself on macOS.
     pub fn command_line(exe: &Path) -> String {
-        if cfg!(target_os = "linux") {
-            desktop_entry::quote_exec_arg(&exe.to_string_lossy())
-        } else {
-            windows_command_line(exe)
+        match FORM {
+            Form::Linux => desktop_entry::quote_exec_arg(&exe.to_string_lossy()),
+            Form::MacOs => exe.to_string_lossy().into_owned(),
+            Form::Windows => windows_command_line(exe),
         }
     }
 
     /// The executable a stored command starts.
     pub fn exe_of(command: &str) -> PathBuf {
-        if cfg!(target_os = "linux") {
-            PathBuf::from(desktop_entry::exec_program(command))
-        } else {
-            windows_exe_of(command)
+        match FORM {
+            Form::Linux => PathBuf::from(desktop_entry::exec_program(command)),
+            Form::MacOs => PathBuf::from(command),
+            Form::Windows => windows_exe_of(command),
         }
     }
 
-    /// Does `command` start `exe`? Case-insensitive except on Linux.
+    /// Does `command` start `exe`? Case-insensitive on Windows only (on macOS
+    /// a case-only mismatch merely rewrites our plist).
     pub fn points_to(command: &str, exe: &Path) -> bool {
         let found = exe_of(command).to_string_lossy().into_owned();
         let want = exe.to_string_lossy();
-        if cfg!(target_os = "linux") {
-            found == want
-        } else {
-            found.eq_ignore_ascii_case(&want)
+        match FORM {
+            Form::Linux | Form::MacOs => found == want,
+            Form::Windows => found.eq_ignore_ascii_case(&want),
         }
     }
 
     /// The stored command, or `None` when autostart is off (on Linux also when
     /// our entry is switched off with `Hidden=true` or
-    /// `X-GNOME-Autostart-enabled=false`).
+    /// `X-GNOME-Autostart-enabled=false`; on macOS when our plist has
+    /// `Disabled` true or no `RunAtLoad` true).
     pub fn get() -> io::Result<Option<String>> {
         #[cfg(windows)]
         {
@@ -365,14 +398,20 @@ pub mod autostart {
                 .as_deref()
                 .and_then(desktop_entry::autostart_exec))
         }
-        #[cfg(not(any(windows, target_os = "linux")))]
+        #[cfg(target_os = "macos")]
+        {
+            Ok(config::read_optional(&macos_path()?)?
+                .as_deref()
+                .and_then(launch_agent::program))
+        }
+        #[cfg(not(any(windows, target_os = "linux", target_os = "macos")))]
         {
             Err(unsupported())
         }
     }
 
-    /// Start `exe` at login (replaces an existing entry). Linux: written as a
-    /// temp file + rename ([`config::write`]).
+    /// Start `exe` at login (replaces an existing entry). Linux and macOS:
+    /// written as a temp file + rename ([`config::write`]).
     pub fn enable(exe: &Path) -> io::Result<()> {
         #[cfg(windows)]
         {
@@ -380,15 +419,15 @@ pub mod autostart {
         }
         #[cfg(target_os = "linux")]
         {
-            let exe = exe.to_str().ok_or_else(|| {
-                io::Error::new(
-                    io::ErrorKind::InvalidInput,
-                    format!("{} is not valid UTF-8", exe.display()),
-                )
-            })?;
-            config::write(&linux_path()?, &desktop_entry::render_autostart(exe))
+            config::write(&linux_path()?, &desktop_entry::render_autostart(utf8(exe)?))
         }
-        #[cfg(not(any(windows, target_os = "linux")))]
+        #[cfg(target_os = "macos")]
+        {
+            let text = launch_agent::render(utf8(exe)?)
+                .map_err(|e| io::Error::new(io::ErrorKind::InvalidInput, e))?;
+            config::write(&macos_path()?, &text)
+        }
+        #[cfg(not(any(windows, target_os = "linux", target_os = "macos")))]
         {
             let _ = exe;
             Err(unsupported())
@@ -403,19 +442,38 @@ pub mod autostart {
         }
         #[cfg(target_os = "linux")]
         {
-            let path = linux_path()?;
-            match std::fs::remove_file(&path) {
-                Ok(()) => Ok(true),
-                Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(false),
-                Err(e) => Err(io::Error::new(
-                    e.kind(),
-                    format!("cannot remove {}: {e}", path.display()),
-                )),
-            }
+            remove(&linux_path()?)
         }
-        #[cfg(not(any(windows, target_os = "linux")))]
+        #[cfg(target_os = "macos")]
+        {
+            remove(&macos_path()?)
+        }
+        #[cfg(not(any(windows, target_os = "linux", target_os = "macos")))]
         {
             Err(unsupported())
+        }
+    }
+
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
+    fn utf8(exe: &Path) -> io::Result<&str> {
+        exe.to_str().ok_or_else(|| {
+            io::Error::new(
+                io::ErrorKind::InvalidInput,
+                format!("{} is not valid UTF-8", exe.display()),
+            )
+        })
+    }
+
+    /// Delete our entry file; `Ok(false)` when it was not there.
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
+    fn remove(path: &Path) -> io::Result<bool> {
+        match std::fs::remove_file(path) {
+            Ok(()) => Ok(true),
+            Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(false),
+            Err(e) => Err(io::Error::new(
+                e.kind(),
+                format!("cannot remove {}: {e}", path.display()),
+            )),
         }
     }
 
@@ -427,11 +485,19 @@ pub mod autostart {
             .ok_or_else(|| io::Error::other("cannot locate the autostart folder (HOME is not set)"))
     }
 
-    #[cfg(not(any(windows, target_os = "linux")))]
+    /// The current user's LaunchAgent plist.
+    #[cfg(target_os = "macos")]
+    fn macos_path() -> io::Result<PathBuf> {
+        launch_agent::plist_path(std::env::var("HOME").ok().as_deref()).ok_or_else(|| {
+            io::Error::other("cannot locate ~/Library/LaunchAgents (HOME is not set)")
+        })
+    }
+
+    #[cfg(not(any(windows, target_os = "linux", target_os = "macos")))]
     fn unsupported() -> io::Error {
         io::Error::new(
             io::ErrorKind::Unsupported,
-            "autostart is only implemented on Windows and Linux so far",
+            "autostart is only implemented on Windows, Linux and macOS so far",
         )
     }
 }
@@ -524,7 +590,22 @@ mod tests {
         ));
     }
 
-    #[cfg(not(target_os = "linux"))]
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn macos_command_is_the_plain_path() {
+        let exe = Path::new("/Users/u/My Apps/opensynapse-agent");
+        let c = command_line(exe);
+        assert_eq!(c, "/Users/u/My Apps/opensynapse-agent");
+        assert_eq!(exe_of(&c), exe);
+        assert!(points_to(&c, exe));
+        let plist = super::launch_agent::render(&c).unwrap();
+        assert_eq!(
+            super::launch_agent::program(&plist).as_deref(),
+            Some(c.as_str())
+        );
+    }
+
+    #[cfg(not(any(target_os = "linux", target_os = "macos")))]
     #[test]
     fn points_to_ignores_case_only() {
         let c = command_line(Path::new(r"C:\x\a.exe"));

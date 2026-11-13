@@ -20,8 +20,11 @@ value types only.
   `FILE_FLAG_FIRST_PIPE_INSTANCE` (second agent → `AddrInUse`). The client checks that
   the server process runs as the same user (`PermissionDenied` otherwise) and connects
   with identification-only impersonation. No agent → `NotFound`. `Waker` unblocks a
-  pending `accept` by connecting once. Unix: 0600 socket in `$XDG_RUNTIME_DIR`
-  (compile-only for now). `unsafe` lives only in `transport/windows.rs`.
+  pending `accept` by connecting once. Unix: 0600 socket `opensynapse-agent.sock` in
+  `$XDG_RUNTIME_DIR`; on macOS in `~/Library/Application Support/OpenSynapse` (created 0700 by
+  the server; [[Decisions/ADR-0012 macOS agent]]). The path choice is pure
+  (`transport::socket_path`, tested on every OS; refuses paths longer than `sun_path`).
+  Untested on hardware. `unsafe` lives only in `transport/windows.rs`.
 - `client`: `Client::connect[_to]` + `call` (incrementing ids, ids must match),
   `Client::subscribe[_to]` → `Subscription` iterator of events (ends on clean close).
 

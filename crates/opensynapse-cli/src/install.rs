@@ -163,7 +163,13 @@ pub fn install(dir: Option<PathBuf>, no_autostart: bool) -> Result<()> {
     }
 
     let gui = dst.join(GUI_EXE);
-    if default_location && gui.is_file() {
+    if default_location && gui.is_file() && shortcut::launcher_path().is_none() {
+        // macOS: no app bundle yet, so no menu entry (ADR-0012).
+        println!(
+            "GUI: start {} (no menu entry on this system yet).",
+            gui.display()
+        );
+    } else if default_location && gui.is_file() {
         match write_shortcut(&gui, &dst) {
             Ok(p) => println!("{}: {}", shortcut::MENU_NAME, p.display()),
             Err(e) => println!("{}: no shortcut ({e}).", shortcut::MENU_NAME),
