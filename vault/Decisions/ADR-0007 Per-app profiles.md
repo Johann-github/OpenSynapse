@@ -132,7 +132,10 @@ polling/sleep/buttons per app get one write per changed setting per switch; that
   hardware 2026-11-11, user-checked: notepad profile 800/1600, dongle replugged with notepad in
   front → 1600 kept, switch away → 800 on device and in the GUI).
 - Unsupported-protocol devices with a matching PID get an error event, nothing written.
-- Linux/macOS: the watch returns `Unsupported`; the feature is inactive there.
+- Linux/macOS: Linux X11 uses `_NET_ACTIVE_WINDOW` + `_NET_WM_PID` → `/proc/<pid>/exe`
+  (2026-11-13, inferred); Wayland, headless and macOS return `Unsupported` (macOS decided,
+  pending a Mac). Default rules file off Windows: `$XDG_CONFIG_HOME/OpenSynapse/app-profiles.toml`.
+  → [[Decisions/ADR-0013 Foreground watch on Linux and macOS]]
 
 **Evidence:**
 - Unit tests: `opensynapse-core` `app_profiles::tests` (parser, matching, path resolution, merge);

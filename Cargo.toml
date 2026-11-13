@@ -36,6 +36,9 @@ opensynapse-sys = { path = "crates/opensynapse-sys" }
 hidapi = "2"
 # Linux only (hotplug netlink socket, ADR-0010); hidapi already depends on it.
 libc = "0.2"
+# Linux only: agent foreground watch over X11 (ADR-0013). Pure-Rust connection, no
+# features (core protocol only); already locked through eframe/winit.
+x11rb = { version = "0.13", default-features = false }
 windows-sys = { version = "0.61", features = [
     "Win32_Devices_DeviceAndDriverInstallation",
     "Win32_Devices_HumanInterfaceDevice",

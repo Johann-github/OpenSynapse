@@ -27,6 +27,11 @@ tracing-subscriber.workspace = true
 [target.'cfg(windows)'.dependencies]
 windows-sys.workspace = true
 
+# Foreground watch on Linux X11 (_NET_ACTIVE_WINDOW + eventfd/poll stop), ADR-0013.
+[target.'cfg(target_os = "linux")'.dependencies]
+libc.workspace = true
+x11rb.workspace = true
+
 [dev-dependencies]
 opensynapse-device = { workspace = true, features = ["fake"] }
 
