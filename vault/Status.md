@@ -36,7 +36,9 @@ updated: 2026-11-12
   ✅ Stage 3 (Linux HID: udev rule, input reports, hotplug → [[Decisions/ADR-0010 Linux hotplug]])
   merged, CI green on all three (2026-11-13), all **inferred** (no hardware).
   ✅ Linux input reader blocks in poll + eventfd (no idle wakeups); macOS keeps a 1 s wakeup (open).
-  **Next:** stage 4 (Linux agent: autostart, install).
+  ✅ Stage 4 (Linux agent: XDG autostart, install to `~/.local/bin`, app-menu launcher, refuse
+  root) → [[Decisions/ADR-0011 Linux autostart and install]], inferred.
+  **Next:** stage 5 (macOS: socket path without `XDG_RUNTIME_DIR`, LaunchAgent, install).
 
 Mouse state at end of day 2026-11-12: DPI 800 (stages 400/800, active 2, volatile + persistent),
 1000 Hz, sleep 300 s, button 4 = mouse button 4 in slot 0 and slot 1, wake hint off.
