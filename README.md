@@ -1,56 +1,89 @@
 # OpenSynapse
 
-**A native, local-first alternative to Razer Synapse, written in Rust 🦀**
-Configure DPI, polling rate, lighting, battery, and button remapping on Razer devices.
-No account, no cloud, no telemetry, plain-TOML config.
+**A native, local-first alternative to Razer Synapse, written in Rust.**
+Configure DPI, DPI stages, polling rate, sleep timer and button assignments of Razer mice,
+with per-app profiles. No account, no cloud, no telemetry, no ads. Plain-TOML config.
 
-> Status: **early research / pre-alpha.** The protocol is being reverse engineered
-> from Synapse 4 for interoperability. See [[vault/Home|the research vault]].
+> **Status: Windows preview (v0.1.0).** Hardware-tested with one device so far, the
+> **Razer Viper V3 HyperSpeed**. The registry knows ~450 Razer products; other protocol-2.5
+> devices may work, and OpenSynapse warns before writing to one that has not been tested.
+> Linux and macOS support is in progress on the `linux-macos-port` branch.
 
-Inspired by and structured after [OpenLogi](https://github.com/AprilNEA/OpenLogi)
-(the same idea for Logitech HID++ devices).
+## What it does
+| Feature | CLI | GUI | Notes |
+|---|---|---|---|
+| Device list, firmware, serial, battery | ✅ | ✅ | battery updates live from the device's own event |
+| DPI and DPI stages | ✅ | ✅ | volatile by default, `--persistent` stores onboard |
+| Polling rate (125 / 500 / 1000 Hz) | ✅ | ✅ | |
+| Sleep timer | ✅ | ✅ | |
+| Button assignments (mouse button, key, double-click, DPI up/down, off) | ✅ | ✅ | stored onboard, work without OpenSynapse running |
+| Per-app profiles (switch settings when an app gets focus) | ✅ | ✅ | needs the background agent |
+| Profiles as TOML (export / apply / restore) | ✅ | | |
 
-## Repository = Obsidian vault
+Not supported (yet): lighting/RGB, macros, firmware updates (OpenSynapse never flashes firmware).
 
-Open this folder in Obsidian. Research notes live in `vault/`, code in `crates/`,
-every crate has a `README.md` that links into the vault so the graph view connects
-protocol notes to the code that implements them.
+## Install (Windows 10/11, x64)
+1. Download `OpenSynapse-<version>-windows-x64.zip` from the
+   [Releases](https://github.com/Johann-github/OpenSynapse/releases) page and unzip it.
+   The exes are not code-signed yet, so Windows SmartScreen may ask once ("More info" →
+   "Run anyway"). The release lists a SHA-256 checksum for the zip.
+2. Close Razer Synapse (it talks to the same device and both would interfere).
+3. In the unzipped folder, run:
+   ```
+   opensynapse.exe install
+   ```
+   This copies the three programs to `%LOCALAPPDATA%\Programs\OpenSynapse`, adds an
+   **OpenSynapse** entry to the Start menu, turns on the background agent at login (per-user,
+   no admin rights) and starts it.
+4. Open **OpenSynapse** from the Start menu.
 
-| Path | Content |
+Uninstall: `opensynapse uninstall` (stops the agent, removes autostart, Start-menu entry and
+programs; your settings in `%APPDATA%\OpenSynapse` stay).
+
+## Programs
+| File | What it is |
 |---|---|
-| `vault/Home.md` | Entry point of the vault |
-| `vault/Protocol/` | Wire protocol notes (report layout, command tables) |
-| `vault/Devices/` | Per-device / per-family notes |
-| `vault/RE-Log/` | Dated reverse-engineering log entries |
-| `vault/Architecture/` | Crate map and runtime design |
-| `vault/Decisions/` | ADRs |
-| `data/devices/` | Machine-readable device registry (facts only: IDs, ranges, features) |
-| `crates/` | Rust workspace |
+| `opensynapse-desktop.exe` | the GUI (Start menu: **OpenSynapse**) |
+| `opensynapse-agent.exe` | small background agent (~9 MB RAM, ~0 % CPU idle): owns the device, per-app profiles, live events |
+| `opensynapse.exe` | command line |
 
-## Crates
+## Command line, quick start
+```
+opensynapse list                       # connected Razer devices
+opensynapse info                       # firmware, serial, capabilities
+opensynapse dpi get
+opensynapse dpi set 1600               # dry run: shows what would be sent
+opensynapse dpi set 1600 --apply       # writes, reads back, prints the restore command
+opensynapse buttons set 4 dpi-down --apply
+opensynapse profile export --out my.toml
+opensynapse agent autostart on|off
+```
+Every write is a dry run unless you add `--apply`; after writing, OpenSynapse reads the value
+back and prints how to restore the old one. `opensynapse <command> --help` lists all options.
 
-| Crate | Role |
-|---|---|
-| `opensynapse` | CLI binary (`opensynapse`) |
-| `opensynapse-cli` | CLI dispatch |
-| `opensynapse-core` | Pure types: config, device model, actions. No I/O |
-| `opensynapse-protocol` | Pure Razer report encode/decode (protocol 2.5 / 3.0 / 4.0) |
-| `opensynapse-device-registry` | VID/PID → device identity, protocol, capabilities |
-| `opensynapse-hid` | Host transport (hidapi) + device sessions |
+## Privacy and footprint
+No network access at all, no login, no telemetry, no background updater. Config lives in
+`%APPDATA%\OpenSynapse` as TOML. Budgets: CLI < 5 MB, agent < 15 MB RAM idle,
+`opensynapse list` < 200 ms ([ADR-0002](vault/Decisions/ADR-0002%20Lean%20by%20design.md)).
 
-## Build
+## For contributors
+This repository is also an Obsidian vault: research notes in `vault/` (start at
+`vault/Status.md` and `vault/Home.md`), code in `crates/`, device data in `data/devices/`.
+Each crate's `README.md` links to the vault notes it implements. Agent/contributor rules:
+[AGENTS.md](AGENTS.md).
 
 ```sh
-cargo build
-cargo run -- list
+cargo build --release --workspace     # CLI, agent and GUI
+cargo test --workspace
 ```
 
+Inspired by [OpenLogi](https://github.com/AprilNEA/OpenLogi) (the same idea for Logitech).
+
 ## Legal
-
 OpenSynapse is an independent project, not affiliated with or endorsed by Razer Inc.
-"Razer" and "Synapse" are trademarks of Razer Inc. Reverse engineering is done
-solely for interoperability. No Razer code, binaries, or assets are included in
-this repository — notes describe observed protocol behaviour in our own words.
-See [[vault/Decisions/ADR-0001 Clean-room reverse engineering]].
+"Razer" and "Synapse" are trademarks of Razer Inc. Reverse engineering is done solely for
+interoperability. No Razer code, binaries, images or firmware are included; the notes describe
+observed protocol behaviour in our own words
+([ADR-0001](vault/Decisions/ADR-0001%20Clean-room%20reverse%20engineering.md)).
 
-Licensed under either of MIT or Apache-2.0 at your option.
+Licensed under either of [MIT](LICENSE-MIT) or [Apache-2.0](LICENSE-APACHE) at your option.
